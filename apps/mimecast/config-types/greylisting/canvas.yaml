@@ -1,0 +1,84 @@
+# =============================================================================
+# Canvas Template — Mimecast Greylisting
+#
+# Declares ONE Greylisting policy — the item. Targets the newer Policy
+# Management v1 REST API
+# (/policy-management/cloud-gateway/v1/greylisting/policies). Greylisting
+# temporarily defers unrecognized senders (a spam-mitigation technique); the
+# policy is scoped to a FROM target only — there is no recipient ("to") scope
+# on this policy type. Policies are matched by DESCRIPTION; the v1 API supports
+# a real update (PATCH /policies/{id}), so a changed policy is updated in place
+# instead of deleted and recreated.
+#
+# Field keys must match config-types/greylisting/validate.ts.
+# =============================================================================
+
+id: "mimecast-greylisting"
+name: "Greylisting Configuration"
+toolType: "mimecast"
+entityType: "greylisting"
+description: "Define Mimecast Greylisting policies as code through the Mimecast Policy Management v1 API."
+
+item:
+  label: "Greylisting Policy"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy identity and enforcement option"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The policy description — its identity. Must be unique within this
+            canvas; the app matches live policies on it.
+
+        - key: "option"
+          label: "Option"
+          fieldType: "select"
+          required: true
+          defaultValue: "apply"
+          options:
+            - label: "No action"
+              value: "no_action"
+            - label: "Apply greylisting"
+              value: "apply"
+          helpText: "Whether to apply greylisting to mail matching the From scope."
+
+    - name: "From"
+      icon: "user"
+      description: "The sender the policy applies to"
+      fields:
+        - key: "fromType"
+          label: "From Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "everyone"
+          options:
+            - label: "Everyone"
+              value: "everyone"
+            - label: "Internal addresses"
+              value: "internal_addresses"
+            - label: "External addresses"
+              value: "external_addresses"
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Profile group"
+              value: "profile_group"
+            - label: "Individual email address"
+              value: "individual_email_address"
+          helpText: "Match the sender by everyone, internal/external, domain, profile group, or exact address."
+
+        - key: "fromValue"
+          label: "From Value"
+          fieldType: "text"
+          required: false
+          helpText: >
+            The domain, the directory profile group's secure id, or the email
+            address — required unless From Type is Everyone, Internal or
+            External.

@@ -1,0 +1,9 @@
+# Defaults for a new AI Gateway appliance item.
+#
+# A FLAT map keyed by the canvas field keys. HTTPS defaults on (443); HTTP
+# defaults off. Name, host, associations and sku_addons are left blank for a
+# deliberate choice.
+https_enable: true
+https_port: 443
+http_enable: false
+http_port: 80

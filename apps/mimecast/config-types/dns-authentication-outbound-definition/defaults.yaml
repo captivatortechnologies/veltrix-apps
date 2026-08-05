@@ -1,0 +1,7 @@
+# Defaults for a new DNS Authentication - Outbound definition item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds DKIM signing enabled at the
+# stronger 2048-bit key length; the domain and selector are left blank/auto for
+# a deliberate choice.
+signDkim: true
+keyLength: 2048

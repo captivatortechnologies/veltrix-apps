@@ -1,0 +1,90 @@
+# =============================================================================
+# Canvas Template — Netskope Custom URL Categories
+#
+# Declares ONE custom category — the item. Users add as many as they need.
+# Categories group URL lists, destination profiles and predefined Netskope
+# categories under one name for use in Real-time Protection and other
+# policies. Categories are id-addressed with no lookup-by-name, so the app
+# lists all categories, matches a declared one to a live one by name, and
+# stores the id for rename-safety. Updates use PATCH and auto-deploy
+# (interactive=false). URL list and destination profile entries are given by
+# NAME and resolved to ids against the live inventory at deploy time.
+# Predefined categories are numeric string ids per Netskope's predefined
+# category list. Reconcile deletes only categories this app created.
+#
+# Field keys must match config-types/custom-categories/validate.ts.
+# =============================================================================
+
+id: "netskope-custom-categories"
+name: "Custom Category Configuration"
+toolType: "netskope"
+entityType: "custom-categories"
+description: "Define Netskope custom URL categories as code through the Netskope REST API v2."
+
+item:
+  label: "Custom Category"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Category"
+      icon: "folder"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: >
+            The custom category name. Must be unique within this canvas — the
+            app matches live categories on it and stores the id after deploy
+            for rename-safety.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 200
+          helpText: "Optional description (max 200 characters)."
+
+    - name: "Membership"
+      icon: "list"
+      description: "URL lists, destination profiles and predefined categories included/excluded"
+      fields:
+        - key: "included_url_lists"
+          label: "Included URL Lists (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "URL list names to include, one per line. Resolved to ids against the live URL lists at deploy time."
+
+        - key: "excluded_url_lists"
+          label: "Excluded URL Lists (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "URL list names to exclude, one per line. Resolved to ids against the live URL lists at deploy time."
+
+        - key: "included_destination_profiles"
+          label: "Included Destination Profiles (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Destination profile names to include, one per line. Resolved to ids against the live destination profiles at deploy time."
+
+        - key: "excluded_destination_profiles"
+          label: "Excluded Destination Profiles (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Destination profile names to exclude, one per line. Resolved to ids against the live destination profiles at deploy time."
+
+        - key: "included_predefined_categories"
+          label: "Included Predefined Categories (numeric ids, one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Numeric string ids of predefined Netskope categories to include
+            (e.g. "500"), one per line — see Settings > Security Cloud
+            Platform > Content Inspection > Custom Categories in the Netskope
+            console for the id of each predefined category.

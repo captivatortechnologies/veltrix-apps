@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — Netskope NPA Publisher Alerts Configuration
+#
+# SINGLETON — one tenant-wide alerting policy that applies automatically to
+# every NPA publisher (no per-publisher attachment). Backed by GET/PUT
+# /api/v2/infrastructure/publishers/alertsconfiguration. There is nothing to
+# key on; exactly one item is expected (extras warn — only the first
+# applies). This endpoint's JSON body uniquely uses camelCase keys — the
+# field keys below match the wire format exactly. No deploy/apply step; the
+# endpoint has no delete operation (a first-ever apply cannot be unset, only
+# overwritten by a future deploy).
+#
+# Field keys must match config-types/npa-publishers-alerts-configuration/validate.ts.
+# =============================================================================
+
+id: "netskope-npa-publishers-alerts-configuration"
+name: "NPA Publisher Alerts Configuration"
+toolType: "netskope"
+entityType: "npa-publishers-alerts-configuration"
+description: "Manage Netskope's tenant-wide NPA publisher alert notification policy via the Netskope REST API v2."
+
+item:
+  label: "Publisher Alerts Configuration"
+  identityField: "selectedUsers"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Recipients"
+      icon: "bell"
+      description: "Who receives publisher alert emails"
+      fields:
+        - key: "adminUsers"
+          label: "Admin Users (one per line)"
+          fieldType: "textarea"
+          required: true
+          helpText: "Admin email addresses that receive alert emails, one per line."
+
+        - key: "selectedUsers"
+          label: "Selected Users"
+          fieldType: "text"
+          required: true
+          helpText: "Comma-separated email addresses of the users whose publishers are monitored (e.g. \"abc@xyz.com,def@xyz.com\")."
+
+    - name: "Triggers"
+      icon: "activity"
+      description: "Which publisher events raise an alert (1-5)"
+      fields:
+        - key: "eventTypes"
+          label: "Event Types (one per line)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            One to five of: UPGRADE_WILL_START, UPGRADE_STARTED,
+            UPGRADE_SUCCEEDED, UPGRADE_FAILED, CONNECTION_FAILED — one per
+            line.

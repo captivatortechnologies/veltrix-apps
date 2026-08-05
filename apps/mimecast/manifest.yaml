@@ -1,13 +1,15 @@
 id: mimecast
 name: Mimecast
-version: "0.5.0"
+version: "0.6.0"
 vendor: Veltrix
 description: >
   Manage Mimecast configuration as code through the Mimecast API 2.0 — Managed
   URLs, Blocked Sender, Anti-Spoofing Bypass and Address Alteration policies,
-  Address Alteration Sets and Definitions, Directory Profile Groups, and Web
-  Security block/allow policies — with validation, drift detection and rollback
-  handled by the Security-as-Code pipeline.
+  Address Alteration Sets and Definitions, Directory Profile Groups, Web
+  Security block/allow policies, and — via the newer Policy Management v1 REST
+  surface — Anti-Spoofing, Greylisting, Delivery Route and DNS Authentication
+  (outbound DKIM) definitions and policies — with validation, drift detection
+  and rollback handled by the Security-as-Code pipeline.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/mimecast
@@ -52,6 +54,24 @@ permissions:
     - resource: web-security-policy
       actions: [read, write, delete]
       description: Manage Mimecast Web Security block/allow policies (Secure Web Gateway allow-block list)
+    - resource: anti-spoofing
+      actions: [read, write, delete]
+      description: Manage Mimecast Anti-Spoofing enforcement policies (Policy Management v1) — whether mail failing the spoofing check is rejected
+    - resource: greylisting
+      actions: [read, write, delete]
+      description: Manage Mimecast Greylisting policies (Policy Management v1) — temporarily defer unrecognized senders
+    - resource: delivery-route-definition
+      actions: [read, write, delete]
+      description: Manage Mimecast Delivery Route definitions (Policy Management v1) — the destination mail server for routed mail
+    - resource: delivery-route-policy
+      actions: [read, write, delete]
+      description: Manage Mimecast Delivery Route policies (Policy Management v1) — which mail is routed through a Delivery Route definition
+    - resource: dns-authentication-outbound-definition
+      actions: [read, write, delete]
+      description: Manage Mimecast DNS Authentication - Outbound (DKIM) definitions (Policy Management v1) — outbound DKIM signing per domain
+    - resource: dns-authentication-outbound-policy
+      actions: [read, write, delete]
+      description: Manage Mimecast DNS Authentication - Outbound policies (Policy Management v1) — which outbound mail is DKIM-signed by a definition
 
 pipeline:
   configurationTypes:
@@ -186,6 +206,108 @@ pipeline:
         healthCheck: config-types/managed-urls/healthCheck
         driftDetect: config-types/managed-urls/driftDetect
         getStatus: config-types/managed-urls/getStatus
+      targets:
+        componentTypes: [mimecast]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: anti-spoofing
+      name: Anti-Spoofing
+      description: Anti-Spoofing enforcement policies (Policy Management v1) — whether mail failing the spoofing check is rejected, scoped to a from/to target (description-keyed; real update via PATCH — no delete+recreate)
+      canvasTemplate: config-types/anti-spoofing/canvas.yaml
+      defaultConfig: config-types/anti-spoofing/defaults.yaml
+      handlers:
+        validate: config-types/anti-spoofing/validate
+        deploy: config-types/anti-spoofing/deploy
+        rollback: config-types/anti-spoofing/rollback
+        healthCheck: config-types/anti-spoofing/healthCheck
+        driftDetect: config-types/anti-spoofing/driftDetect
+        getStatus: config-types/anti-spoofing/getStatus
+      targets:
+        componentTypes: [mimecast]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: greylisting
+      name: Greylisting
+      description: Greylisting policies (Policy Management v1) — temporarily defer unrecognized senders, scoped to a from target (description-keyed; real update via PATCH — no delete+recreate)
+      canvasTemplate: config-types/greylisting/canvas.yaml
+      defaultConfig: config-types/greylisting/defaults.yaml
+      handlers:
+        validate: config-types/greylisting/validate
+        deploy: config-types/greylisting/deploy
+        rollback: config-types/greylisting/rollback
+        healthCheck: config-types/greylisting/healthCheck
+        driftDetect: config-types/greylisting/driftDetect
+        getStatus: config-types/greylisting/getStatus
+      targets:
+        componentTypes: [mimecast]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: delivery-route-definition
+      name: Delivery Route Definitions
+      description: Delivery Route definitions (Policy Management v1) — the destination mail server for routed mail (description-keyed; real update via PATCH; SMTP authentication is intentionally not modeled — see README Coverage)
+      canvasTemplate: config-types/delivery-route-definition/canvas.yaml
+      defaultConfig: config-types/delivery-route-definition/defaults.yaml
+      handlers:
+        validate: config-types/delivery-route-definition/validate
+        deploy: config-types/delivery-route-definition/deploy
+        rollback: config-types/delivery-route-definition/rollback
+        healthCheck: config-types/delivery-route-definition/healthCheck
+        driftDetect: config-types/delivery-route-definition/driftDetect
+        getStatus: config-types/delivery-route-definition/getStatus
+      targets:
+        componentTypes: [mimecast]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: delivery-route-policy
+      name: Delivery Route Policies
+      description: Delivery Route policies (Policy Management v1) — which mail is routed through a Delivery Route Definition, scoped to a from/to target (description-keyed; real update via PATCH — no delete+recreate)
+      canvasTemplate: config-types/delivery-route-policy/canvas.yaml
+      defaultConfig: config-types/delivery-route-policy/defaults.yaml
+      handlers:
+        validate: config-types/delivery-route-policy/validate
+        deploy: config-types/delivery-route-policy/deploy
+        rollback: config-types/delivery-route-policy/rollback
+        healthCheck: config-types/delivery-route-policy/healthCheck
+        driftDetect: config-types/delivery-route-policy/driftDetect
+        getStatus: config-types/delivery-route-policy/getStatus
+      targets:
+        componentTypes: [mimecast]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: dns-authentication-outbound-definition
+      name: DNS Authentication - Outbound Definitions
+      description: Outbound DKIM signing definitions (Policy Management v1) — Mimecast generates and holds the DKIM keypair; only description/domain/selector/keyLength are ever sent (description-keyed; real update via PATCH)
+      canvasTemplate: config-types/dns-authentication-outbound-definition/canvas.yaml
+      defaultConfig: config-types/dns-authentication-outbound-definition/defaults.yaml
+      handlers:
+        validate: config-types/dns-authentication-outbound-definition/validate
+        deploy: config-types/dns-authentication-outbound-definition/deploy
+        rollback: config-types/dns-authentication-outbound-definition/rollback
+        healthCheck: config-types/dns-authentication-outbound-definition/healthCheck
+        driftDetect: config-types/dns-authentication-outbound-definition/driftDetect
+        getStatus: config-types/dns-authentication-outbound-definition/getStatus
+      targets:
+        componentTypes: [mimecast]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: dns-authentication-outbound-policy
+      name: DNS Authentication - Outbound Policies
+      description: Outbound DKIM policies (Policy Management v1) — which outbound mail is signed by a DNS Authentication - Outbound Definition, scoped to a from/to target (description-keyed; real update via PATCH — no delete+recreate)
+      canvasTemplate: config-types/dns-authentication-outbound-policy/canvas.yaml
+      defaultConfig: config-types/dns-authentication-outbound-policy/defaults.yaml
+      handlers:
+        validate: config-types/dns-authentication-outbound-policy/validate
+        deploy: config-types/dns-authentication-outbound-policy/deploy
+        rollback: config-types/dns-authentication-outbound-policy/rollback
+        healthCheck: config-types/dns-authentication-outbound-policy/healthCheck
+        driftDetect: config-types/dns-authentication-outbound-policy/driftDetect
+        getStatus: config-types/dns-authentication-outbound-policy/getStatus
       targets:
         componentTypes: [mimecast]
         requiresCredential: true

@@ -1,17 +1,19 @@
 id: palo-alto-panorama
 name: Palo Alto Panorama
-version: "1.2.0"
+version: "1.3.0"
 vendor: Veltrix
 description: >
   Manage Palo Alto Networks Panorama / PAN-OS configuration as code through the
   PAN-OS REST API. Covers tags, address objects, service objects, address groups,
-  service groups, application groups, security pre-rules, NAT pre-rules, security
-  profiles (antivirus, anti-spyware, URL filtering, WildFire analysis) and
-  security profile groups — with validation, drift detection and rollback handled
-  by the Security-as-Code pipeline. Writes land in the Panorama candidate config
-  and are committed to Panorama (XML API) when auto-commit is on. The component
-  hostname is the Panorama management host; auth is a pre-generated PAN-OS API key
-  sent as the X-PAN-KEY header.
+  service groups, application groups, schedules, custom URL categories, external
+  dynamic lists, security/NAT/decryption/policy-based-forwarding/authentication
+  pre-rules, security profiles (antivirus, anti-spyware, vulnerability, URL
+  filtering, file blocking, WildFire analysis, data filtering), security profile
+  groups and log forwarding profiles — with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline. Writes land in the Panorama
+  candidate config and are committed to Panorama (XML API) when auto-commit is
+  on. The component hostname is the Panorama management host; auth is a
+  pre-generated PAN-OS API key sent as the X-PAN-KEY header.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/palo-alto-panorama
@@ -72,6 +74,36 @@ permissions:
     - resource: panorama-wildfire-analysis-profiles
       actions: [read, write, delete]
       description: Manage Panorama WildFire analysis profiles
+    - resource: panorama-schedules
+      actions: [read, write, delete]
+      description: Manage Panorama schedule objects
+    - resource: panorama-custom-url-categories
+      actions: [read, write, delete]
+      description: Manage Panorama custom URL categories
+    - resource: panorama-external-dynamic-lists
+      actions: [read, write, delete]
+      description: Manage Panorama external dynamic lists
+    - resource: panorama-vulnerability-profiles
+      actions: [read, write, delete]
+      description: Manage Panorama vulnerability protection profiles
+    - resource: panorama-file-blocking-profiles
+      actions: [read, write, delete]
+      description: Manage Panorama file blocking profiles
+    - resource: panorama-data-filtering-profiles
+      actions: [read, write, delete]
+      description: Manage Panorama data filtering profiles
+    - resource: panorama-log-forwarding-profiles
+      actions: [read, write, delete]
+      description: Manage Panorama log forwarding profiles
+    - resource: panorama-decryption-rules
+      actions: [read, write, delete]
+      description: Manage Panorama decryption pre-rules
+    - resource: panorama-pbf-rules
+      actions: [read, write, delete]
+      description: Manage Panorama policy-based forwarding pre-rules
+    - resource: panorama-authentication-rules
+      actions: [read, write, delete]
+      description: Manage Panorama authentication pre-rules
 
 pipeline:
   configurationTypes:
@@ -291,6 +323,186 @@ pipeline:
         healthCheck: config-types/panorama-wildfire-analysis-profiles/healthCheck
         driftDetect: config-types/panorama-wildfire-analysis-profiles/driftDetect
         getStatus: config-types/panorama-wildfire-analysis-profiles/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-schedules
+      group: "Objects"
+      name: Panorama Schedules
+      description: Schedule objects (/Objects/Schedules) — non-recurring, daily or weekly time ranges, referenced by rules
+      canvasTemplate: config-types/panorama-schedules/canvas.yaml
+      defaultConfig: config-types/panorama-schedules/defaults.yaml
+      handlers:
+        validate: config-types/panorama-schedules/validate
+        deploy: config-types/panorama-schedules/deploy
+        rollback: config-types/panorama-schedules/rollback
+        healthCheck: config-types/panorama-schedules/healthCheck
+        driftDetect: config-types/panorama-schedules/driftDetect
+        getStatus: config-types/panorama-schedules/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-custom-url-categories
+      group: "Objects"
+      name: Panorama Custom URL Categories
+      description: Custom URL categories (/Objects/CustomURLCategories) — URL List or Category Match, referenced by rules and URL filtering profiles
+      canvasTemplate: config-types/panorama-custom-url-categories/canvas.yaml
+      defaultConfig: config-types/panorama-custom-url-categories/defaults.yaml
+      handlers:
+        validate: config-types/panorama-custom-url-categories/validate
+        deploy: config-types/panorama-custom-url-categories/deploy
+        rollback: config-types/panorama-custom-url-categories/rollback
+        healthCheck: config-types/panorama-custom-url-categories/healthCheck
+        driftDetect: config-types/panorama-custom-url-categories/driftDetect
+        getStatus: config-types/panorama-custom-url-categories/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-external-dynamic-lists
+      group: "Objects"
+      name: Panorama External Dynamic Lists
+      description: External dynamic lists (/Objects/ExternalDynamicLists) — ip/domain/url feeds fetched on a recurring schedule
+      canvasTemplate: config-types/panorama-external-dynamic-lists/canvas.yaml
+      defaultConfig: config-types/panorama-external-dynamic-lists/defaults.yaml
+      handlers:
+        validate: config-types/panorama-external-dynamic-lists/validate
+        deploy: config-types/panorama-external-dynamic-lists/deploy
+        rollback: config-types/panorama-external-dynamic-lists/rollback
+        healthCheck: config-types/panorama-external-dynamic-lists/healthCheck
+        driftDetect: config-types/panorama-external-dynamic-lists/driftDetect
+        getStatus: config-types/panorama-external-dynamic-lists/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-vulnerability-profiles
+      group: "Security Profiles"
+      name: Panorama Vulnerability Protection Profiles
+      description: Vulnerability protection profiles (/Objects/VulnerabilityProtectionSecurityProfiles) — severity/CVE/category-matched rule with an action
+      canvasTemplate: config-types/panorama-vulnerability-profiles/canvas.yaml
+      defaultConfig: config-types/panorama-vulnerability-profiles/defaults.yaml
+      handlers:
+        validate: config-types/panorama-vulnerability-profiles/validate
+        deploy: config-types/panorama-vulnerability-profiles/deploy
+        rollback: config-types/panorama-vulnerability-profiles/rollback
+        healthCheck: config-types/panorama-vulnerability-profiles/healthCheck
+        driftDetect: config-types/panorama-vulnerability-profiles/driftDetect
+        getStatus: config-types/panorama-vulnerability-profiles/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-file-blocking-profiles
+      group: "Security Profiles"
+      name: Panorama File Blocking Profiles
+      description: File blocking profiles (/Objects/FileBlockingSecurityProfiles) — application/file-type/direction-matched rule with an action
+      canvasTemplate: config-types/panorama-file-blocking-profiles/canvas.yaml
+      defaultConfig: config-types/panorama-file-blocking-profiles/defaults.yaml
+      handlers:
+        validate: config-types/panorama-file-blocking-profiles/validate
+        deploy: config-types/panorama-file-blocking-profiles/deploy
+        rollback: config-types/panorama-file-blocking-profiles/rollback
+        healthCheck: config-types/panorama-file-blocking-profiles/healthCheck
+        driftDetect: config-types/panorama-file-blocking-profiles/driftDetect
+        getStatus: config-types/panorama-file-blocking-profiles/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-data-filtering-profiles
+      group: "Security Profiles"
+      name: Panorama Data Filtering Profiles
+      description: Data filtering profiles (/Objects/DataFilteringSecurityProfiles) — data-pattern-matched rule with alert/block thresholds
+      canvasTemplate: config-types/panorama-data-filtering-profiles/canvas.yaml
+      defaultConfig: config-types/panorama-data-filtering-profiles/defaults.yaml
+      handlers:
+        validate: config-types/panorama-data-filtering-profiles/validate
+        deploy: config-types/panorama-data-filtering-profiles/deploy
+        rollback: config-types/panorama-data-filtering-profiles/rollback
+        healthCheck: config-types/panorama-data-filtering-profiles/healthCheck
+        driftDetect: config-types/panorama-data-filtering-profiles/driftDetect
+        getStatus: config-types/panorama-data-filtering-profiles/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-log-forwarding-profiles
+      group: "Logging"
+      name: Panorama Log Forwarding Profiles
+      description: Log forwarding profiles (/Objects/LogForwardingProfiles) — log-type match plus Panorama/syslog/email/HTTP/SNMP-trap forwarding
+      canvasTemplate: config-types/panorama-log-forwarding-profiles/canvas.yaml
+      defaultConfig: config-types/panorama-log-forwarding-profiles/defaults.yaml
+      handlers:
+        validate: config-types/panorama-log-forwarding-profiles/validate
+        deploy: config-types/panorama-log-forwarding-profiles/deploy
+        rollback: config-types/panorama-log-forwarding-profiles/rollback
+        healthCheck: config-types/panorama-log-forwarding-profiles/healthCheck
+        driftDetect: config-types/panorama-log-forwarding-profiles/driftDetect
+        getStatus: config-types/panorama-log-forwarding-profiles/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-decryption-rules
+      group: "Policies"
+      name: Panorama Decryption Rules
+      description: Decryption pre-rules (/Policies/DecryptionPreRules) — SSL forward proxy, SSL inbound inspection or SSH proxy
+      canvasTemplate: config-types/panorama-decryption-rules/canvas.yaml
+      defaultConfig: config-types/panorama-decryption-rules/defaults.yaml
+      handlers:
+        validate: config-types/panorama-decryption-rules/validate
+        deploy: config-types/panorama-decryption-rules/deploy
+        rollback: config-types/panorama-decryption-rules/rollback
+        healthCheck: config-types/panorama-decryption-rules/healthCheck
+        driftDetect: config-types/panorama-decryption-rules/driftDetect
+        getStatus: config-types/panorama-decryption-rules/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-pbf-rules
+      group: "Policies"
+      name: Panorama Policy-Based Forwarding Rules
+      description: Policy-based forwarding pre-rules (/Policies/PolicyBasedForwardingPreRules) — forward/discard/forward-to-vsys with path monitoring and symmetric return
+      canvasTemplate: config-types/panorama-pbf-rules/canvas.yaml
+      defaultConfig: config-types/panorama-pbf-rules/defaults.yaml
+      handlers:
+        validate: config-types/panorama-pbf-rules/validate
+        deploy: config-types/panorama-pbf-rules/deploy
+        rollback: config-types/panorama-pbf-rules/rollback
+        healthCheck: config-types/panorama-pbf-rules/healthCheck
+        driftDetect: config-types/panorama-pbf-rules/driftDetect
+        getStatus: config-types/panorama-pbf-rules/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-authentication-rules
+      group: "Policies"
+      name: Panorama Authentication Rules
+      description: Authentication pre-rules (/Policies/AuthenticationPreRules) — Captive Portal / MFA enforcement matched by zone, address, user and category
+      canvasTemplate: config-types/panorama-authentication-rules/canvas.yaml
+      defaultConfig: config-types/panorama-authentication-rules/defaults.yaml
+      handlers:
+        validate: config-types/panorama-authentication-rules/validate
+        deploy: config-types/panorama-authentication-rules/deploy
+        rollback: config-types/panorama-authentication-rules/rollback
+        healthCheck: config-types/panorama-authentication-rules/healthCheck
+        driftDetect: config-types/panorama-authentication-rules/driftDetect
+        getStatus: config-types/panorama-authentication-rules/getStatus
       targets:
         componentTypes: [panorama]
         requiresCredential: true

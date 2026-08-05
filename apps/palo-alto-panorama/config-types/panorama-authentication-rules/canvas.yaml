@@ -1,0 +1,112 @@
+# =============================================================================
+# Canvas Template — Panorama Authentication Rules (/Policies/AuthenticationPreRules)
+#
+# One authentication rule in the device-group PRE rulebase — which traffic must
+# pass a Captive Portal / MFA challenge before it is allowed to continue. Zones/
+# addresses/users/service/category default to "any" when left blank. Field keys
+# must match config-types/panorama-authentication-rules/validate.ts.
+#
+# Deploy AFTER address objects & groups and zones. The referenced Authentication
+# Enforcement object (and the Authentication Profile behind it) are NOT authored
+# by this app — see README Coverage — reference an existing one by name.
+# =============================================================================
+
+id: "panorama-authentication-rules"
+name: "Panorama Authentication Rule Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-authentication-rules"
+description: "Define Panorama authentication pre-rules as code via the PAN-OS REST API (/Policies/AuthenticationPreRules). Reconciled by name."
+
+item:
+  label: "Authentication Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "user-check"
+      description: "Name and disabled state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule name — its identity for reconciliation."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When checked, the rule is deployed disabled."
+
+    - name: "Match"
+      icon: "filter"
+      description: "Zones, addresses, users, service and category"
+      fields:
+        - key: "source_zones"
+          label: "Source Zones"
+          fieldType: "tags"
+          helpText: "Source security zones. Defaults to 'any' when blank."
+
+        - key: "destination_zones"
+          label: "Destination Zones"
+          fieldType: "tags"
+          helpText: "Destination security zones. Defaults to 'any' when blank."
+
+        - key: "source_addresses"
+          label: "Source Addresses"
+          fieldType: "tags"
+          helpText: "Source address objects/groups. Defaults to 'any' when blank."
+
+        - key: "destination_addresses"
+          label: "Destination Addresses"
+          fieldType: "tags"
+          helpText: "Destination address objects/groups. Defaults to 'any' when blank."
+
+        - key: "source_users"
+          label: "Source Users"
+          fieldType: "tags"
+          helpText: "User-ID users/groups this rule matches. Defaults to 'any' when blank."
+
+        - key: "service"
+          label: "Services"
+          fieldType: "tags"
+          helpText: "Service objects/groups. Defaults to 'any' when blank."
+
+        - key: "category"
+          label: "URL Categories"
+          fieldType: "tags"
+          helpText: "PAN-DB or custom URL categories to match. Defaults to 'any' when blank."
+
+    - name: "Enforcement"
+      icon: "shield"
+      description: "How and how long"
+      fields:
+        - key: "authentication_enforcement"
+          label: "Authentication Enforcement"
+          fieldType: "text"
+          required: true
+          helpText: "Name of an existing Authentication Enforcement object (must already exist in Panorama)."
+
+        - key: "timeout"
+          label: "Timeout (minutes)"
+          fieldType: "number"
+          defaultValue: 60
+          helpText: "How long an authenticated session is remembered before re-challenging."
+
+        - key: "log_authentication_timeout"
+          label: "Log Authentication Timeout"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Log when an authenticated session times out."
+
+        - key: "log_setting"
+          label: "Log Forwarding Profile"
+          fieldType: "text"
+          helpText: "Optional log-forwarding profile name (must already exist)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."

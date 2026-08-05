@@ -3,6 +3,78 @@
 All notable changes to the Palo Alto Panorama app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.3.0 — 2026-08-05
+
+### Added
+Ten new configuration types, closing the audited coverage gaps found against
+the current PAN-OS REST API surface (cross-referenced with the
+[pypanrestv2](https://github.com/mrzepa/pypanrestv2) client and
+[terraform-provider-panos](https://github.com/PaloAltoNetworks/terraform-provider-panos)
+resource schemas — see README Coverage). Each reuses the shared `lib/panorama`
+client and staged-commit pipeline and ships the full handler set — validate,
+deploy (idempotent upsert by name with rollback data), rollback, health check,
+drift detection and status.
+
+- **Schedules** (`/Objects/Schedules`). Non-recurring date-time ranges, daily
+  time ranges, or weekly per-day time ranges. Referenced by name from any rule
+  type's `schedule` field.
+- **Custom URL Categories** (`/Objects/CustomURLCategories`). "URL List" (raw
+  URLs/domains) or "Category Match" (bundle of existing categories).
+- **External Dynamic Lists** (`/Objects/ExternalDynamicLists`). ip/domain/url
+  source types with a recurring refresh schedule (5-minute/hourly/daily/weekly/
+  monthly), exception list and certificate profile reference. Authenticated
+  source URLs are not modeled — PAN-OS masks the password on every read.
+- **Vulnerability Protection Profiles** (`/Objects/VulnerabilityProtectionSecurityProfiles`).
+  Single rule: severity/CVE/category/threat-name/host, action (as a PAN-OS
+  choice element) and packet capture — closes the profile category
+  `panorama-security-profile-groups` has referenced since 1.2.0.
+- **File Blocking Profiles** (`/Objects/FileBlockingSecurityProfiles`). Single
+  rule: applications/file-types/direction and a plain-string action (alert,
+  block, continue) — closes another profile category referenced since 1.2.0.
+- **Data Filtering Profiles** (`/Objects/DataFilteringSecurityProfiles`).
+  Single rule: a referenced Custom Data Pattern object, direction,
+  applications/file-types and alert/block thresholds — closes the last
+  remaining profile category referenced since 1.2.0.
+- **Log Forwarding Profiles** (`/Objects/LogForwardingProfiles`). Single
+  match-list entry: log type, optional filter, and forwarding to Panorama
+  and/or existing syslog/email/HTTP/SNMP-trap server profiles — closes the
+  profile `panorama-security-rules`' `log_setting` field has referenced by
+  free-text name since day one.
+- **Decryption Rules** (`/Policies/DecryptionPreRules`). SSL Forward Proxy, SSL
+  Inbound Inspection (with referenced certificate names) or SSH Proxy, with
+  no-decrypt/decrypt action and TLS handshake logging.
+- **Policy-Based Forwarding Rules** (`/Policies/PolicyBasedForwardingPreRules`).
+  Forward (egress interface, IP/FQDN next hop, path monitor with
+  disable-if-unreachable) / discard / no-PBF / forward-to-vsys actions, with
+  symmetric return and its eligible next-hop address list.
+- **Authentication Rules** (`/Policies/AuthenticationPreRules`). Captive
+  Portal / MFA enforcement matched by zone, address, user and URL category,
+  referencing an existing Authentication Enforcement object by name.
+
+### Fixed
+- README "What it manages" table and "Scope & limitations" section were stale
+  since the 1.2.0 profile additions (still described security profiles as
+  "intentionally out of scope" after they had already shipped). Replaced with
+  an audited **Coverage** section: every managed type with its REST endpoint,
+  plus a sourced, honest list of what was considered and dropped.
+
+### Notes
+- Every "single-rule" profile type in this app (Anti-Spyware, WildFire,
+  Vulnerability, File Blocking, Data Filtering) models the common one-rule-
+  per-profile case; multi-rule profiles are not represented. Log Forwarding
+  Profiles model one match-list entry per profile. PBF rules match by zone
+  only (not interface). None of the five rule types (Security, NAT,
+  Decryption, PBF, Authentication) model per-device targeting, administrative
+  tags or active/active HA device binding — a consistent scope across the
+  whole rule family. Commit is never modeled as a configuration type — it is
+  the one-shot activation action every deploy/rollback already performs.
+- Zones, Templates/Template Stacks, Device Groups, LDAP/RADIUS/Authentication
+  Profiles and GlobalProtect Gateway/Portal were evaluated and dropped: they
+  either use a Network/Device/Panorama-category location model this app's
+  device-group/shared scoping cannot express, or (LDAP/RADIUS, GlobalProtect)
+  carry secret/certificate material. See README Coverage for the full,
+  per-candidate reasoning.
+
 ## 1.2.0 — 2026-07-26
 
 ### Added

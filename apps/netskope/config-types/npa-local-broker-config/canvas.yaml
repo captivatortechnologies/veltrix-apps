@@ -1,0 +1,42 @@
+# =============================================================================
+# Canvas Template — Netskope NPA Local Broker Config
+#
+# SINGLETON — one tenant-wide hostname setting applied to every local broker.
+# Backed by GET/PUT /api/v2/infrastructure/lbrokers/brokerconfig. There is
+# nothing to key on; exactly one item is expected (extras warn — only the
+# first applies). No deploy/apply step.
+#
+# Field keys must match config-types/npa-local-broker-config/validate.ts.
+# =============================================================================
+
+id: "netskope-npa-local-broker-config"
+name: "NPA Local Broker Config"
+toolType: "netskope"
+entityType: "npa-local-broker-config"
+description: "Manage Netskope's tenant-wide NPA local broker hostname setting via the Netskope REST API v2."
+
+item:
+  label: "Local Broker Config"
+  identityField: "scope"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Broker Hostname"
+      icon: "server"
+      description: "Hostname advertised by every NPA local broker on this tenant"
+      fields:
+        - key: "scope"
+          label: "Scope"
+          fieldType: "text"
+          required: true
+          defaultValue: "tenant"
+          validation:
+            maxLength: 32
+          helpText: "Fixed scope for the tenant-wide broker config (singleton — leave as \"tenant\")"
+
+        - key: "hostname"
+          label: "Hostname"
+          fieldType: "text"
+          required: false
+          helpText: "The FQDN local brokers advertise. Leave blank to clear the setting."

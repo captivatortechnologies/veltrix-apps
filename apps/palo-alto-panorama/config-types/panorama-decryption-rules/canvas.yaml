@@ -1,0 +1,136 @@
+# =============================================================================
+# Canvas Template — Panorama Decryption Rules (/Policies/DecryptionPreRules)
+#
+# One decryption rule in the device-group PRE rulebase. Zones/source/
+# destination/category/service default to "any" when left blank. Field keys
+# must match config-types/panorama-decryption-rules/validate.ts.
+#
+# Deploy AFTER address/service objects & groups, zones, custom URL categories
+# and any referenced decryption profile / certificate / log-forwarding profile
+# (referenced by name; not authored by this app — see README Coverage).
+# =============================================================================
+
+id: "panorama-decryption-rules"
+name: "Panorama Decryption Rule Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-decryption-rules"
+description: "Define Panorama decryption pre-rules as code via the PAN-OS REST API (/Policies/DecryptionPreRules). Reconciled by name."
+
+item:
+  label: "Decryption Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "unlock"
+      description: "Name and disabled state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule name — its identity for reconciliation."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When checked, the rule is deployed disabled."
+
+    - name: "Match"
+      icon: "filter"
+      description: "Zones, addresses, category and service"
+      fields:
+        - key: "from_zones"
+          label: "Source Zones"
+          fieldType: "tags"
+          helpText: "Source security zones. Defaults to 'any' when blank."
+
+        - key: "to_zones"
+          label: "Destination Zones"
+          fieldType: "tags"
+          helpText: "Destination security zones. Defaults to 'any' when blank."
+
+        - key: "source"
+          label: "Source Addresses"
+          fieldType: "tags"
+          helpText: "Source address objects/groups. Defaults to 'any' when blank."
+
+        - key: "destination"
+          label: "Destination Addresses"
+          fieldType: "tags"
+          helpText: "Destination address objects/groups. Defaults to 'any' when blank."
+
+        - key: "category"
+          label: "URL Categories"
+          fieldType: "tags"
+          helpText: "PAN-DB or custom URL categories to match. Defaults to 'any' when blank."
+
+        - key: "service"
+          label: "Services"
+          fieldType: "tags"
+          helpText: "Service objects/groups. Defaults to 'any' when blank."
+
+    - name: "Decryption"
+      icon: "key"
+      description: "Type and action"
+      fields:
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ssl-forward-proxy"
+          options:
+            - { label: "SSL Forward Proxy", value: "ssl-forward-proxy" }
+            - { label: "SSL Inbound Inspection", value: "ssl-inbound-inspection" }
+            - { label: "SSH Proxy", value: "ssh-proxy" }
+          helpText: "Which decryption mechanism this rule applies."
+
+        - key: "certificates"
+          label: "Certificates"
+          fieldType: "tags"
+          visibleWhen: { field: "type", equals: "ssl-inbound-inspection" }
+          helpText: "SSL Inbound Inspection only — name(s) of existing installed certificates to inspect for."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "no-decrypt"
+          options:
+            - { label: "No Decrypt", value: "no-decrypt" }
+            - { label: "Decrypt", value: "decrypt" }
+          helpText: "Whether matching traffic is decrypted."
+
+        - key: "profile"
+          label: "Decryption Profile"
+          fieldType: "text"
+          helpText: "Optional decryption profile name to apply (must already exist)."
+
+    - name: "Logging"
+      icon: "file-text"
+      description: "Log forwarding and TLS handshake logging"
+      fields:
+        - key: "log_setting"
+          label: "Log Forwarding Profile"
+          fieldType: "text"
+          helpText: "Optional log-forwarding profile name (must already exist)."
+
+        - key: "log_success"
+          label: "Log Successful TLS Handshakes"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Log successful TLS handshakes for matching sessions."
+
+        - key: "log_fail"
+          label: "Log Failed TLS Handshakes"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Log failed TLS handshakes for matching sessions."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."

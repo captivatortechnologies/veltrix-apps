@@ -8,6 +8,50 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.0 — 2026-08-05
+
+### Added
+Research-first exhaustiveness pass against Netskope's official open-source
+Terraform provider (`netskopeoss/terraform-provider-netskope`, generated
+directly from Netskope's internal OpenAPI spec) — verified against the
+provider's published v0.4.8 schema, its `docs/api-audit/*.md` real-traffic
+audits, and its `internal/sdk/*.go` operation source, not just its docs. Five
+genuine, previously-untapped, round-trippable config types added, each with
+the full pipeline handler set:
+
+- **Custom Categories** — custom URL categories that group URL lists,
+  destination profiles and predefined Netskope categories under one name for
+  Real-time Protection and other policies. URL list and destination profile
+  membership is given by name and resolved to ids at deploy. PATCH
+  auto-deploys (`interactive=false`). Backed by `/api/v2/profiles/customcategories`.
+- **Service Objects** — named port/protocol groups (tcp/udp/tcp+udp ranges,
+  optional icmp) for firewall and steering policies. Netskope's own
+  `PREDEFINED` objects are never a match target and never reconciled away.
+  Backed by `/api/v2/profiles/serviceobjects`.
+- **NPA Local Broker Config** — the tenant-wide hostname setting applied to
+  every NPA local broker. Singleton; no delete operation exists on this
+  endpoint (rollback restores the prior hostname, never removes it). Backed
+  by `/api/v2/infrastructure/lbrokers/brokerconfig`.
+- **NPA Publisher Alerts Configuration** — the tenant-wide alert
+  notification policy for NPA publishers (admin recipients, event types,
+  monitored users). Singleton; uniquely uses a camelCase JSON body unlike
+  the rest of the v2 API; no delete operation exists on this endpoint.
+  Backed by `/api/v2/infrastructure/publishers/alertsconfiguration`.
+- **AI Gateway Appliances** — the appliance record itself (host, HTTP/HTTPS
+  port config, associated AI providers/MCP servers by name, optional SKU
+  add-on capacity packs). The endpoint's one-time JWT enrollment token
+  (returned only inline on create) is never read, stored or diffed. Update
+  uses PATCH (the API's own OAS documents PUT, but the live endpoint only
+  accepts PATCH). Backed by `/api/v2/aig/appliances`.
+
+### Verified, not changed
+Custom Categories / Service Objects / AI Gateway Appliances were the only
+genuine gaps found. Real-time Protection policies, API-Data-Protection
+policies, DLP profiles/rules, RBAC admin Roles (as opposed to the existing
+RBAC **Labels** type) and notification templates were investigated and
+excluded — see the README **Coverage** section for the sourced reasoning
+behind each.
+
 ## 0.5.0 — 2026-07-26
 
 ### Added

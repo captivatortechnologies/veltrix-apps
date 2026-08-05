@@ -8,6 +8,53 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.0 — 2026-08-05
+
+### Added
+Six new configuration types, all targeting Mimecast's newer **Policy
+Management v1** REST API (`/policy-management/cloud-gateway/v1/*` —
+`developer.services.mimecast.com/docs/policymanagement/1`), a distinct, fully
+RESTful surface (real GET/POST/PATCH/DELETE, bare JSON bodies) alongside the
+legacy `/api/policy/*` form endpoints this app already used. Crucially, every
+resource on this surface supports a real update (`PATCH .../{id}`), so all six
+new types update a changed item **in place** rather than deleting and
+recreating it — the first config types in this app that can do so.
+
+- **Anti-Spoofing** — the spoofing-check enforcement policy itself
+  (`anti-spoofing/policies`), distinct from the existing Anti-Spoofing Bypass
+  (which only exempts trusted senders from a check already enabled elsewhere).
+  Adds `option` (no_action/apply/apply_non_mimecast), `fromPart`, a richer
+  from/to target (adds `internal_addresses`/`external_addresses`/
+  `profile_group` to the existing everyone/domain/email-address choices), plus
+  `override`, `bidirectional`, `sourceIPs` and `hostnames` scoping.
+- **Greylisting** — temporarily defers unrecognized senders
+  (`greylisting/policies`); `option` (no_action/apply) scoped to a **from**
+  target only (this policy type has no recipient scope).
+- **Delivery Route Definitions** + **Delivery Route Policies** — the
+  destination mail server(s) the Mimecast MTA delivers to for matched mail
+  (`delivery-route/definitions` + `delivery-route/policies`, the same
+  definition-then-policy shape as the existing Address Alteration Set /
+  Address Alteration pair). SMTP authentication (`smtpAuthentication`, which
+  would require a plaintext password in the create/update payload) is
+  intentionally **not modeled** — this app never sends that field, so an
+  authenticated route configured out-of-band is left untouched by deploys. The
+  `delivery-route/verify` action (a one-shot connectivity test) is also not
+  modeled — it is an imperative action, not durable desired state.
+- **DNS Authentication - Outbound Definitions** + **DNS Authentication -
+  Outbound Policies** — outbound DKIM signing per domain
+  (`dns-authentication-outbound/definitions` + `.../policies`). Mimecast
+  **generates and holds the DKIM keypair itself**; the create/update payload
+  only ever carries `description`/`domain`/`selector`/`signDkim`/`keyLength` —
+  never a private key — so this is safe to manage declaratively, unlike a
+  bring-your-own-key DKIM integration would be.
+- New shared helper `lib/policyTargetV1.ts` for the "policy target" (from/to)
+  shape common to all four new policy types, and a new `requestV1` method plus
+  `extractV1List`/`v1ErrorMessage` helpers on the existing `MimecastClient` in
+  `lib/mimecast.ts` for the v1 REST surface (reusing the same OAuth2 bearer
+  token as the legacy `/api/...` client).
+- README **Coverage** section documenting managed vs. intentionally excluded
+  surface across the full app, with sources.
+
 ## 0.5.0 — 2026-07-26
 
 ### Added

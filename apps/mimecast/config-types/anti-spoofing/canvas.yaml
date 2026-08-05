@@ -1,0 +1,164 @@
+# =============================================================================
+# Canvas Template — Mimecast Anti-Spoofing
+#
+# Declares ONE Anti-Spoofing enforcement policy — the item. This targets the
+# newer Policy Management v1 REST API
+# (/policy-management/cloud-gateway/v1/anti-spoofing/policies), distinct from
+# the existing "Anti-Spoofing Bypass" config type: bypass only EXEMPTS trusted
+# senders from a check; this policy is the enforcement itself — whether mail
+# that fails the spoofing check is rejected — scoped to a from/to target.
+#
+# Policies are matched by DESCRIPTION. Unlike every other policy type in this
+# app, the v1 API supports a real update (PATCH /policies/{id}), so a changed
+# policy is updated in place instead of deleted and recreated.
+#
+# Field keys must match config-types/anti-spoofing/validate.ts.
+# =============================================================================
+
+id: "mimecast-anti-spoofing"
+name: "Anti-Spoofing Configuration"
+toolType: "mimecast"
+entityType: "anti-spoofing"
+description: "Define Mimecast Anti-Spoofing enforcement policies as code through the Mimecast Policy Management v1 API."
+
+item:
+  label: "Anti-Spoofing Policy"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy identity and enforcement option"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The policy description — its identity. Must be unique within this
+            canvas; the app matches live policies on it.
+
+        - key: "option"
+          label: "Option"
+          fieldType: "select"
+          required: true
+          defaultValue: "apply"
+          options:
+            - label: "No action"
+              value: "no_action"
+            - label: "Apply anti-spoofing"
+              value: "apply"
+            - label: "Apply (non-Mimecast senders only)"
+              value: "apply_non_mimecast"
+          helpText: "Whether — and to which senders — anti-spoofing enforcement applies."
+
+        - key: "fromPart"
+          label: "From Part"
+          fieldType: "select"
+          required: true
+          defaultValue: "envelope_from"
+          options:
+            - label: "Envelope From"
+              value: "envelope_from"
+            - label: "Header From"
+              value: "header_from"
+            - label: "Both"
+              value: "both"
+          helpText: "Which part of the message the policy inspects."
+
+    - name: "From"
+      icon: "user"
+      description: "The sender the policy applies to"
+      fields:
+        - key: "fromType"
+          label: "From Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "everyone"
+          options:
+            - label: "Everyone"
+              value: "everyone"
+            - label: "Internal addresses"
+              value: "internal_addresses"
+            - label: "External addresses"
+              value: "external_addresses"
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Profile group"
+              value: "profile_group"
+            - label: "Individual email address"
+              value: "individual_email_address"
+          helpText: "Match the sender by everyone, internal/external, domain, profile group, or exact address."
+
+        - key: "fromValue"
+          label: "From Value"
+          fieldType: "text"
+          required: false
+          helpText: >
+            The domain, the directory profile group's secure id (see the
+            Directory Profile Groups config type), or the email address —
+            required unless From Type is Everyone, Internal or External.
+
+    - name: "To"
+      icon: "users"
+      description: "The recipients the policy applies to"
+      fields:
+        - key: "toType"
+          label: "To Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "everyone"
+          options:
+            - label: "Everyone"
+              value: "everyone"
+            - label: "Internal addresses"
+              value: "internal_addresses"
+            - label: "External addresses"
+              value: "external_addresses"
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Profile group"
+              value: "profile_group"
+            - label: "Individual email address"
+              value: "individual_email_address"
+          helpText: "Match the recipient by everyone, internal/external, domain, profile group, or exact address."
+
+        - key: "toValue"
+          label: "To Value"
+          fieldType: "text"
+          required: false
+          helpText: >
+            The domain, the directory profile group's secure id, or the email
+            address — required unless To Type is Everyone, Internal or External.
+
+    - name: "Scope"
+      icon: "settings"
+      description: "Precedence and optional network/hostname scoping"
+      fields:
+        - key: "override"
+          label: "Override similar policies"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether this policy should take precedence over other, similar policies."
+
+        - key: "bidirectional"
+          label: "Bidirectional"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the policy applies to both outbound and inbound mail."
+
+        - key: "sourceIPs"
+          label: "Source IPs"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional — one CIDR/IP per line. Only apply when the transmitting source IP matches."
+
+        - key: "hostnames"
+          label: "Hostnames"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional — one hostname per line. Only apply when the sending hostname matches."

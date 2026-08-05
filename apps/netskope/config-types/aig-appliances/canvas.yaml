@@ -1,0 +1,110 @@
+# =============================================================================
+# Canvas Template — Netskope AI Gateway Appliances
+#
+# Declares ONE AI Gateway appliance — the item. Users add as many as they
+# need. Appliances are id-addressed with no lookup-by-name, so the app lists
+# all appliances, matches a declared one to a live one by name, and stores
+# the id for rename-safety. A PATCH sends the full desired spec every deploy
+# (no deploy/apply step). AI providers and MCP servers are given by NAME and
+# resolved against the live aig-ai-providers / aig-mcp-servers inventory.
+#
+# NOT managed: the appliance's one-time JWT enrollment token (returned only
+# inline on create, used to enroll the physical/virtual box — secret
+# material, never read back or diffed) and every read-only telemetry field
+# (status, ips, version, cpu/memory, uptime, timestamps, certificate state).
+# Reconcile deletes only appliances this app created.
+#
+# Field keys must match config-types/aig-appliances/validate.ts.
+# =============================================================================
+
+id: "netskope-aig-appliances"
+name: "AI Gateway Appliance Configuration"
+toolType: "netskope"
+entityType: "aig-appliances"
+description: "Define Netskope AI Gateway appliances as code through the Netskope REST API v2."
+
+item:
+  label: "AI Gateway Appliance"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Appliance"
+      icon: "server"
+      description: "Identity and network endpoint"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 15
+          helpText: >
+            The appliance name (1-15 characters). Must be unique within this
+            canvas — the app matches live appliances on it and stores the id
+            after deploy for rename-safety.
+
+        - key: "host"
+          label: "Host"
+          fieldType: "text"
+          required: true
+          helpText: "Hostname or FQDN of the appliance."
+
+        - key: "http_enable"
+          label: "Enable HTTP"
+          fieldType: "checkbox"
+          required: false
+
+        - key: "http_port"
+          label: "HTTP Port"
+          fieldType: "number"
+          required: false
+          defaultValue: 80
+          visibleWhen:
+            field: "http_enable"
+            equals: true
+
+        - key: "https_enable"
+          label: "Enable HTTPS"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+
+        - key: "https_port"
+          label: "HTTPS Port"
+          fieldType: "number"
+          required: false
+          defaultValue: 443
+          visibleWhen:
+            field: "https_enable"
+            equals: true
+
+    - name: "Associations"
+      icon: "link"
+      description: "AI providers and MCP servers this appliance proxies"
+      fields:
+        - key: "ai_provider_ids"
+          label: "AI Providers (one per line, max 10)"
+          fieldType: "textarea"
+          required: false
+          helpText: "AI Gateway provider names (see the aig-ai-providers configuration type), one per line. Resolved to ids at deploy time."
+
+        - key: "mcp_server_ids"
+          label: "MCP Servers (one per line, max 10)"
+          fieldType: "textarea"
+          required: false
+          helpText: "AI Gateway MCP server names (see the aig-mcp-servers configuration type), one per line. Resolved to ids at deploy time."
+
+    - name: "Capacity"
+      icon: "gauge"
+      description: "Optional paid capacity-pack add-ons"
+      fields:
+        - key: "sku_addons"
+          label: "SKU Add-ons (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            WARNING — billing/licensing impact. Optional JSON array of
+            {"productCode": "NK-A-AIGW-10K" | "NK-A-AIGW-100K", "quantity": n}
+            capacity packs attached to this appliance. Leave blank for none.

@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — Panorama File Blocking Profiles (/Objects/FileBlockingSecurityProfiles)
+#
+# One profile with a SINGLE rule: which applications / file types, in which
+# direction, get which action (alert, block or continue). Referenced from
+# panorama-security-profile-groups ("file_blocking"). Field keys must match
+# config-types/panorama-file-blocking-profiles/validate.ts.
+#
+# NOTE: this models one rule per profile (the common "block executables" case),
+# matching the existing anti-spyware/WildFire/vulnerability profile types.
+# Multi-rule profiles are not represented.
+# =============================================================================
+
+id: "panorama-file-blocking-profiles"
+name: "Panorama File Blocking Profile Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-file-blocking-profiles"
+description: "Define Panorama file blocking profiles as code via the PAN-OS REST API (/Objects/FileBlockingSecurityProfiles). Reconciled by name."
+
+item:
+  label: "File Blocking Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Profile"
+      icon: "shield"
+      description: "Name"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The file blocking profile name — its identity for reconciliation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+        - key: "rule_name"
+          label: "Rule Name"
+          fieldType: "text"
+          defaultValue: "block-executables"
+          helpText: "Name of the single rule inside the profile."
+
+    - name: "Rule"
+      icon: "filter"
+      description: "Match and action"
+      fields:
+        - key: "applications"
+          label: "Applications"
+          fieldType: "tags"
+          helpText: "App-IDs to match. Defaults to 'any' when blank."
+
+        - key: "file_types"
+          label: "File Types"
+          fieldType: "tags"
+          helpText: "File types to match (e.g. 7z, exe, pe). Defaults to 'any' when blank."
+
+        - key: "direction"
+          label: "Direction"
+          fieldType: "select"
+          required: true
+          defaultValue: "both"
+          options:
+            - { label: "Both", value: "both" }
+            - { label: "Upload", value: "upload" }
+            - { label: "Download", value: "download" }
+          helpText: "Transfer direction the rule matches."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "block"
+          options:
+            - { label: "Block", value: "block" }
+            - { label: "Continue (interstitial prompt)", value: "continue" }
+            - { label: "Alert", value: "alert" }
+          helpText: "Action taken on matching file transfers."

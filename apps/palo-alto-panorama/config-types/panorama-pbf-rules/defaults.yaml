@@ -1,0 +1,6 @@
+# Defaults for a new PBF rule item (flat map keyed by canvas field keys).
+disabled: false
+action_type: "forward"
+nexthop_type: "none"
+monitor_disable_if_unreachable: false
+enforce_symmetric_return: false

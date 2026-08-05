@@ -1,0 +1,6 @@
+# Defaults for a new greylisting policy item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds an applied policy scoped to
+# everyone; the from value is left blank for a deliberate choice.
+option: apply
+fromType: everyone

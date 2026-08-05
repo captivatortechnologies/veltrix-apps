@@ -1,0 +1,75 @@
+# =============================================================================
+# Canvas Template — Netskope Service Objects
+#
+# Declares ONE service object — the item. Users add as many as they need.
+# Service objects are named port/protocol groups (tcp/udp/tcp+udp ranges,
+# optionally icmp) referenced by firewall and steering policies. Objects are
+# id-addressed (UUID) with no lookup-by-name, so the app lists all objects,
+# matches a declared one to a live one by name, and stores the id for
+# rename-safety. Updates use PATCH. Netskope's own PREDEFINED objects are
+# never a match target and never reconciled away. Reconcile deletes only
+# objects this app created.
+#
+# Field keys must match config-types/service-objects/validate.ts.
+# =============================================================================
+
+id: "netskope-service-objects"
+name: "Service Object Configuration"
+toolType: "netskope"
+entityType: "service-objects"
+description: "Define Netskope service objects (port/protocol profiles) as code through the Netskope REST API v2."
+
+item:
+  label: "Service Object"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Object"
+      icon: "plug"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: >
+            The service object name. Must be unique within this canvas — the
+            app matches live objects on it and stores the id after deploy for
+            rename-safety.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+
+    - name: "Protocols"
+      icon: "network"
+      description: "At least one protocol must be set"
+      fields:
+        - key: "icmp"
+          label: "ICMP"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Enable ICMP for this service object."
+
+        - key: "tcp"
+          label: "TCP Ports (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "TCP port numbers or ranges, one per line (e.g. \"443\", \"8080-9090\")."
+
+        - key: "udp"
+          label: "UDP Ports (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "UDP port numbers or ranges, one per line (e.g. \"53\", \"1024-2048\")."
+
+        - key: "tcp_udp"
+          label: "TCP+UDP Ports (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Port numbers or ranges that apply to both TCP and UDP, one per line."

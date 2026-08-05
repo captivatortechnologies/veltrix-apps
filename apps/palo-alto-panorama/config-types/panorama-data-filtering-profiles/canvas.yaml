@@ -1,0 +1,110 @@
+# =============================================================================
+# Canvas Template — Panorama Data Filtering Profiles (/Objects/DataFilteringSecurityProfiles)
+#
+# One profile with a SINGLE rule: a referenced data pattern object, applications
+# / file types / direction to inspect, and alert/block thresholds. Referenced
+# from panorama-security-profile-groups ("data_filtering"). Field keys must
+# match config-types/panorama-data-filtering-profiles/validate.ts.
+#
+# NOTE: this models one rule per profile (matching the existing anti-spyware/
+# WildFire/vulnerability/file-blocking profile types). Multi-rule profiles are
+# not represented. The referenced Data Object (a Custom Data Pattern,
+# /Objects/CustomDataPatterns) is NOT authored by this app — it must already
+# exist in Panorama, the same free-text-reference precedent already used by
+# panorama-security-rules ("profile_group", "log_setting").
+# =============================================================================
+
+id: "panorama-data-filtering-profiles"
+name: "Panorama Data Filtering Profile Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-data-filtering-profiles"
+description: "Define Panorama data filtering profiles as code via the PAN-OS REST API (/Objects/DataFilteringSecurityProfiles). Reconciled by name."
+
+item:
+  label: "Data Filtering Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Profile"
+      icon: "shield"
+      description: "Name and options"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The data filtering profile name — its identity for reconciliation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+        - key: "data_capture"
+          label: "Data Capture"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Capture the actual matched data pattern occurrences for reporting."
+
+        - key: "rule_name"
+          label: "Rule Name"
+          fieldType: "text"
+          defaultValue: "default"
+          helpText: "Name of the single rule inside the profile."
+
+    - name: "Rule"
+      icon: "filter"
+      description: "Match, thresholds and logging"
+      fields:
+        - key: "data_object"
+          label: "Data Object"
+          fieldType: "text"
+          required: true
+          helpText: "Name of an existing Custom Data Pattern object (/Objects/CustomDataPatterns) to match — must already exist in Panorama."
+
+        - key: "direction"
+          label: "Direction"
+          fieldType: "select"
+          required: true
+          defaultValue: "both"
+          options:
+            - { label: "Both", value: "both" }
+            - { label: "Upload", value: "upload" }
+            - { label: "Download", value: "download" }
+          helpText: "Transfer direction the rule inspects."
+
+        - key: "application"
+          label: "Applications"
+          fieldType: "tags"
+          helpText: "App-IDs to inspect. Defaults to 'any' when blank."
+
+        - key: "file_type"
+          label: "File Types"
+          fieldType: "tags"
+          helpText: "File types to inspect. Defaults to 'any' when blank."
+
+        - key: "alert_threshold"
+          label: "Alert Threshold"
+          fieldType: "number"
+          defaultValue: 10
+          helpText: "Number of pattern occurrences that triggers an alert."
+
+        - key: "block_threshold"
+          label: "Block Threshold"
+          fieldType: "number"
+          defaultValue: 20
+          helpText: "Number of pattern occurrences that triggers a block."
+
+        - key: "log_severity"
+          label: "Log Severity"
+          fieldType: "select"
+          defaultValue: "medium"
+          options:
+            - { label: "Critical", value: "critical" }
+            - { label: "High", value: "high" }
+            - { label: "Medium", value: "medium" }
+            - { label: "Low", value: "low" }
+            - { label: "Informational", value: "informational" }
+          helpText: "Severity recorded on the data filtering log for matches."

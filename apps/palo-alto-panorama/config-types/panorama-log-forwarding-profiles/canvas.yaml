@@ -1,0 +1,116 @@
+# =============================================================================
+# Canvas Template — Panorama Log Forwarding Profiles (/Objects/LogForwardingProfiles)
+#
+# One profile with a SINGLE match-list entry: which log type, optional filter,
+# and where matching logs are forwarded (Panorama and/or existing syslog/email/
+# HTTP/SNMP-trap server profiles). Referenced by name from panorama-security-
+# rules ("log_setting") and other rule types. Field keys must match
+# config-types/panorama-log-forwarding-profiles/validate.ts.
+#
+# NOTE: this models one match-list entry per profile (the common single-log-type
+# case); a profile with multiple log-type entries needs one canvas item per log
+# type today. The tag/integration actions (auto-tagging, external dynamic list
+# registration) on a match-list entry are advanced/niche and not represented.
+# The referenced syslog/email/HTTP/SNMP-trap server profiles are NOT authored by
+# this app (Device-category, template-scoped) — reference existing profiles by
+# name, the same precedent already used by security-rules' "log_setting".
+# =============================================================================
+
+id: "panorama-log-forwarding-profiles"
+name: "Panorama Log Forwarding Profile Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-log-forwarding-profiles"
+description: "Define Panorama log forwarding profiles as code via the PAN-OS REST API (/Objects/LogForwardingProfiles). Reconciled by name."
+
+item:
+  label: "Log Forwarding Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Profile"
+      icon: "shield"
+      description: "Name and options"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The log forwarding profile name — its identity for reconciliation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+        - key: "enhanced_application_logging"
+          label: "Enhanced Application Logging"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Send additional application usage data to Cortex Data Lake / Panorama."
+
+        - key: "match_name"
+          label: "Match Entry Name"
+          fieldType: "text"
+          defaultValue: "default"
+          helpText: "Name of the single match-list entry inside the profile."
+
+    - name: "Match & Destinations"
+      icon: "send"
+      description: "What to match and where to send it"
+      fields:
+        - key: "log_type"
+          label: "Log Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "traffic"
+          options:
+            - { label: "Traffic", value: "traffic" }
+            - { label: "Threat", value: "threat" }
+            - { label: "WildFire Submissions", value: "wildfire" }
+            - { label: "URL Filtering", value: "url" }
+            - { label: "Data Filtering", value: "data" }
+            - { label: "GTP", value: "gtp" }
+            - { label: "Tunnel Inspection", value: "tunnel" }
+            - { label: "Authentication", value: "auth" }
+            - { label: "SCTP", value: "sctp" }
+            - { label: "Decryption", value: "decryption" }
+          helpText: "Which log type this match-list entry applies to."
+
+        - key: "filter"
+          label: "Filter"
+          fieldType: "text"
+          helpText: "Optional log query filter — only matching logs are forwarded."
+
+        - key: "send_to_panorama"
+          label: "Send To Panorama"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Forward matching logs to Panorama."
+
+        - key: "send_syslog"
+          label: "Syslog Server Profiles"
+          fieldType: "tags"
+          helpText: "Existing syslog server profile name(s) to forward to (must already exist)."
+
+        - key: "send_email"
+          label: "Email Server Profiles"
+          fieldType: "tags"
+          helpText: "Existing email server profile name(s) to forward to (must already exist)."
+
+        - key: "send_http"
+          label: "HTTP Server Profiles"
+          fieldType: "tags"
+          helpText: "Existing HTTP server profile name(s) to forward to (must already exist)."
+
+        - key: "send_snmptrap"
+          label: "SNMP Trap Server Profiles"
+          fieldType: "tags"
+          helpText: "Existing SNMP trap server profile name(s) to forward to (must already exist)."
+
+        - key: "quarantine"
+          label: "Quarantine"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Quarantine the source device/user of matching logs (requires HIP/User-ID integration)."

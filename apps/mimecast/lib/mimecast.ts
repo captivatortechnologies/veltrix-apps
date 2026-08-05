@@ -149,6 +149,47 @@ export class MimecastClient {
     }
     return { status: 0, ok: false, data: [], fail: [], transportError: 'request failed' }
   }
+
+  /** Call the newer /policy-management/cloud-gateway/v1/* REST surface (real HTTP methods, bare JSON). */
+  async requestV1<T = unknown>(
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    path: string,
+    opts: { query?: Record<string, string | number | boolean>; body?: unknown } = {}
+  ): Promise<MimecastV1Response<T>> {
+    const auth = await this.ensureToken()
+    if (auth.error || !auth.token) return { status: 0, ok: false, body: null, error: auth.error }
+
+    const qs = opts.query
+      ? `?${new URLSearchParams(Object.entries(opts.query).map(([k, v]) => [k, String(v)])).toString()}`
+      : ''
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+      try {
+        const res = await fetch(`${this.cred.baseUrl}${path}${qs}`, {
+          method,
+          headers: { Authorization: `Bearer ${auth.token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+          signal: controller.signal,
+        })
+        const text = await res.text()
+        if (res.status === 429 && attempt === 0) {
+          const reset = Number(res.headers.get('X-RateLimit-Reset'))
+          await sleep(Number.isFinite(reset) && reset > 0 ? Math.min(reset, MAX_RATE_LIMIT_WAIT_MS) : 1000)
+          continue
+        }
+        const body = text ? parseJson<T>(text) : null
+        return { status: res.status, ok: res.ok, body, error: res.ok ? undefined : v1ErrorMessage(body, res.status) }
+      } catch (err) {
+        if (attempt === 0) continue
+        return { status: 0, ok: false, body: null, error: err instanceof Error ? err.message : 'request error' }
+      } finally {
+        clearTimeout(timer)
+      }
+    }
+    return { status: 0, ok: false, body: null, error: 'request failed' }
+  }
 }
 
 export function buildMimecastClient(cred: MimecastCredential, settings: MimecastSettings): MimecastClient {
@@ -168,4 +209,50 @@ export function mimecastErrorMessage(res: MimecastResponse): string {
   const errs = res.fail.flatMap((f) => f.errors ?? []).map((e) => e.message || e.code).filter(Boolean)
   if (errs.length) return errs.join('; ')
   return `Mimecast request failed (HTTP ${res.status})`
+}
+
+// =============================================================================
+// Mimecast Policy Management v1 (developer.services.mimecast.com/docs/
+// policymanagement/1) — a distinct, fully-RESTful surface at
+// /policy-management/cloud-gateway/v1/*, separate from the legacy /api/policy/*
+// form endpoints above. Real HTTP methods (GET with query params, POST/PATCH/
+// DELETE with a bare JSON body — no {data:[...]} wrapper), and crucially every
+// {id} sub-resource supports PATCH, so a changed policy/definition can be
+// updated in place instead of deleted and recreated. List responses are always
+// shaped `{ definitions: [...] }` regardless of the resource's own name (e.g.
+// the anti-spoofing *policies* list still wraps in a `definitions` array — this
+// is Mimecast's own generic list envelope, not a naming mistake here).
+// It shares the same OAuth2 bearer token as the legacy surface, so callers
+// reuse the same MimecastClient instance.
+// =============================================================================
+
+export interface MimecastV1Response<T = unknown> {
+  status: number
+  ok: boolean
+  body: T | null
+  error?: string
+}
+
+/** Read the `definitions` array out of a v1 list response (or a bare array). */
+export function extractV1List<T = unknown>(body: unknown): T[] {
+  if (Array.isArray(body)) return body as T[]
+  const wrapped = body as { definitions?: T[] } | null
+  return Array.isArray(wrapped?.definitions) ? (wrapped!.definitions as T[]) : []
+}
+
+export function v1ErrorMessage(body: unknown, status: number): string {
+  const b = body as
+    | { message?: string; error?: string; failures?: Array<{ message?: string }>; errors?: Array<{ message?: string } | string> }
+    | null
+  if (b?.message) return b.message
+  if (b?.error) return b.error
+  if (Array.isArray(b?.failures) && b.failures.length) {
+    const msg = b.failures.map((f) => f?.message).filter(Boolean).join('; ')
+    if (msg) return msg
+  }
+  if (Array.isArray(b?.errors) && b.errors.length) {
+    const msg = b.errors.map((e) => (typeof e === 'string' ? e : e?.message)).filter(Boolean).join('; ')
+    if (msg) return msg
+  }
+  return `Mimecast API error (HTTP ${status})`
 }

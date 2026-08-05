@@ -1,0 +1,167 @@
+# =============================================================================
+# Canvas Template — Panorama Policy-Based Forwarding Rules
+# (/Policies/PolicyBasedForwardingPreRules)
+#
+# One PBF rule in the device-group PRE rulebase, matched by source zone (not
+# interface — see NOTE below). Field keys must match
+# config-types/panorama-pbf-rules/validate.ts.
+#
+# Deploy AFTER address/service/application objects & groups, zones and any
+# referenced schedule (panorama-schedules) or monitor profile.
+#
+# NOTE: interface-based "from" match, per-device targeting, administrative tags
+# and active/active HA device binding are not represented (consistent with
+# panorama-security-rules / panorama-nat-rules).
+# =============================================================================
+
+id: "panorama-pbf-rules"
+name: "Panorama Policy-Based Forwarding Rule Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-pbf-rules"
+description: "Define Panorama policy-based forwarding pre-rules as code via the PAN-OS REST API (/Policies/PolicyBasedForwardingPreRules). Reconciled by name."
+
+item:
+  label: "PBF Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "route"
+      description: "Name and disabled state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule name — its identity for reconciliation."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When checked, the rule is deployed disabled."
+
+    - name: "Match"
+      icon: "filter"
+      description: "Zones, addresses, application, service and schedule"
+      fields:
+        - key: "from_zones"
+          label: "Source Zones"
+          fieldType: "tags"
+          helpText: "Source security zones. Defaults to 'any' when blank."
+
+        - key: "source"
+          label: "Source Addresses"
+          fieldType: "tags"
+          helpText: "Source address objects/groups. Defaults to 'any' when blank."
+
+        - key: "destination"
+          label: "Destination Addresses"
+          fieldType: "tags"
+          helpText: "Destination address objects/groups. Defaults to 'any' when blank."
+
+        - key: "application"
+          label: "Applications"
+          fieldType: "tags"
+          helpText: "App-IDs / application groups. Defaults to 'any' when blank."
+
+        - key: "service"
+          label: "Services"
+          fieldType: "tags"
+          helpText: "Service objects/groups. Defaults to 'any' when blank."
+
+        - key: "schedule"
+          label: "Schedule"
+          fieldType: "text"
+          helpText: "Optional schedule object name restricting when the rule is active (must already exist)."
+
+    - name: "Action"
+      icon: "arrow-right-circle"
+      description: "What to do with matching traffic"
+      fields:
+        - key: "action_type"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "forward"
+          options:
+            - { label: "Forward", value: "forward" }
+            - { label: "Discard", value: "discard" }
+            - { label: "No PBF (use routing table)", value: "no_pbf" }
+            - { label: "Forward To Virtual System", value: "forward_to_vsys" }
+          helpText: "What PAN-OS does with matching traffic."
+
+        - key: "egress_interface"
+          label: "Egress Interface"
+          fieldType: "text"
+          visibleWhen: { field: "action_type", equals: "forward" }
+          helpText: "Forward action — the outbound interface for matching traffic."
+
+        - key: "nexthop_type"
+          label: "Next Hop Type"
+          fieldType: "select"
+          defaultValue: "none"
+          visibleWhen: { field: "action_type", equals: "forward" }
+          options:
+            - { label: "None (directly connected)", value: "none" }
+            - { label: "IP Address", value: "ip" }
+            - { label: "FQDN", value: "fqdn" }
+          helpText: "Forward action — how the next hop is specified."
+
+        - key: "nexthop_value"
+          label: "Next Hop Value"
+          fieldType: "text"
+          visibleWhen: { field: "nexthop_type", in: ["ip", "fqdn"] }
+          helpText: "The next-hop IP address or FQDN."
+
+        - key: "forward_to_vsys"
+          label: "Target Virtual System"
+          fieldType: "text"
+          visibleWhen: { field: "action_type", equals: "forward_to_vsys" }
+          helpText: "Name of the virtual system to forward matching traffic to."
+
+    - name: "Path Monitoring"
+      icon: "activity"
+      description: "Forward action only — fail over when the next hop is unreachable"
+      fields:
+        - key: "monitor_ip"
+          label: "Monitor IP"
+          fieldType: "text"
+          visibleWhen: { field: "action_type", equals: "forward" }
+          helpText: "IP address PAN-OS pings to verify the path is reachable."
+
+        - key: "monitor_profile"
+          label: "Monitor Profile"
+          fieldType: "text"
+          visibleWhen: { field: "action_type", equals: "forward" }
+          helpText: "Optional existing monitor profile name (interval/threshold/action) to apply."
+
+        - key: "monitor_disable_if_unreachable"
+          label: "Disable Rule If Unreachable"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen: { field: "action_type", equals: "forward" }
+          helpText: "When the monitored path is unreachable, disable this rule so traffic falls through to the next rule / routing table."
+
+    - name: "Symmetric Return"
+      icon: "repeat"
+      description: "Keep return traffic on the same path it arrived on"
+      fields:
+        - key: "enforce_symmetric_return"
+          label: "Enforce Symmetric Return"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Route return traffic back through the same next hop it arrived from."
+
+        - key: "symmetric_return_addresses"
+          label: "Eligible Next-Hop Addresses"
+          fieldType: "tags"
+          visibleWhen: { field: "enforce_symmetric_return", equals: true }
+          helpText: "Address object names eligible as a symmetric-return next hop."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."

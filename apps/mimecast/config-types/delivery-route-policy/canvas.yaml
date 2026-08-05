@@ -1,0 +1,128 @@
+# =============================================================================
+# Canvas Template — Mimecast Delivery Route Policies
+#
+# Declares ONE Delivery Route policy — the item. Targets the newer Policy
+# Management v1 REST API
+# (/policy-management/cloud-gateway/v1/delivery-route/policies): which mail
+# (scoped by a from/to target) is routed through a given Delivery Route
+# Definition (a separate config type — create the definition first and
+# reference its secure id here, the same relationship the existing Address
+# Alteration policy has to an Address Alteration Set).
+#
+# Policies are matched by DESCRIPTION. The v1 API supports a real update
+# (PATCH /policies/{id}), so a changed policy is updated in place instead of
+# deleted and recreated.
+#
+# Field keys must match config-types/delivery-route-policy/validate.ts.
+# =============================================================================
+
+id: "mimecast-delivery-route-policy"
+name: "Delivery Route Policy Configuration"
+toolType: "mimecast"
+entityType: "delivery-route-policy"
+description: "Define which mail is routed through a Mimecast Delivery Route Definition, as code through the Mimecast Policy Management v1 API."
+
+item:
+  label: "Delivery Route Policy"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy identity and the definition it routes through"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The policy description — its identity. Must be unique within this
+            canvas; the app matches live policies on it.
+
+        - key: "definitionId"
+          label: "Delivery Route Definition ID"
+          fieldType: "text"
+          required: true
+          helpText: "The secure id of the Delivery Route Definition item this policy routes mail to."
+
+        - key: "fromPart"
+          label: "From Part"
+          fieldType: "select"
+          required: true
+          defaultValue: "envelope_from"
+          options:
+            - label: "Envelope From"
+              value: "envelope_from"
+            - label: "Header From"
+              value: "header_from"
+            - label: "Both"
+              value: "both"
+          helpText: "Which part of the message the policy inspects."
+
+    - name: "From"
+      icon: "user"
+      description: "The sender the policy applies to"
+      fields:
+        - key: "fromType"
+          label: "From Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "everyone"
+          options:
+            - label: "Everyone"
+              value: "everyone"
+            - label: "Internal addresses"
+              value: "internal_addresses"
+            - label: "External addresses"
+              value: "external_addresses"
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Profile group"
+              value: "profile_group"
+            - label: "Individual email address"
+              value: "individual_email_address"
+          helpText: "Match the sender by everyone, internal/external, domain, profile group, or exact address."
+
+        - key: "fromValue"
+          label: "From Value"
+          fieldType: "text"
+          required: false
+          helpText: >
+            The domain, the directory profile group's secure id, or the email
+            address — required unless From Type is Everyone, Internal or
+            External.
+
+    - name: "To"
+      icon: "users"
+      description: "The recipients the policy applies to"
+      fields:
+        - key: "toType"
+          label: "To Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "everyone"
+          options:
+            - label: "Everyone"
+              value: "everyone"
+            - label: "Internal addresses"
+              value: "internal_addresses"
+            - label: "External addresses"
+              value: "external_addresses"
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Profile group"
+              value: "profile_group"
+            - label: "Individual email address"
+              value: "individual_email_address"
+          helpText: "Match the recipient by everyone, internal/external, domain, profile group, or exact address."
+
+        - key: "toValue"
+          label: "To Value"
+          fieldType: "text"
+          required: false
+          helpText: >
+            The domain, the directory profile group's secure id, or the email
+            address — required unless To Type is Everyone, Internal or
+            External.

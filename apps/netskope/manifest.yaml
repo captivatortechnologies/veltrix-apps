@@ -1,14 +1,16 @@
 id: netskope
 name: Netskope
-version: "0.5.0"
+version: "0.6.0"
 vendor: Veltrix
 description: >
   Manage Netskope configuration as code through the Netskope REST API v2 — URL
-  Lists, Device Classification Tags, RBAC Labels, NPA Publishers and Private
-  Apps, NPA Policy Groups and Rules, DNS and Destination Profiles, GRE and IPSec
-  Tunnels, Publisher Upgrade Profiles, NPA Local Brokers, and AI Gateway
-  providers, MCP servers, rate limits and token groups — with validation, drift
-  detection and rollback handled by the Security-as-Code pipeline.
+  Lists, Custom Categories, Service Objects, Device Classification Tags, RBAC
+  Labels, NPA Publishers and Private Apps, NPA Policy Groups and Rules, NPA
+  Local Broker Config, NPA Publisher Alerts, DNS and Destination Profiles, GRE
+  and IPSec Tunnels, Publisher Upgrade Profiles, NPA Local Brokers, and AI
+  Gateway providers, MCP servers, rate limits, token groups and appliances —
+  with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/netskope
@@ -80,6 +82,21 @@ permissions:
     - resource: aig-token-groups
       actions: [read, write, delete]
       description: Manage Netskope AI Gateway API token groups via the REST API v2
+    - resource: aig-appliances
+      actions: [read, write, delete]
+      description: Manage Netskope AI Gateway appliances (endpoint, port config, AI provider/MCP server associations, SKU add-ons) via the REST API v2
+    - resource: custom-categories
+      actions: [read, write, delete]
+      description: Manage Netskope custom URL categories (URL lists, destination profiles and predefined categories grouped for policy use) via the REST API v2
+    - resource: service-objects
+      actions: [read, write, delete]
+      description: Manage Netskope service objects (port/protocol profiles) via the REST API v2
+    - resource: npa-local-broker-config
+      actions: [read, write]
+      description: Manage Netskope's tenant-wide NPA local broker hostname setting via the REST API v2
+    - resource: npa-publishers-alerts-configuration
+      actions: [read, write]
+      description: Manage Netskope's tenant-wide NPA publisher alert notification policy via the REST API v2
 
 pipeline:
   configurationTypes:
@@ -367,6 +384,96 @@ pipeline:
         healthCheck: config-types/url-lists/healthCheck
         driftDetect: config-types/url-lists/driftDetect
         getStatus: config-types/url-lists/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-categories
+      group: "Objects"
+      name: Custom Categories
+      description: Custom URL categories grouping URL lists, destination profiles and predefined categories (name-keyed; id stored for rename-safety; PATCH auto-deploys; no deploy step)
+      canvasTemplate: config-types/custom-categories/canvas.yaml
+      defaultConfig: config-types/custom-categories/defaults.yaml
+      handlers:
+        validate: config-types/custom-categories/validate
+        deploy: config-types/custom-categories/deploy
+        rollback: config-types/custom-categories/rollback
+        healthCheck: config-types/custom-categories/healthCheck
+        driftDetect: config-types/custom-categories/driftDetect
+        getStatus: config-types/custom-categories/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: service-objects
+      group: "Objects"
+      name: Service Objects
+      description: Service objects — named port/protocol groups (tcp/udp/tcp+udp ranges, optional icmp) for firewall and steering policies (name-keyed; id stored for rename-safety; Netskope's own PREDEFINED objects preserved; PATCH update; no deploy step)
+      canvasTemplate: config-types/service-objects/canvas.yaml
+      defaultConfig: config-types/service-objects/defaults.yaml
+      handlers:
+        validate: config-types/service-objects/validate
+        deploy: config-types/service-objects/deploy
+        rollback: config-types/service-objects/rollback
+        healthCheck: config-types/service-objects/healthCheck
+        driftDetect: config-types/service-objects/driftDetect
+        getStatus: config-types/service-objects/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: npa-local-broker-config
+      group: "NPA Infrastructure"
+      name: NPA Local Broker Config
+      description: Tenant-wide NPA local broker hostname setting (singleton; PUT upserts; no delete operation exists on this endpoint)
+      canvasTemplate: config-types/npa-local-broker-config/canvas.yaml
+      defaultConfig: config-types/npa-local-broker-config/defaults.yaml
+      handlers:
+        validate: config-types/npa-local-broker-config/validate
+        deploy: config-types/npa-local-broker-config/deploy
+        rollback: config-types/npa-local-broker-config/rollback
+        healthCheck: config-types/npa-local-broker-config/healthCheck
+        driftDetect: config-types/npa-local-broker-config/driftDetect
+        getStatus: config-types/npa-local-broker-config/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: npa-publishers-alerts-configuration
+      group: "NPA Infrastructure"
+      name: NPA Publisher Alerts Configuration
+      description: Tenant-wide NPA publisher alert notification policy — admin recipients, event types and monitored users (singleton; camelCase JSON body; PUT upserts; no delete operation exists on this endpoint)
+      canvasTemplate: config-types/npa-publishers-alerts-configuration/canvas.yaml
+      defaultConfig: config-types/npa-publishers-alerts-configuration/defaults.yaml
+      handlers:
+        validate: config-types/npa-publishers-alerts-configuration/validate
+        deploy: config-types/npa-publishers-alerts-configuration/deploy
+        rollback: config-types/npa-publishers-alerts-configuration/rollback
+        healthCheck: config-types/npa-publishers-alerts-configuration/healthCheck
+        driftDetect: config-types/npa-publishers-alerts-configuration/driftDetect
+        getStatus: config-types/npa-publishers-alerts-configuration/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: aig-appliances
+      group: "AI Gateway"
+      name: AI Gateway Appliances
+      description: AI Gateway appliance records — host, HTTP/HTTPS port config, AI provider/MCP server associations and SKU add-ons (name-keyed; id stored for rename-safety; PATCH update; one-time JWT enrollment token never read or diffed; no deploy step)
+      canvasTemplate: config-types/aig-appliances/canvas.yaml
+      defaultConfig: config-types/aig-appliances/defaults.yaml
+      handlers:
+        validate: config-types/aig-appliances/validate
+        deploy: config-types/aig-appliances/deploy
+        rollback: config-types/aig-appliances/rollback
+        healthCheck: config-types/aig-appliances/healthCheck
+        driftDetect: config-types/aig-appliances/driftDetect
+        getStatus: config-types/aig-appliances/getStatus
       targets:
         componentTypes: [netskope]
         requiresCredential: true

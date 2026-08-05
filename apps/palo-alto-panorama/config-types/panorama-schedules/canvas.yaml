@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — Panorama Schedules (/Objects/Schedules)
+#
+# One schedule = a name (identity) + either a set of non-recurring date-time
+# ranges, a daily set of time ranges, or a weekly per-day set of time ranges.
+# Referenced by name from security / NAT / decryption / PBF / authentication
+# rules ("schedule" field) to restrict when a rule is active. Field keys must
+# match config-types/panorama-schedules/validate.ts.
+# =============================================================================
+
+id: "panorama-schedules"
+name: "Panorama Schedule Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-schedules"
+description: "Define Panorama schedule objects as code via the PAN-OS REST API (/Objects/Schedules). Reconciled by name."
+
+item:
+  label: "Schedule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Schedule"
+      icon: "clock"
+      description: "Name and kind"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The schedule name — its identity for reconciliation."
+
+        - key: "schedule_kind"
+          label: "Kind"
+          fieldType: "select"
+          required: true
+          defaultValue: "daily"
+          options:
+            - { label: "Non-Recurring (fixed date range)", value: "non_recurring" }
+            - { label: "Daily (same time every day)", value: "daily" }
+            - { label: "Weekly (per day of week)", value: "weekly" }
+          helpText: "How this schedule repeats."
+
+    - name: "Non-Recurring"
+      icon: "calendar"
+      description: "One or more fixed date-time ranges"
+      fields:
+        - key: "non_recurring_ranges"
+          label: "Date-Time Ranges"
+          fieldType: "tags"
+          visibleWhen: { field: "schedule_kind", equals: "non_recurring" }
+          helpText: "One range per entry, format YYYY/MM/DD@HH:MM-YYYY/MM/DD@HH:MM."
+
+    - name: "Daily"
+      icon: "clock"
+      description: "Time ranges applied every day"
+      fields:
+        - key: "daily_ranges"
+          label: "Time Ranges"
+          fieldType: "tags"
+          visibleWhen: { field: "schedule_kind", equals: "daily" }
+          helpText: "One range per entry, format HH:MM-HH:MM (24-hour)."
+
+    - name: "Weekly"
+      icon: "calendar-days"
+      description: "Time ranges per day of week"
+      fields:
+        - key: "weekly_ranges"
+          label: "Ranges By Day"
+          fieldType: "keyvalue"
+          visibleWhen: { field: "schedule_kind", equals: "weekly" }
+          helpText: >
+            Key = day of week (monday..sunday), value = comma-separated
+            HH:MM-HH:MM ranges for that day (e.g. "08:00-12:00,13:00-17:00").
+            Omit a day to leave it unscheduled.

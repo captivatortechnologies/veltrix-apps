@@ -1,0 +1,120 @@
+# =============================================================================
+# Canvas Template — Panorama External Dynamic Lists (/Objects/ExternalDynamicLists)
+#
+# One EDL = a name (identity) + a source URL of ip/domain/url entries fetched on
+# a recurring schedule. Referenced by name from address objects, address groups
+# and security rules. Field keys must match
+# config-types/panorama-external-dynamic-lists/validate.ts.
+#
+# NOTE: authenticated source URLs are not supported — PAN-OS masks the source
+# password on every read, so it cannot be diffed or round-tripped. Use an
+# unauthenticated feed URL, or manage authentication by hand in Panorama.
+# imei/imsi list types and the Palo-Alto-hosted predefined_ip/predefined_url
+# lists are also not represented (niche / not "author a source URL").
+# =============================================================================
+
+id: "panorama-external-dynamic-lists"
+name: "Panorama External Dynamic List Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-external-dynamic-lists"
+description: "Define Panorama external dynamic lists as code via the PAN-OS REST API (/Objects/ExternalDynamicLists). Reconciled by name."
+
+item:
+  label: "External Dynamic List"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "List"
+      icon: "list"
+      description: "Name, type and source"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The EDL name — its identity for reconciliation."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "url"
+          options:
+            - { label: "IP List", value: "ip" }
+            - { label: "Domain List", value: "domain" }
+            - { label: "URL List", value: "url" }
+          helpText: "The kind of entries this list's source URL returns."
+
+        - key: "source_url"
+          label: "Source URL"
+          fieldType: "text"
+          required: true
+          helpText: "The unauthenticated feed URL PAN-OS fetches on the recurring schedule below."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+        - key: "certificate_profile"
+          label: "Certificate Profile"
+          fieldType: "text"
+          helpText: "Optional certificate profile name for validating the source's TLS certificate (must already exist)."
+
+        - key: "exception_list"
+          label: "Exceptions"
+          fieldType: "tags"
+          helpText: "Entries to always exclude from this list, regardless of the source feed."
+
+        - key: "expand_domain"
+          label: "Expand Domain"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen: { field: "type", equals: "domain" }
+          helpText: "Domain lists only — also match subdomains of each listed domain."
+
+    - name: "Refresh Schedule"
+      icon: "clock"
+      description: "How often PAN-OS re-fetches the source URL"
+      fields:
+        - key: "recurring"
+          label: "Interval"
+          fieldType: "select"
+          required: true
+          defaultValue: "hourly"
+          options:
+            - { label: "Every 5 Minutes", value: "five_minute" }
+            - { label: "Hourly", value: "hourly" }
+            - { label: "Daily", value: "daily" }
+            - { label: "Weekly", value: "weekly" }
+            - { label: "Monthly", value: "monthly" }
+          helpText: "How often the list is re-fetched from the source URL."
+
+        - key: "recurring_at"
+          label: "At Hour"
+          fieldType: "text"
+          visibleWhen: { field: "recurring", in: ["daily", "weekly", "monthly"] }
+          helpText: "Hour of the day (0-23) the daily/weekly/monthly fetch runs. Leave blank for the PAN-OS default."
+
+        - key: "recurring_day_of_week"
+          label: "Day Of Week"
+          fieldType: "select"
+          defaultValue: "sunday"
+          visibleWhen: { field: "recurring", equals: "weekly" }
+          options:
+            - { label: "Sunday", value: "sunday" }
+            - { label: "Monday", value: "monday" }
+            - { label: "Tuesday", value: "tuesday" }
+            - { label: "Wednesday", value: "wednesday" }
+            - { label: "Thursday", value: "thursday" }
+            - { label: "Friday", value: "friday" }
+            - { label: "Saturday", value: "saturday" }
+          helpText: "Weekly recurrence only."
+
+        - key: "recurring_day_of_month"
+          label: "Day Of Month"
+          fieldType: "number"
+          visibleWhen: { field: "recurring", equals: "monthly" }
+          helpText: "Monthly recurrence only — day of month (1-31)."

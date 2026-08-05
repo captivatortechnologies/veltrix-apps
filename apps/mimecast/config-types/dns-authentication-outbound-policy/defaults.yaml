@@ -1,0 +1,8 @@
+# Defaults for a new DNS Authentication - Outbound policy item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds a policy applied to
+# everyone; the definitionId reference and any scoped from/to values are left
+# blank for a deliberate choice.
+fromPart: envelope_from
+fromType: everyone
+toType: everyone

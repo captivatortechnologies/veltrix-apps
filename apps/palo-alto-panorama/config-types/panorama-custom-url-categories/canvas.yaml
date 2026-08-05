@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — Panorama Custom URL Categories (/Objects/CustomURLCategories)
+#
+# One custom URL category = a name (identity) + a type ("URL List" bundles raw
+# URLs/domains; "Category Match" bundles existing PAN-DB or other custom
+# category names) + the list itself. Referenced by name from security /
+# decryption rules ("category") and from URL Filtering profile action buckets.
+# Field keys must match config-types/panorama-custom-url-categories/validate.ts.
+# =============================================================================
+
+id: "panorama-custom-url-categories"
+name: "Panorama Custom URL Category Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-custom-url-categories"
+description: "Define Panorama custom URL categories as code via the PAN-OS REST API (/Objects/CustomURLCategories). Reconciled by name."
+
+item:
+  label: "Custom URL Category"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Category"
+      icon: "globe"
+      description: "Name, type and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The custom URL category name — its identity for reconciliation."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "URL List"
+          options:
+            - { label: "URL List (raw URLs / domains)", value: "URL List" }
+            - { label: "Category Match (bundle of existing categories)", value: "Category Match" }
+          helpText: "Whether the list holds raw URLs/domains or names of existing (PAN-DB or custom) categories."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+    - name: "List"
+      icon: "list"
+      description: "The list contents (meaning depends on Type)"
+      fields:
+        - key: "list"
+          label: "List"
+          fieldType: "tags"
+          helpText: "URLs/domains (URL List) or category names (Category Match), one per entry."

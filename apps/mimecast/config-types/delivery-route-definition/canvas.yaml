@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — Mimecast Delivery Route Definitions
+#
+# Declares ONE Delivery Route definition — the item. Targets the newer Policy
+# Management v1 REST API
+# (/policy-management/cloud-gateway/v1/delivery-route/definitions): the
+# destination mail server the Mimecast MTA delivers to for mail matched by a
+# Delivery Route Policy (a separate config type — a definition is a reusable
+# target that one or more policies reference by id).
+#
+# SMTP authentication (a username/password the Mimecast MTA presents to the
+# destination server) is intentionally NOT modeled here — the create/update
+# payload would require a plaintext password in canvas config, which this
+# platform avoids everywhere else via the Credential Vault. This app never
+# sends an `smtpAuthentication` field, so an authenticated route configured
+# out-of-band (Mimecast Administration Console) is left untouched by deploys.
+#
+# Definitions are matched by DESCRIPTION. The v1 API supports a real update
+# (PATCH /definitions/{id}), so a changed definition is updated in place
+# instead of deleted and recreated.
+#
+# Field keys must match config-types/delivery-route-definition/validate.ts.
+# =============================================================================
+
+id: "mimecast-delivery-route-definition"
+name: "Delivery Route Definition Configuration"
+toolType: "mimecast"
+entityType: "delivery-route-definition"
+description: "Define Mimecast Delivery Route destination servers as code through the Mimecast Policy Management v1 API."
+
+item:
+  label: "Delivery Route Definition"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Definition"
+      icon: "server"
+      description: "The destination mail server for this route"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The definition description — its identity. Must be unique within
+            this canvas; the app matches live definitions on it.
+
+        - key: "hostname"
+          label: "Hostname"
+          fieldType: "text"
+          required: true
+          helpText: "The public hostname or IP address of the destination email server."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: true
+          defaultValue: 25
+          helpText: "The port to connect on (1-65535)."
+
+        - key: "alternateRouteId"
+          label: "Alternate Route ID"
+          fieldType: "text"
+          required: false
+          helpText: >
+            Optional — the secure id of another Delivery Route Definition item
+            to fail over to if this one is unreachable.

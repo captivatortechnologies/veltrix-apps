@@ -1,0 +1,11 @@
+# Defaults for a new anti-spoofing policy item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds an enforced policy applied
+# to everyone; the from/to scope values, sourceIPs and hostnames are left blank
+# for a deliberate choice.
+option: apply
+fromPart: envelope_from
+fromType: everyone
+toType: everyone
+override: false
+bidirectional: false

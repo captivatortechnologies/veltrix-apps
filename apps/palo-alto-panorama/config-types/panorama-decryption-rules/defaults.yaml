@@ -1,0 +1,6 @@
+# Defaults for a new decryption rule item (flat map keyed by canvas field keys).
+disabled: false
+type: "ssl-forward-proxy"
+action: "no-decrypt"
+log_success: false
+log_fail: true

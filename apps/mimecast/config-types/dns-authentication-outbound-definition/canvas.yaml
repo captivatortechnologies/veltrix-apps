@@ -1,0 +1,77 @@
+# =============================================================================
+# Canvas Template — Mimecast DNS Authentication - Outbound (DKIM)
+#
+# Declares ONE DNS Authentication - Outbound definition — the item. Targets the
+# newer Policy Management v1 REST API
+# (/policy-management/cloud-gateway/v1/dns-authentication-outbound/
+# definitions): outbound DKIM signing for a domain. Mimecast GENERATES and
+# holds the DKIM keypair itself — the create/update payload never carries a
+# private key, only description/domain/selector/keyLength — so this is safe to
+# manage declaratively (unlike a bring-your-own-key DKIM integration would be).
+# Retrieving the definition returns the public DNS record text to publish.
+#
+# Signing only takes effect for mail matched by a DNS Authentication - Outbound
+# POLICY (a separate config type) that references this definition's id.
+#
+# Definitions are matched by DESCRIPTION. The v1 API supports a real update
+# (PATCH /definitions/{id}), so a changed definition is updated in place
+# instead of deleted and recreated.
+#
+# Field keys must match config-types/dns-authentication-outbound-definition/validate.ts.
+# =============================================================================
+
+id: "mimecast-dns-authentication-outbound-definition"
+name: "DNS Authentication - Outbound Definition Configuration"
+toolType: "mimecast"
+entityType: "dns-authentication-outbound-definition"
+description: "Define Mimecast outbound DKIM signing definitions as code through the Mimecast Policy Management v1 API."
+
+item:
+  label: "DNS Authentication - Outbound Definition"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Definition"
+      icon: "key"
+      description: "The domain and DKIM signing parameters"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The definition description — its identity. Must be unique within
+            this canvas; the app matches live definitions on it.
+
+        - key: "domain"
+          label: "Domain"
+          fieldType: "text"
+          required: true
+          helpText: "The domain this DKIM definition applies to."
+
+        - key: "selector"
+          label: "DKIM Selector"
+          fieldType: "text"
+          required: false
+          helpText: "Optional — the DNS selector to publish the DKIM record under. Mimecast generates one if left blank."
+
+        - key: "signDkim"
+          label: "Sign with DKIM"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether this definition performs DKIM signing."
+
+        - key: "keyLength"
+          label: "DKIM Key Length"
+          fieldType: "select"
+          required: true
+          defaultValue: 2048
+          options:
+            - label: "1024-bit"
+              value: 1024
+            - label: "2048-bit"
+              value: 2048
+          helpText: "The DKIM public key length. 2048-bit is the modern, more secure default."

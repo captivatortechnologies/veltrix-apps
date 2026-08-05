@@ -1,0 +1,7 @@
+# Defaults for a new data filtering profile item (flat map keyed by canvas field keys).
+data_capture: false
+rule_name: "default"
+direction: "both"
+alert_threshold: 10
+block_threshold: 20
+log_severity: "medium"

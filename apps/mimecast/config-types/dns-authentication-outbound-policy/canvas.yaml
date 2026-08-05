@@ -1,0 +1,127 @@
+# =============================================================================
+# Canvas Template — Mimecast DNS Authentication - Outbound Policies
+#
+# Declares ONE DNS Authentication - Outbound policy — the item. Targets the
+# newer Policy Management v1 REST API
+# (/policy-management/cloud-gateway/v1/dns-authentication-outbound/policies):
+# which outbound mail (scoped by a from/to target) gets DKIM-signed using a
+# given DNS Authentication - Outbound Definition (a separate config type —
+# create the definition first and reference its secure id here).
+#
+# Policies are matched by DESCRIPTION. The v1 API supports a real update
+# (PATCH /policies/{id}), so a changed policy is updated in place instead of
+# deleted and recreated.
+#
+# Field keys must match config-types/dns-authentication-outbound-policy/validate.ts.
+# =============================================================================
+
+id: "mimecast-dns-authentication-outbound-policy"
+name: "DNS Authentication - Outbound Policy Configuration"
+toolType: "mimecast"
+entityType: "dns-authentication-outbound-policy"
+description: "Define which outbound mail is DKIM-signed by a Mimecast DNS Authentication - Outbound Definition, as code through the Mimecast Policy Management v1 API."
+
+item:
+  label: "DNS Authentication - Outbound Policy"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "key"
+      description: "Policy identity and the definition it applies"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The policy description — its identity. Must be unique within this
+            canvas; the app matches live policies on it.
+
+        - key: "definitionId"
+          label: "DNS Authentication - Outbound Definition ID"
+          fieldType: "text"
+          required: true
+          helpText: "The secure id of the DNS Authentication - Outbound Definition item this policy applies."
+
+        - key: "fromPart"
+          label: "From Part"
+          fieldType: "select"
+          required: true
+          defaultValue: "envelope_from"
+          options:
+            - label: "Envelope From"
+              value: "envelope_from"
+            - label: "Header From"
+              value: "header_from"
+            - label: "Both"
+              value: "both"
+          helpText: "Which part of the message the policy inspects."
+
+    - name: "From"
+      icon: "user"
+      description: "The sender the policy applies to"
+      fields:
+        - key: "fromType"
+          label: "From Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "everyone"
+          options:
+            - label: "Everyone"
+              value: "everyone"
+            - label: "Internal addresses"
+              value: "internal_addresses"
+            - label: "External addresses"
+              value: "external_addresses"
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Profile group"
+              value: "profile_group"
+            - label: "Individual email address"
+              value: "individual_email_address"
+          helpText: "Match the sender by everyone, internal/external, domain, profile group, or exact address."
+
+        - key: "fromValue"
+          label: "From Value"
+          fieldType: "text"
+          required: false
+          helpText: >
+            The domain, the directory profile group's secure id, or the email
+            address — required unless From Type is Everyone, Internal or
+            External.
+
+    - name: "To"
+      icon: "users"
+      description: "The recipients the policy applies to"
+      fields:
+        - key: "toType"
+          label: "To Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "everyone"
+          options:
+            - label: "Everyone"
+              value: "everyone"
+            - label: "Internal addresses"
+              value: "internal_addresses"
+            - label: "External addresses"
+              value: "external_addresses"
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Profile group"
+              value: "profile_group"
+            - label: "Individual email address"
+              value: "individual_email_address"
+          helpText: "Match the recipient by everyone, internal/external, domain, profile group, or exact address."
+
+        - key: "toValue"
+          label: "To Value"
+          fieldType: "text"
+          required: false
+          helpText: >
+            The domain, the directory profile group's secure id, or the email
+            address — required unless To Type is Everyone, Internal or
+            External.
