@@ -1,23 +1,25 @@
 id: microsoft-sentinel
 name: Microsoft Sentinel
-version: "1.3.0"
+version: "1.4.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Sentinel detection and response content as code through the
-  Azure Resource Manager (ARM) API: scheduled (KQL) and near-real-time (NRT)
-  analytics rules, automation rules (modify-properties and run-playbook actions),
-  watchlists, hunting queries / saved searches, and the Microsoft first-party
-  (tenant-based) data connectors — each with validation, drift detection and
-  rollback handled by the Security-as-Code pipeline. Auth is an Azure Entra app
-  registration (OAuth2 client credentials) with the "Microsoft Sentinel
-  Contributor" role scoped to the workspace resource group. The workspace is
-  addressed via the Tenant ID, Subscription ID, Resource Group and Workspace Name
-  app settings. NRT rules are written against a preview api-version (kind:NRT is
-  not part of the stable contract). Also manages Microsoft-Security incident-
+  Azure Resource Manager (ARM) API: scheduled (KQL), near-real-time (NRT) and
+  Fusion (built-in multi-stage attack correlation) analytics rules, automation
+  rules (modify-properties and run-playbook actions), watchlists, hunting
+  queries / saved searches, and the Microsoft first-party (tenant-based) data
+  connectors — each with validation, drift detection and rollback handled by
+  the Security-as-Code pipeline. Auth is an Azure Entra app registration
+  (OAuth2 client credentials) with the "Microsoft Sentinel Contributor" role
+  scoped to the workspace resource group. The workspace is addressed via the
+  Tenant ID, Subscription ID, Resource Group and Workspace Name app settings.
+  NRT rules are written against a preview api-version (kind:NRT is not part of
+  the stable contract); Fusion is GA. Also manages Microsoft-Security incident-
   creation rules, anomaly (ML) analytics settings, threat-intelligence indicators,
   product settings (UEBA/Entity Analytics/Anomalies/EyesOn), workbooks, and
-  source-control repositories. Fusion analytics rules and CCP/codeless/portal-only
-  data connectors remain out of scope.
+  source-control repositories. Content Hub / solution installs, granular
+  watchlist-item CRUD and CCP/codeless/portal-only data connectors remain out
+  of scope — see the README Coverage section for sourced reasons.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-sentinel
@@ -60,6 +62,9 @@ permissions:
     - resource: sentinel-anomaly-rules
       actions: [read, write, delete]
       description: Manage Microsoft Sentinel anomaly (ML) analytics rules (securityMLAnalyticsSettings)
+    - resource: sentinel-fusion-rule
+      actions: [read, write, delete]
+      description: Manage Microsoft Sentinel's built-in Fusion (multi-stage attack correlation) analytics rule
     - resource: sentinel-threat-indicators
       actions: [read, write, delete]
       description: Manage Microsoft Sentinel threat intelligence indicators (hand-authored)
@@ -215,6 +220,29 @@ pipeline:
         healthCheck: config-types/sentinel-anomaly-rules/healthCheck
         driftDetect: config-types/sentinel-anomaly-rules/driftDetect
         getStatus: config-types/sentinel-anomaly-rules/getStatus
+      targets:
+        componentTypes: [sentinel-workspace]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: sentinel-fusion-rule
+      group: "Analytics Rules"
+      name: Fusion Rule
+      description: >
+        The built-in Fusion (Advanced Multi-Stage Attack Detection) analytics
+        rule via Microsoft.SecurityInsights/alertRules (kind Fusion, GA
+        api-version 2024-09-01) — a per-workspace singleton. Only `enabled` is
+        writable; severity/tactics/description are inherited from the fixed
+        built-in template. Reconciled by kind (the live ruleId is
+        system-assigned at onboarding), not by a customer-typed name.
+      canvasTemplate: config-types/sentinel-fusion-rule/canvas.yaml
+      defaultConfig: config-types/sentinel-fusion-rule/defaults.yaml
+      handlers:
+        validate: config-types/sentinel-fusion-rule/validate
+        deploy: config-types/sentinel-fusion-rule/deploy
+        rollback: config-types/sentinel-fusion-rule/rollback
+        healthCheck: config-types/sentinel-fusion-rule/healthCheck
+        driftDetect: config-types/sentinel-fusion-rule/driftDetect
+        getStatus: config-types/sentinel-fusion-rule/getStatus
       targets:
         componentTypes: [sentinel-workspace]
         requiresCredential: true

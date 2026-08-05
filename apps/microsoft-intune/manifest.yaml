@@ -1,6 +1,6 @@
 id: microsoft-intune
 name: Microsoft Intune
-version: "1.5.0"
+version: "1.6.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Intune endpoint-security policies as code through the
@@ -71,6 +71,9 @@ permissions:
     - resource: intune-app-config-policies
       actions: [read, write, delete]
       description: Manage Intune app configuration policies for managed apps (custom key/value settings) and their targeted apps + assignments
+    - resource: intune-driver-update-profiles
+      actions: [read, write, delete]
+      description: Manage Intune Windows driver update profiles (approval mode + deferral) and their assignments
 
 pipeline:
   configurationTypes:
@@ -259,6 +262,28 @@ pipeline:
         healthCheck: config-types/intune-quality-update-profiles/healthCheck
         driftDetect: config-types/intune-quality-update-profiles/driftDetect
         getStatus: config-types/intune-quality-update-profiles/getStatus
+      targets:
+        componentTypes: [intune-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: intune-driver-update-profiles
+      group: "Windows Updates"
+      name: Driver Update Profiles
+      description: >
+        Manage Intune Windows driver update profiles (windowsDriverUpdateProfile)
+        — manual or automatic approval with a deferral window — and their
+        assignments. PREVIEW — the Graph deviceManagement/windowsDriverUpdateProfiles
+        API is beta only (no v1.0)
+      canvasTemplate: config-types/intune-driver-update-profiles/canvas.yaml
+      defaultConfig: config-types/intune-driver-update-profiles/defaults.yaml
+      handlers:
+        validate: config-types/intune-driver-update-profiles/validate
+        deploy: config-types/intune-driver-update-profiles/deploy
+        rollback: config-types/intune-driver-update-profiles/rollback
+        healthCheck: config-types/intune-driver-update-profiles/healthCheck
+        driftDetect: config-types/intune-driver-update-profiles/driftDetect
+        getStatus: config-types/intune-driver-update-profiles/getStatus
       targets:
         componentTypes: [intune-tenant]
         requiresCredential: true

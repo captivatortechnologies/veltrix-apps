@@ -1,0 +1,6 @@
+# Defaults for a new driver update profile item.
+#
+# Intentionally empty: a new item starts blank (approvalType falls back to its
+# canvas defaultValue of "manual"). Any values here would be a flat map keyed by
+# the canvas field keys (profile_name, description, approvalType,
+# deploymentDeferralInDays, includeGroups, excludeGroups, allDevices).

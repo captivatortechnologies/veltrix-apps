@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-microsoft-sentinel",
   "private": true,
-  "version": "1.3.0",
-  "description": "Veltrix app: manage Microsoft Sentinel (analytics rules incl. NRT, automation rules incl. playbooks, watchlists, hunting queries, data connectors) as code via Azure Resource Manager",
+  "version": "1.4.0",
+  "description": "Veltrix app: manage Microsoft Sentinel (analytics rules incl. NRT/Fusion, automation rules incl. playbooks, watchlists, hunting queries, data connectors) as code via Azure Resource Manager",
   "scripts": { "typecheck": "tsc --noEmit" },
   "devDependencies": {
     "@types/jest": "^29.5.14",

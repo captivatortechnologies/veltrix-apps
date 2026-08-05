@@ -3,6 +3,33 @@
 All notable changes to the Microsoft Intune app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.6.0 — 2026-08-05
+
+### Added
+- **Windows Updates** — `intune-driver-update-profiles`
+  (`windowsDriverUpdateProfile`, beta) — manual or automatic driver-update
+  approval with a deployment deferral window, and assignments. The last gap in
+  Intune's four Windows-update-management surfaces (rings / feature / quality /
+  driver profiles are now all covered).
+
+### Verified
+- Research-first exhaustiveness pass against the Microsoft Graph
+  `deviceManagement` + `deviceAppManagement` surface (v1.0 and beta). See the
+  README **Coverage** section for the full managed/excluded breakdown,
+  including sourced reasons for what stays out of scope: Intune custom RBAC
+  (`roleDefinition`/`roleAssignment` — a large, versioned `resourceActions`
+  permission-string catalog, same "opaque schema" rationale already applied to
+  AV/EDR/firewall), device-targeted app configuration
+  (`managedDeviceMobileAppConfiguration` — per-platform opaque payload: base64
+  XML on iOS, a dynamic Play Store schema on Android), notification message
+  templates (clean schema on its own, but only useful wired into
+  `intune-compliance-policies`' non-compliance actions — deferred as follow-up
+  scope rather than touching an already-shipped type in this pass), and
+  Terms and Conditions (Microsoft has retired this Intune feature — no current
+  Graph reference page).
+- No changes to existing config types — this release only adds the driver
+  update profiles type and documents Coverage.
+
 ## 1.5.0 — 2026-07-28
 
 ### Added

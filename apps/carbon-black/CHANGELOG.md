@@ -8,6 +8,34 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.0 — 2026-08-05
+
+### Added
+- **Access Grants (RBAC)** configuration type — grant Carbon Black Cloud RBAC
+  roles to existing users as code via the Access Profiles and Grants API
+  (`/access/v2/orgs/{org_key}/grants`), with the full pipeline handler set.
+  Found while auditing the current `developer.carbonblack.com` reference for
+  untapped declarative surface — this is a genuine CRUD-able resource with no
+  secret material, distinct from (and not overlapping) the 11 existing config
+  types. A grant targets a principal by email (resolved read-only to a
+  `login_id` via the Users API — this app never creates, edits or deletes a
+  user) and carries one or more role URNs. **Additive only**: deploy reads the
+  principal's current grant, unions the declared roles into it and PUTs the
+  merged set back, so a role granted directly in the console (or by another
+  tool) is never revoked; removing an item from the canvas revokes only the
+  roles this app itself granted (deleting the grant entirely only if this app
+  created it from nothing and none remain). A principal already carrying a
+  `profiles`-based grant (multi-org / MSSP-scoped access — mutually exclusive
+  with `roles` on the CBC side) is left untouched and surfaced as a deploy-time
+  error rather than silently overwritten.
+- `usersPath()`, `grantsPath()` and `orgRefUrn()` base-path/URN helpers in the
+  CBC API client, reused by the new config type.
+- README **Coverage** section — every `developer.carbonblack.com` API category
+  audited against this app's 12 configuration types, with sourced reasons for
+  everything intentionally excluded (imperative device/session actions,
+  read-only telemetry, user identity lifecycle, and the separate CBC Workload
+  product module).
+
 ## 0.5.0 — 2026-07-26
 
 ### Added

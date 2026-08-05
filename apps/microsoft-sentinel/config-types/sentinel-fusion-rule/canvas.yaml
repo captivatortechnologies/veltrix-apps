@@ -1,0 +1,41 @@
+# =============================================================================
+# Canvas Template — Microsoft Sentinel Fusion Rule
+#
+# Declares the built-in Fusion (Advanced Multi-Stage Attack Detection) analytics
+# rule — a per-workspace SINGLETON that already exists on every onboarded
+# workspace. Only `enabled` is writable; severity/tactics/description are
+# inherited from the built-in template. Reconciled by KIND (not by name) because
+# the live ruleId is system-assigned — see
+# config-types/sentinel-fusion-rule/deploy.ts. At most one item may be declared.
+# Field keys must match config-types/sentinel-fusion-rule/validate.ts.
+# =============================================================================
+
+id: "sentinel-fusion-rule"
+name: "Fusion Rule"
+toolType: "microsoft-sentinel"
+entityType: "sentinel-fusion-rule"
+description: "Enable/disable Microsoft Sentinel's built-in Fusion (multi-stage attack) correlation detection as code via Azure Resource Manager. A per-workspace singleton — declare at most once."
+
+item:
+  label: "Fusion Rule"
+  identityField: "label"
+  repeatable: true
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Fusion"
+      icon: "shield"
+      description: "The built-in Fusion (Advanced Multi-Stage Attack Detection) correlation rule"
+      fields:
+        - key: "label"
+          label: "Label"
+          fieldType: "text"
+          defaultValue: "Fusion (Advanced Multi-Stage Attack Detection)"
+          required: true
+          helpText: "Display label only. Fusion is a per-workspace singleton reconciled by its alertRules kind, not by this label."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether Sentinel's built-in Fusion correlation detection is on. Fusion combines low-fidelity alerts and events across multiple products into high-fidelity incidents; its scope, severity and tactics are managed by Microsoft's built-in template and are not customer-configurable."

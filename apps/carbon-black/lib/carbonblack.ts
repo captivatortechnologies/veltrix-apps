@@ -171,6 +171,21 @@ export class CbClient {
     return `/policyservice/v1/orgs/${this.cred.orgKey}/policies`
   }
 
+  /** The org-scoped Users base path (read-only lookup — this app never creates/edits users). */
+  usersPath(): string {
+    return `/appservices/v6/orgs/${this.cred.orgKey}/users`
+  }
+
+  /** The org-scoped Access Profiles and Grants base path. */
+  grantsPath(): string {
+    return `/access/v2/orgs/${this.cred.orgKey}/grants`
+  }
+
+  /** This org's `org_ref` URN, as used in a grant body. */
+  orgRefUrn(): string {
+    return `psc:org:${this.cred.orgKey}`
+  }
+
   /** Page any CBC `_search` collection (start/rows) at `basePath` until num_found. */
   async searchAllAt<T = unknown>(
     basePath: string,

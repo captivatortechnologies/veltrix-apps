@@ -1,0 +1,90 @@
+# =============================================================================
+# Canvas Template — Intune Windows Driver Update Profiles
+#
+# Declares ONE driver update profile — the item. Users add as many profiles as
+# they need. A profile is a name + an approval mode (manual review, or automatic
+# with a deferral window) + assignments. Reconciled by profile name (displayName).
+# Field keys must match config-types/intune-driver-update-profiles/validate.ts and
+# equal the Graph windowsDriverUpdateProfile property names.
+#
+# OUT OF SCOPE: approving/declining individual driver updates found on devices
+# (the executeAction action) and the driver inventory sync (syncInventory) are
+# device-state operations tied to live hardware inventory, not declarative
+# config — this manages only the profile's policy shell.
+# =============================================================================
+
+id: "intune-driver-update-profiles"
+name: "Driver Update Profiles"
+toolType: "microsoft-intune"
+entityType: "intune-driver-update-profiles"
+description: "Manage Intune Windows driver update profiles via Graph deviceManagement/windowsDriverUpdateProfiles — manual or automatic approval with a deferral window — and their assignments. Reconciled by profile name."
+
+item:
+  label: "Driver Update Profile"
+  identityField: "profile_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Profile"
+      icon: "cpu"
+      description: "Profile name and description"
+      fields:
+        - key: "profile_name"
+          label: "Profile name"
+          fieldType: "text"
+          required: true
+          helpText: "The Intune driver update profile name. This is the reconciliation identity."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Intune admin center."
+
+    - name: "Approval"
+      icon: "check-circle"
+      description: "How driver updates are approved for assigned devices"
+      fields:
+        - key: "approvalType"
+          label: "Approval type"
+          fieldType: "select"
+          required: true
+          defaultValue: "manual"
+          helpText: "Manual — an admin reviews and approves each driver update. Automatic — new driver updates are approved automatically after the deferral period below."
+          options:
+            - { label: "Manual", value: "manual" }
+            - { label: "Automatic", value: "automatic" }
+
+        - key: "deploymentDeferralInDays"
+          label: "Deployment deferral (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Only used when approval type is Automatic — how many days after release a driver update is held before being auto-approved. Leave blank to use the Intune default."
+          visibleWhen:
+            field: "approvalType"
+            equals: "automatic"
+
+    - name: "Assignments"
+      icon: "users"
+      description: "Which devices this profile applies to. Leave all blank to leave assignments unmanaged."
+      fields:
+        - key: "allDevices"
+          label: "All devices"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Apply the profile to every managed device."
+
+        - key: "includeGroups"
+          label: "Included groups"
+          fieldType: "tags"
+          helpText: >
+            Entra ID group object IDs (GUIDs) to include, one per entry. When any
+            assignment target is set here, this deploy manages (replaces) the profile's
+            assignments; leave every assignment field blank to leave them untouched.
+
+        - key: "excludeGroups"
+          label: "Excluded groups"
+          fieldType: "tags"
+          helpText: "Entra ID group object IDs (GUIDs) to exclude from the profile, one per entry."

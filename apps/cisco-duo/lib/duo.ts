@@ -303,6 +303,54 @@ export class DuoClient {
   }
 }
 
+// --- Multi-value textarea fields (Passport group scoping, Shared Device Auth
+// group/management-integration ids) — shared parsing + live-response
+// normalization so every config type that references Duo objects by a
+// newline/comma-separated list of opaque ids does it the same way. ------------
+
+function dedupeStrings(list: string[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const item of list) {
+    if (!seen.has(item)) {
+      seen.add(item)
+      out.push(item)
+    }
+  }
+  return out
+}
+
+/** Split a textarea (newline- or comma-separated) into a deduped, trimmed list. */
+export function parseList(v: unknown): string[] {
+  if (Array.isArray(v)) return dedupeStrings(v.map((x) => String(x).trim()).filter(Boolean))
+  if (typeof v !== 'string') return []
+  return dedupeStrings(
+    v
+      .split(/[\n,]/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+  )
+}
+
+/** Normalize a live list of `{[idKey]: id}` objects (or bare id strings) to a deduped id-string list. */
+export function normalizeIdObjects(list: unknown, idKey: string): string[] {
+  if (!Array.isArray(list)) return []
+  return dedupeStrings(
+    list
+      .map((item) => (typeof item === 'string' ? item.trim() : asIdString((item as Record<string, unknown> | null)?.[idKey])))
+      .filter(Boolean)
+  )
+}
+
+function asIdString(v: unknown): string {
+  return typeof v === 'string' ? v.trim() : ''
+}
+
+/** Normalize a live `enabled_groups`/`disabled_groups`/`groups` list to group ids. */
+export function normalizeGroupIds(list: unknown): string[] {
+  return normalizeIdObjects(list, 'group_id')
+}
+
 /** Coerce arbitrary param values to strings for a V5 GET/DELETE query. */
 function toQueryParams(params: Record<string, unknown>): Record<string, string> {
   const out: Record<string, string> = {}

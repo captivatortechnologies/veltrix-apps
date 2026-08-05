@@ -3,6 +3,26 @@
 All notable changes to the Zscaler app are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## 1.4.0 — 2026-08-05
+
+### Added
+- **ZIA Forwarding Control Rules** (`zia-forwarding-control-rules`, `/forwardingRules`).
+  The last standard ZIA policy-rule surface this app didn't yet manage: rules
+  that decide how matching traffic leaves the Zscaler cloud — forwarded
+  directly, proxy-chained to a next-hop gateway, routed to a ZPA App Connector
+  (`forwardMethod: ZPA`/`ECZPA`), or dropped. Same shape as the other 8 ZIA
+  Policy Rules types (name/order/state + a `rule_json` criteria escape hatch),
+  staged and activated as a batch. ZIA ships several predefined forwarding
+  rules (e.g. "ZPA Pool For Stray Traffic") that this refuses to modify or
+  delete, matched by name since the API returns no `predefined` flag on this
+  resource. 33 configuration types total.
+
+### Changed
+- Added a README **Coverage** section listing every managed configuration type
+  by group alongside the platform surface intentionally left out (one-shot
+  activation, read-only references, write-only secrets, non-round-trippable
+  actions), each with a sourced reason.
+
 ## 1.3.0 — 2026-07-22
 
 ### Added

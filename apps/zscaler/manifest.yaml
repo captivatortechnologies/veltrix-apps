@@ -1,15 +1,15 @@
 id: zscaler
 name: Zscaler
-version: "1.3.0"
+version: "1.4.0"
 vendor: Veltrix
 description: >
   Manage Zscaler Internet Access (ZIA) and Zscaler Private Access (ZPA)
   configuration as code through the Zscaler OneAPI. Covers URL filtering,
-  cloud firewall, DLP, SSL inspection, locations and admin config on ZIA, and
-  application segments, server/segment groups, connectors and access policy on
-  ZPA - with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline. ZIA changes are staged and activated as a batch;
-  ZPA changes apply immediately.
+  cloud firewall, DLP, SSL inspection, forwarding control, locations and admin
+  config on ZIA, and application segments, server/segment groups, connectors
+  and access policy on ZPA - with validation, drift detection and rollback
+  handled by the Security-as-Code pipeline. ZIA changes are staged and
+  activated as a batch; ZPA changes apply immediately.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/zscaler
@@ -58,6 +58,9 @@ permissions:
     - resource: zia-web-dlp-rules
       actions: [read, write, delete]
       description: Manage Zscaler web DLP rules
+    - resource: zia-forwarding-control-rules
+      actions: [read, write, delete]
+      description: Manage Zscaler forwarding control rules
     - resource: zia-network-services
       actions: [read, write, delete]
       description: Manage Zscaler custom network services
@@ -287,6 +290,24 @@ pipeline:
         healthCheck: config-types/zia-web-dlp-rules/healthCheck
         driftDetect: config-types/zia-web-dlp-rules/driftDetect
         getStatus: config-types/zia-web-dlp-rules/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-forwarding-control-rules
+      group: "ZIA · Policy Rules"
+      name: ZIA Forwarding Control Rules
+      description: Forwarding control rules (/forwardingRules) — direct, proxy-chain, drop or ZPA-forward matching traffic
+      canvasTemplate: config-types/zia-forwarding-control-rules/canvas.yaml
+      defaultConfig: config-types/zia-forwarding-control-rules/defaults.yaml
+      handlers:
+        validate: config-types/zia-forwarding-control-rules/validate
+        deploy: config-types/zia-forwarding-control-rules/deploy
+        rollback: config-types/zia-forwarding-control-rules/rollback
+        healthCheck: config-types/zia-forwarding-control-rules/healthCheck
+        driftDetect: config-types/zia-forwarding-control-rules/driftDetect
+        getStatus: config-types/zia-forwarding-control-rules/getStatus
       targets:
         componentTypes: [zscaler-tenant]
         requiresCredential: true

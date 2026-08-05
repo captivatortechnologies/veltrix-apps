@@ -8,6 +8,50 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.0 — 2026-08-05
+
+### Added
+- **Shared Device Authentication** configuration type — manage Duo Desktop
+  kiosk/shared-workstation authentication configurations as code via the
+  V5(JSON)-signed `/admin/v1/desktop_authenticators/shared_device_auth` API
+  (full CRUD: list, get-by-key, create, update, delete — the update call is
+  JSON-only per Duo's own docs, so this type reuses the same V5 signer as
+  Policies and Passport). Each configuration pairs one or more Duo groups
+  (`group_id_list`) with one or more Trusted Endpoints management integrations
+  (`trusted_endpoint_integration_id_list`); it is matched by name and its
+  `shared_device_key` is stored for rename-safety; reconcile only deletes
+  configurations this app created. Management integrations themselves are
+  provisioned by enrolling a device-management system in the Duo Admin Panel's
+  Trusted Endpoints setup — the Admin API has no endpoint to create or list
+  them, only to reference their ids, so operators copy the id from the Admin
+  Panel.
+- `lib/duo.ts` gained shared `parseList`/`normalizeIdObjects`/`normalizeGroupIds`
+  helpers (generalized out of the Passport config type, which now re-exports
+  them) for every config type that references Duo objects by a
+  newline/comma-separated list of opaque ids.
+
+### Documentation
+- Added a README **Coverage** section auditing every config type against the
+  current Duo Admin API (`duo.com/docs/adminapi`) and explaining, with
+  citations, what is intentionally NOT managed as code: per-user lifecycle
+  objects (Users, Phones, Hardware Tokens, WebAuthn Credentials, Desktop
+  Authenticators, Bypass Codes — one-shot enrollment/activation actions or
+  read-only/delete-only security-key records), Directory Sync (read-only list +
+  one-shot per-user sync trigger; the sync profile itself is configured through
+  Duo's directory-specific onboarding docs, not the Admin API), Authentication /
+  Administrator / Telephony logs and Info/Reports (read-only), "Networks for
+  API Access" (an IP allowlist on the Admin API application itself, configured
+  only in the Duo Admin Panel — there is no Admin API resource for it), the
+  Trusted Endpoints device-trust surface (a separate Device API / product, not
+  the Admin API), and Subaccounts/Billing (a different `/accounts/v1` API
+  family, MSP-only). Also notes that "Authorized Networks" (network-based 2FA
+  bypass/require rules) is already covered generically today, as the
+  `authorized_networks` section inside the existing Policies config type's
+  round-tripped `sections` blob — not a separate resource.
+- Rewrote the rest of the README's "What it manages" and per-type sections,
+  which had not been updated since the Groups-only initial release, to
+  document all 8 configuration types.
+
 ## 0.5.0 — 2026-07-26
 
 ### Added

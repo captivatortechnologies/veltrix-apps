@@ -1,14 +1,14 @@
 id: carbon-black
 name: VMware Carbon Black
-version: "0.5.0"
+version: "0.6.0"
 vendor: Veltrix
 description: >
   Manage VMware Carbon Black Cloud configuration as code through the CBC API —
   Reputation Overrides, private Threat Feeds, Feed Reports, Watchlists, endpoint
   Policies, Policy Rule Configs, Data Forwarders, Asset Groups, USB Device
-  Control (approvals and per-policy blocks) and shared Watchlist Reports — with
-  validation, drift detection and rollback handled by the Security-as-Code
-  pipeline.
+  Control (approvals and per-policy blocks), shared Watchlist Reports and RBAC
+  Access Grants — with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline.
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/carbon-black
@@ -62,6 +62,9 @@ permissions:
     - resource: policy-rule-configs
       actions: [read, write, delete]
       description: Manage Carbon Black Cloud policy core-prevention rule configs (BLOCK / REPORT assignment per policy)
+    - resource: access-grants
+      actions: [read, write, delete]
+      description: Manage Carbon Black Cloud RBAC role grants for existing users (additive; never creates users or revokes out-of-band roles)
 
 pipeline:
   configurationTypes:
@@ -247,6 +250,24 @@ pipeline:
         healthCheck: config-types/policy-rule-configs/healthCheck
         driftDetect: config-types/policy-rule-configs/driftDetect
         getStatus: config-types/policy-rule-configs/getStatus
+      targets:
+        componentTypes: [carbon-black]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: access-grants
+      name: Access Grants (RBAC)
+      description: RBAC role grants for existing users, additively merged (name-keyed by principal email; reconciled)
+      group: "Access & Identity"
+      canvasTemplate: config-types/access-grants/canvas.yaml
+      defaultConfig: config-types/access-grants/defaults.yaml
+      handlers:
+        validate: config-types/access-grants/validate
+        deploy: config-types/access-grants/deploy
+        rollback: config-types/access-grants/rollback
+        healthCheck: config-types/access-grants/healthCheck
+        driftDetect: config-types/access-grants/driftDetect
+        getStatus: config-types/access-grants/getStatus
       targets:
         componentTypes: [carbon-black]
         requiresCredential: true

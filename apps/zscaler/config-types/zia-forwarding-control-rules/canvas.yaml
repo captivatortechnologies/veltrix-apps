@@ -1,0 +1,130 @@
+# =============================================================================
+# Canvas Template — ZIA Forwarding Control Rules
+#
+# Declares ONE forwarding control rule — the item. Users add as many rules as
+# they need. A ZIA forwarding control rule decides HOW matching traffic leaves
+# the Zscaler cloud — direct, proxy-chained, dropped, or routed through ZPA
+# (App Connector) — via `forward_method`; Zscaler assigns it a numeric id and
+# evaluates rules in `order`. Identity is the NAME (list + match).
+#
+# This is a POLICY RULE type: a handful of first-class scalar fields (name,
+# order, state, type, forward_method) plus a "rule_json" escape hatch — a JSON
+# object holding the many optional match criteria (srcIps, destAddresses,
+# destCountries, nwServices, locations, departments, groups, users, labels, …)
+# and the ZPA/proxy-chain targets (zpaGateway, zpaAppSegments, proxyGateway)
+# that would be unwieldy as individual fields. JSON keys win for advanced
+# fields; the NAME is always taken from the name field.
+#
+# ZIA ships several PROTECTED predefined rules (e.g. "ZPA Pool For Stray
+# Traffic") that must never be modified or deleted — authors must pick a
+# distinct name (deploy refuses to touch a predefined rule).
+#
+# Field keys must match what config-types/zia-forwarding-control-rules/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-forwarding-control-rules"
+name: "ZIA Forwarding Control Rule Configuration"
+toolType: "zscaler"
+entityType: "zia-forwarding-control-rules"
+description: "Define ZIA forwarding control rules as code through the Zscaler OneAPI (/forwardingRules) — direct, proxy-chain, drop or ZPA-forward matching traffic. Changes are staged and activated as a batch."
+
+item:
+  label: "Forwarding Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Forwarding Rule"
+      icon: "network"
+      description: "Name, ordering, state, rule type and forwarding method"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The forwarding rule name (its logical identity). Zscaler assigns the numeric id. Must not be a predefined rule (e.g. \"ZPA Pool For Stray Traffic\")."
+
+        - key: "order"
+          label: "Rule Order"
+          fieldType: "number"
+          defaultValue: 1
+          validation:
+            min: 1
+          helpText: "Evaluation order (1 = first). Lower-numbered rules are matched before higher ones."
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          defaultValue: "ENABLED"
+          options:
+            - label: "Enabled"
+              value: "ENABLED"
+            - label: "Disabled"
+              value: "DISABLED"
+          helpText: "Whether the rule is active in the forwarding control policy."
+
+        - key: "type"
+          label: "Rule Type"
+          fieldType: "select"
+          defaultValue: "FORWARDING"
+          options:
+            - label: "Forwarding (standard ZIA forwarding control)"
+              value: "FORWARDING"
+            - label: "Firewall"
+              value: "FIREWALL"
+            - label: "DNS"
+              value: "DNS"
+            - label: "DNAT (Cloud & Branch Connector)"
+              value: "DNAT"
+            - label: "SNAT (Cloud & Branch Connector)"
+              value: "SNAT"
+            - label: "Intrusion Prevention"
+              value: "INTRUSION_PREVENTION"
+            - label: "Edge Connector DNS"
+              value: "EC_DNS"
+            - label: "Edge Connector Redirect"
+              value: "EC_RDR"
+            - label: "Edge Connector Self"
+              value: "EC_SELF"
+            - label: "DNS Response"
+              value: "DNS_RESPONSE"
+          helpText: "The rule category. Standard ZIA forwarding control rules use FORWARDING; the others apply to Cloud & Branch/Edge Connector deployments."
+
+        - key: "forward_method"
+          label: "Forward Method"
+          fieldType: "select"
+          defaultValue: "DIRECT"
+          options:
+            - label: "Direct (forward without proxy chaining)"
+              value: "DIRECT"
+            - label: "Proxy Chain (forward to a next-hop proxy gateway)"
+              value: "PROXYCHAIN"
+            - label: "ZIA (forward within the Zscaler cloud)"
+              value: "ZIA"
+            - label: "ZPA (forward to a ZPA App Connector)"
+              value: "ZPA"
+            - label: "ZPA via Edge Connector (ECZPA)"
+              value: "ECZPA"
+            - label: "Edge Connector Self (ECSELF)"
+              value: "ECSELF"
+            - label: "Drop the traffic"
+              value: "DROP"
+          helpText: "How matching traffic is forwarded. ZPA/ECZPA require a zpaGateway (and usually zpaAppSegments) in the rule JSON; PROXYCHAIN requires a proxyGateway."
+
+    - name: "Match Criteria & Forwarding Targets (JSON)"
+      icon: "code"
+      description: "Rule-specific fields as a JSON object"
+      fields:
+        - key: "rule_json"
+          label: "Rule JSON"
+          fieldType: "textarea"
+          helpText: >-
+            Optional JSON object with the rule's match criteria and forwarding
+            targets, e.g.
+            {"srcIps":["10.0.0.0/8"],"destAddresses":["0.0.0.0/0"],"nwServices":[{"id":123}],"zpaGateway":{"id":456},"zpaAppSegments":[{"id":789}]}.
+            Merged into the API body; these keys win for advanced fields, but
+            name/order/state/type/forward_method come from the fields above.
+            Leave blank for a rule with no extra criteria.

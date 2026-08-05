@@ -1,9 +1,15 @@
 import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
+import { parseList, normalizeGroupIds } from '../../lib/duo'
 
 // --- Cisco Duo Passport config constraints -----------------------------------
 //
 // Passport is a per-tenant SINGLETON: GET/POST /admin/v2/passport/config (V5).
 // There is no create/delete — deploy is a GET-then-POST patch.
+//
+// `parseList`/`normalizeGroupIds` live in lib/duo.ts (shared with the
+// Shared Device Authentication config type, which references groups the same
+// way) and are re-exported here for backward-compatible imports.
+export { parseList, normalizeGroupIds }
 
 export const ENABLED_STATUSES = ['disabled', 'enabled', 'enabled-for-groups', 'enabled-with-exceptions'] as const
 
@@ -28,40 +34,6 @@ export interface LivePassportConfig {
 
 function asString(v: unknown): string {
   return typeof v === 'string' ? v.trim() : ''
-}
-
-/** Split a textarea (newline- or comma-separated) into a deduped, trimmed list. */
-export function parseList(v: unknown): string[] {
-  if (Array.isArray(v)) return dedupe(v.map((x) => String(x).trim()).filter(Boolean))
-  if (typeof v !== 'string') return []
-  return dedupe(
-    v
-      .split(/[\n,]/)
-      .map((s) => s.trim())
-      .filter(Boolean)
-  )
-}
-
-function dedupe(list: string[]): string[] {
-  const seen = new Set<string>()
-  const out: string[] = []
-  for (const item of list) {
-    if (!seen.has(item)) {
-      seen.add(item)
-      out.push(item)
-    }
-  }
-  return out
-}
-
-/** Normalize live group entries (objects or strings) to id strings. */
-export function normalizeGroupIds(list: LivePassportConfig['enabled_groups']): string[] {
-  if (!Array.isArray(list)) return []
-  return dedupe(
-    list
-      .map((g) => (typeof g === 'string' ? g : asString(g?.group_id)))
-      .filter(Boolean)
-  )
 }
 
 export function extractPassportSpecs(canvas: CanvasSnapshot): PassportSpec[] {

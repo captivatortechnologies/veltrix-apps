@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — Carbon Black Cloud Access Grants (RBAC)
+#
+# Declares ONE principal's role grant — the item. Users add one per user they
+# want to grant roles to. The principal must be an EXISTING Carbon Black Cloud
+# user (resolved by email to a login_id via the Users API); this config type
+# never creates, edits or deletes a user.
+#
+# ADDITIVE ONLY: deploy reads the principal's current grant, unions the
+# declared role URNs into it, and PUTs the merged set back — it never revokes a
+# role this app did not itself grant. Removing an item from the canvas revokes
+# only the roles this app added for it (or deletes the grant entirely if this
+# app created it from nothing and no roles remain) — a role granted directly in
+# the CBC console, or by another tool, is never touched.
+#
+# SCOPE: a grant's `profiles` shape (multi-org / MSSP-scoped access with
+# per-org allow-lists and conditions) is mutually exclusive with `roles` on the
+# CBC side and OUT OF SCOPE — a principal already carrying a profiles-based
+# grant is left alone (surfaced as a deploy-time error, not silently clobbered).
+#
+# Field keys must match config-types/access-grants/validate.ts.
+# =============================================================================
+
+id: "carbon-black-access-grants"
+name: "Access Grant Configuration"
+toolType: "carbon-black"
+entityType: "access-grants"
+description: "Grant Carbon Black Cloud RBAC roles to existing users as code through the CBC Access Profiles and Grants API."
+
+item:
+  label: "Access Grant"
+  identityField: "principalEmail"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Grant"
+      icon: "key"
+      description: "Principal and the roles granted to them"
+      fields:
+        - key: "principalEmail"
+          label: "Principal Email"
+          fieldType: "text"
+          required: true
+          helpText: "The email address of an existing Carbon Black Cloud user — resolved to their login id. This app does not create users; the user must already exist."
+
+        - key: "roles"
+          label: "Roles (one per line)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            One role URN per line, e.g. psc:role::SECOPS_ROLE_MANAGER
+            (built-in) or psc:role:{org_key}:CUSTOM_ROLE (custom). Find exact
+            URNs via GET .../access/v3/orgs/{org_key}/principals/{token}/roles/permitted
+            or the CBC console's Grant Access screen. Granted additively —
+            existing roles this app did not add are never revoked.

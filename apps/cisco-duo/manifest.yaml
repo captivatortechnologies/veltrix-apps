@@ -1,12 +1,12 @@
 id: cisco-duo
 name: Cisco Duo
-version: "0.5.0"
+version: "0.6.0"
 vendor: Veltrix
 description: >
   Manage Cisco Duo configuration as code through the Duo Admin API — Groups,
-  Integrations, Administrators, Administrative Units, Policies, Passport and
-  account-wide Settings — with validation, drift detection and rollback handled
-  by the Security-as-Code pipeline.
+  Integrations, Administrators, Administrative Units, Policies, Passport,
+  account-wide Settings and Shared Device Authentication — with validation,
+  drift detection and rollback handled by the Security-as-Code pipeline.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-duo
@@ -48,9 +48,29 @@ permissions:
     - resource: account-settings
       actions: [read, write, delete]
       description: Manage Cisco Duo account-wide (global) settings via the Duo Admin API
+    - resource: shared-device-auth
+      actions: [read, write, delete]
+      description: Manage Cisco Duo Shared Device Authentication configurations (Duo Desktop kiosk/shared-workstation auth — user groups + Trusted Endpoints management integrations) via the Duo Admin API (V5/JSON-signed)
 
 pipeline:
   configurationTypes:
+    - id: shared-device-auth
+      name: Shared Device Authentication
+      description: Duo Shared Device Authentication — Duo Desktop kiosk/shared-workstation auth configurations pairing user groups with Trusted Endpoints management integrations (V5/JSON-signed /admin/v1/desktop_authenticators/shared_device_auth; full CRUD, name-keyed, shared_device_key stored for rename-safety; management integration ids are created in the Duo Admin Panel's Trusted Endpoints setup and only referenced here; reconcile deletes only configurations this app created).
+      canvasTemplate: config-types/shared-device-auth/canvas.yaml
+      defaultConfig: config-types/shared-device-auth/defaults.yaml
+      handlers:
+        validate: config-types/shared-device-auth/validate
+        deploy: config-types/shared-device-auth/deploy
+        rollback: config-types/shared-device-auth/rollback
+        healthCheck: config-types/shared-device-auth/healthCheck
+        driftDetect: config-types/shared-device-auth/driftDetect
+        getStatus: config-types/shared-device-auth/getStatus
+      targets:
+        componentTypes: [cisco-duo]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: policies
       name: Policies
       description: Duo policies — name + a validated JSON `sections` settings map (V5-signed /admin/v2/policies; name-keyed, policy_key stored for rename-safety; two-step create then PUT sections; the Global Policy is an update-only singleton; reconcile deletes only custom policies this app created). Requires a Duo Access/Essentials (or higher) edition.

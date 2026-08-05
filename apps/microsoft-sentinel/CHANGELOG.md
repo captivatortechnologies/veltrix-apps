@@ -3,6 +3,37 @@
 All notable changes to the Microsoft Sentinel app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.4.0 — 2026-08-05
+
+### Added
+- **Fusion rule** (new configuration type `sentinel-fusion-rule`, grouped under
+  Analytics Rules). Manages Microsoft Sentinel's built-in Fusion (Advanced
+  Multi-Stage Attack Detection) correlation rule via
+  `Microsoft.SecurityInsights/alertRules` (kind `Fusion`) at the GA api-version
+  2024-09-01 — verified against learn.microsoft.com "Alert Rules - Create Or
+  Update", which documents Fusion as a stable request-body kind alongside
+  Scheduled and MicrosoftSecurityIncidentCreation. Fusion is a per-workspace
+  **singleton** that already exists on every onboarded workspace (enabled by
+  default) under a system-assigned `ruleId`; the only writable properties are
+  the fixed `alertRuleTemplateName` and `enabled`. Because there is no
+  customer-chosen name to slug into a ruleId, deploy reconciles by **kind**
+  (lists the workspace's alertRules and matches the item with `kind ===
+  "Fusion"`) rather than by name, then updates that exact resource — matching
+  the pattern already used for indicator reconciliation
+  (`sentinel-threat-indicators`). Full validate / deploy / rollback / health /
+  drift / status handlers; a canvas may declare it at most once.
+
+### Documentation
+- Added a README **Coverage** section: every managed configuration type grouped
+  by sidebar group, plus every genuinely-assessed exclusion with a sourced
+  reason (Content Hub / solution installs, granular watchlist-item CRUD,
+  CCP/codeless data connectors, incidents/entities/bookmarks, and more).
+- Corrected the README's stale "Deliberately out of scope" section, which
+  pre-dated the 1.2.0/1.3.0 additions and incorrectly still listed hunting
+  queries, data connectors and threat-intelligence indicator upload as
+  unsupported — all three have been implemented (and GA, not preview, for
+  indicators) since 1.2.0/1.3.0.
+
 ## 1.3.0 — 2026-07-28
 
 ### Added
