@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-08-06T03:53:54.006Z",
+  "generatedAt": "2026-08-06T23:20:12.663Z",
   "apps": [
     {
       "appId": "akamai",
@@ -1477,9 +1477,9 @@
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sophos-central",
       "available": true,
       "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/sophos-central-v0.1.0/sophos-central.zip",
-      "sha256": "a0d11b6a761f374d664e8760e6995cb8a5104aa8762d7c6a5af52074a4b6be7e",
-      "sizeBytes": 203638,
-      "publishedAt": "2026-08-06T02:31:35.595Z",
+      "sha256": "fdd98eb37bbcdf6dda816fc11dc475d34cd118b44208429df85cf69f81b8a109",
+      "sizeBytes": 204115,
+      "publishedAt": "2026-08-06T23:20:12.643Z",
       "releaseNotes": "## 0.1.0 — 2026-08-05\n\n### Added\n\nFirst release. Eight configuration types covering the genuinely declarative,\nround-trippable write surface of the Sophos Central public API\n(developer.sophos.com), researched against the live OAS 3.0 documentation:\n\n- **Endpoint Policies** (`endpoint-policies`) — named endpoint policies\n  across all 19 documented policy types (threat protection, peripheral/\n  application/web control, device encryption, Windows firewall, agent\n  updating, DNS protection, and their server-workload equivalents),\n  reconciled by (name, type) via `POST/GET/PATCH/DELETE /endpoint/v1/policies`.\n  `appliesTo` and `settings` are authored as JSON — Sophos documents their\n  shape as \"keys have specific names documented here\" rather than a fixed\n  schema, so this follows the same JSON-blob precedent as Cisco Meraki's\n  Group Policies config type.\n- **Endpoint Groups** (`endpoint-groups`) — static endpoint groups (name,\n  description, endpoint type, member endpoint ids), reconciled by name via\n  `POST/GET/PATCH/DELETE /endpoint/v1/endpoint-groups` plus its\n  `.../endpoints` membership sub-resource.\n- **Scanning Exclusions** (`scanning-exclusions`) — the tenant-wide scanning\n  exclusion list (path/POSIX path/virtual path/process/web/PUA/detected\n  exploit/AMSI/behavioral/journal-hashing), reconciled by (type, value) via\n  `POST/GET/PATCH/DELETE /endpoint/v1/settings/exclusions/scanning`.\n- **Allowed Items** (`allowed-items`) — the tenant-wide allow list (path,\n  SHA256, certificate signer, POSIX path), reconciled by (type, value) via\n  `POST/GET/PATCH/DELETE /endpoint/v1/settings/allowed-items`. Only\n  `comment` is patchable after creation.\n- **Blocked Items** (`blocked-items`) — the tenant-wide SHA256 block list,\n  reconciled by SHA256 via `POST/GET/DELETE /endpoint/v1/settings/blocked-items`\n  — Sophos exposes no PATCH for this resource, so a changed item is deleted\n  and recreated.\n- **Web Control Local Sites** (`web-control-local-sites`) — custom URL ->\n  content-category/tag classifications, reconciled by URL via\n  `POST/GET/PATCH/DELETE /endpoint/v1/settings/web-control/local-sites`.\n- **Exploit Mitigation Exclusions** (`exploit-mitigation-applications`) —\n  custom HitmanPro.Alert application path exclusions, reconciled by path via\n  `POST/GET/PATCH/DELETE /endpoint/v1/settings/exploit-mitigation/applications`.\n- **Custom Roles** (`custom-roles`) — tenant RBAC roles (name, description,\n  principal type, permission set grants), reconciled by name via\n  `POST/GET/PATCH/DELETE /common/v1/roles`.\n\nAuthentication is OAuth2 client-credentials against the global\n`https://id.sophos.com/api/v2/oauth2/token` endpoint, followed by a\nWho-Am-I (`https://api.central.sophos.com/whoami/v1`) lookup that resolves\nthe tenant id and its data-region API host — there is no data region setting\nto configure by hand, and no \"wrong cloud\" recovery path is needed (unlike\nsome other OAuth2-per-region EDR vendors) because the token endpoint and\nWho-Am-I are both global. See README.md \"Coverage\" for what is managed vs.\nintentionally excluded.",
       "releasedAt": "2026-08-05T00:00:00.000Z"
     },
