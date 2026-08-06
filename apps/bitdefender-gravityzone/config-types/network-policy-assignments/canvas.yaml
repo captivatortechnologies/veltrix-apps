@@ -1,0 +1,72 @@
+# =============================================================================
+# Canvas Template — GravityZone Network Policy Assignments
+#
+# Assigns an existing policy (or restores inheritance) to a declared set of
+# endpoint ids. network.assignPolicy is one of the few genuine POLICY writes
+# the GravityZone Public API exposes — the Policies service itself is
+# overwhelmingly list/read-only (see config-types/policy-module-states).
+# There is no natural id for an "assignment" — assignmentName only identifies
+# the declaration within this canvas and is never sent to GravityZone.
+#   POST network.assignPolicy { targetIds, policyId?, inheritFromAbove?, forcePolicyInheritance? }
+# Field keys must match config-types/network-policy-assignments/_shared.ts.
+# =============================================================================
+
+id: "bitdefender-gravityzone-network-policy-assignments"
+name: "Policy Assignment"
+toolType: "bitdefender-gravityzone"
+entityType: "network-policy-assignments"
+
+item:
+  label: "Policy Assignment"
+  identityField: "assignmentName"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "This declaration's label"
+      fields:
+        - key: "assignmentName"
+          label: "Assignment Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 250
+          helpText: "A label identifying this declared assignment within the canvas — GravityZone's assignPolicy has no id of its own, so this value is never sent to GravityZone."
+
+    - name: "Targets"
+      icon: "target"
+      description: "The endpoints this assignment applies to"
+      fields:
+        - key: "targetIds"
+          label: "Target Endpoint IDs"
+          fieldType: "tags"
+          required: true
+          helpText: "GravityZone endpoint ids to assign the policy to (a comma-separated list, per assignPolicy). Find ids via the GravityZone console or Network Inventory — this app does not browse or discover endpoints itself."
+
+    - name: "Policy"
+      icon: "shield"
+      description: "Which policy to assign, or whether to inherit"
+      fields:
+        - key: "policyId"
+          label: "Policy ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "The GravityZone policy id to assign. Required unless Inherit From Above is checked. Find ids via policies.getPoliciesList or the console."
+
+        - key: "inheritFromAbove"
+          label: "Inherit From Above"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When checked, these endpoints inherit their parent container's policy instead of a directly assigned one — Policy ID must be left blank. Mutually exclusive with Policy ID (per assignPolicy's documented behavior)."
+
+        - key: "forcePolicyInheritance"
+          label: "Force Policy Inheritance to Children"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When checked, the assigned policy also cascades to these targets' child endpoints. Requires a Policy ID — cannot be combined with Inherit From Above."

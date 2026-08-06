@@ -1,0 +1,122 @@
+# =============================================================================
+# Canvas Template — GravityZone Company Profile
+#
+# The company/tenant profile, reconciled by companyId (blank = the company
+# linked to the calling API key — a company always exists, so there is no
+# create/delete, only update). Only declared (non-blank) fields are managed;
+# a blank field means "leave this field alone", not "clear it". Applied via
+# the GravityZone Companies service:
+#   POST companies.getCompanyDetails    { companyId? }
+#   POST companies.updateCompanyDetails { companyId?, name?, address?, phone?, industry?, country?, state?, enforce2FA?, skip2FAPeriod?, contactPerson?, mdrContactInformation? }
+# Field keys must match config-types/company-profile/_shared.ts.
+# =============================================================================
+
+id: "bitdefender-gravityzone-company-profile"
+name: "Company Profile"
+toolType: "bitdefender-gravityzone"
+entityType: "company-profile"
+
+item:
+  label: "Company Profile"
+  identityField: "companyId"
+  identityDerived: true
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "building"
+      description: "Which company this profile targets"
+      fields:
+        - key: "companyId"
+          label: "Company ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "Leave blank to manage the company linked to the calling API key."
+
+    - name: "Profile"
+      icon: "info"
+      description: "General company information — leave a field blank to leave it unmanaged"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+
+        - key: "address"
+          label: "Address"
+          fieldType: "textarea"
+          required: false
+
+        - key: "phone"
+          label: "Phone"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 50
+
+        - key: "industry"
+          label: "Industry Code"
+          fieldType: "number"
+          required: false
+          helpText: "0-3415 per updateCompanyDetails — GravityZone does not publish the industry code table in the docs reviewed for this app; consult the Control Center's own company profile industry dropdown for valid codes."
+
+        - key: "country"
+          label: "Country"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 2
+          helpText: "ISO 3166 two-letter country code, e.g. RO."
+
+        - key: "state"
+          label: "State"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 10
+          helpText: "ISO 3166 state/region code, e.g. NY."
+
+    - name: "Security"
+      icon: "lock"
+      description: "Two-factor authentication policy"
+      fields:
+        - key: "enforce2FA"
+          label: "Enforce 2FA"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+        - key: "skip2FAPeriod"
+          label: "Skip 2FA Period"
+          fieldType: "select"
+          required: false
+          defaultValue: "0"
+          options:
+            - { label: "0 day(s)", value: "0" }
+            - { label: "1 day(s)", value: "1" }
+            - { label: "3 day(s)", value: "3" }
+            - { label: "7 day(s)", value: "7" }
+            - { label: "14 day(s)", value: "14" }
+            - { label: "30 day(s)", value: "30" }
+            - { label: "90 day(s)", value: "90" }
+
+    - name: "Contacts (JSON)"
+      icon: "code"
+      description: "Open-ended contact objects — no fixed schema is published"
+      fields:
+        - key: "contactPerson"
+          label: "Contact Person (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "A JSON object describing the company's contact person. GravityZone documents this as an open object with no fixed schema in the docs reviewed for this app."
+
+        - key: "mdrContactInformation"
+          label: "MDR Contact Information (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "A JSON object describing MDR contact information. GravityZone documents this as an open object with no fixed schema in the docs reviewed for this app."

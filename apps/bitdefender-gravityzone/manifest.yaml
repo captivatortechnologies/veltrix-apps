@@ -1,0 +1,336 @@
+# =============================================================================
+# Bitdefender GravityZone (Veltrix app) — Manifest
+#
+# v0.1.0 — first release. Nine configuration types across the genuinely
+# declarative, round-trippable write surface of the GravityZone Control
+# Center Public API (a JSON-RPC 2.0 API, NOT REST — one endpoint per service:
+# POST https://<host>/api/v1.0/jsonrpc/<service>), researched against
+# Bitdefender's own support documentation
+# (bitdefender.com/business/support/en/77209-*) and cross-checked against the
+# independently maintained, actively developed n8n-nodes-gravityzone
+# TypeScript integration (github.com/DainArtz/n8n-nodes-gravityzone), which is
+# built directly against this same public API:
+#   - network-groups            — custom network groups/containers
+#     (create/delete; no rename API — see README), reconciled by
+#     (groupName, parentId).
+#   - network-policy-assignments — assign an existing policy (or restore
+#     inheritance) to a set of endpoint ids. Network.assignPolicy is one of
+#     the few genuine POLICY writes this API exposes — see below.
+#   - policy-module-states      — enable/disable a policy's protection
+#     modules. This is intentionally narrow: GravityZone's Policies service is
+#     otherwise LIST/READ-ONLY (getPoliciesList, getPolicyDetails) — policies
+#     themselves are created and structurally authored only in the Control
+#     Center console, confirmed by an exhaustive review of every documented
+#     Policies-service method. setPolicyModulesState is the one write this
+#     service exposes.
+#   - installation-packages     — installation PACKAGE CONFIGURATION (name,
+#     modules, scan mode, roles, deployment options) — not the installer
+#     binary itself, reconciled by packageName.
+#   - integrations              — third-party integration configuration
+#     (currently VMware; see README), reconciled by name.
+#   - user-accounts             — Control Center user accounts (email, role,
+#     rights, target scope), reconciled by email.
+#   - notification-settings     — per-account notification preferences,
+#     reconciled by accountId (blank = the API key's own account).
+#   - company-profile           — the company/tenant profile (name, address,
+#     2FA enforcement, contacts), reconciled by companyId (blank = the API
+#     key's own company).
+#   - push-event-settings       — the tenant-wide outbound push-notification
+#     (webhook/SIEM) integration. A singleton.
+#
+# See README.md's "Coverage" section for what is deliberately NOT managed
+# (one-shot scan/reconfigure/sandbox tasks, quarantine/incident response
+# actions, read-only network/patch inventory, installer binaries, license
+# keys, network.moveCustomGroup / network.setEndpointLabel, and full policy
+# authoring) and why.
+#
+# Every configuration type shares lib/gravityZone.ts (the JSON-RPC 2.0 client
+# + HTTP Basic auth-by-API-key) and lib/gravityZoneApi.ts (typed per-service
+# method wrappers, each citing its Bitdefender support-doc page) plus
+# lib/gravityZoneCommon.ts (canvas field parsing, drift comparison, defensive
+# response readers, and the shared getStatus).
+# =============================================================================
+
+id: bitdefender-gravityzone
+name: Bitdefender GravityZone
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Bitdefender GravityZone endpoint security configuration as code
+  through the GravityZone Control Center Public API — a JSON-RPC 2.0 API,
+  authenticated with an API key sent as HTTP Basic (the key as username, an
+  empty password). Covers custom network groups, policy assignment,
+  per-module policy enable/disable, installation package configuration,
+  third-party integrations, Control Center user accounts, per-account
+  notification preferences, the company profile, and the tenant-wide push
+  event (webhook/SIEM) integration. Validation, drift detection and rollback
+  are handled by the Security-as-Code pipeline. See README.md "Coverage" for
+  what is managed vs. intentionally excluded — GravityZone's Policies service
+  in particular is overwhelmingly list/read-only; full policy authoring
+  happens only in the Control Center console.
+category: EDR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/bitdefender-gravityzone
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Bitdefender brand: signature red primary, dark charcoal accent.
+branding:
+  primaryColor: "#ED1C24"
+  accentColor: "#2B2B2B"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: network-groups
+      actions: [read, write, delete]
+      description: Manage GravityZone custom network groups/containers (Network service — createCustomGroup/deleteCustomGroup/getCustomGroupsList)
+    - resource: network-policy-assignments
+      actions: [read, write]
+      description: Assign an existing GravityZone policy (or restore inheritance) to a set of endpoint ids (Network service — assignPolicy)
+    - resource: policy-module-states
+      actions: [read, write]
+      description: Enable/disable an existing GravityZone policy's protection modules (Policies service — setPolicyModulesState; policies themselves are console-authored)
+    - resource: installation-packages
+      actions: [read, write, delete]
+      description: Manage GravityZone installation package configuration — name, modules, scan mode, roles, deployment options (Packages service)
+    - resource: integrations
+      actions: [read, write, delete]
+      description: Manage GravityZone third-party integration configuration (Integrations service)
+    - resource: user-accounts
+      actions: [read, write, delete]
+      description: Manage GravityZone Control Center user accounts — email, role, rights, target scope (Accounts service)
+    - resource: notification-settings
+      actions: [read, write]
+      description: Manage per-account GravityZone notification preferences (Accounts service — configureNotificationsSettings)
+    - resource: company-profile
+      actions: [read, write]
+      description: Manage the GravityZone company/tenant profile — name, address, 2FA enforcement, contacts (Companies service)
+    - resource: push-event-settings
+      actions: [read, write]
+      description: Manage the tenant-wide GravityZone push event (webhook/SIEM) integration (Push service). Singleton.
+
+pipeline:
+  configurationTypes:
+    - id: network-groups
+      group: "Network"
+      name: Network Groups
+      description: Custom network groups/containers, reconciled by (groupName, parentId) — GravityZone assigns the group id on create and has no rename API
+      canvasTemplate: config-types/network-groups/canvas.yaml
+      defaultConfig: config-types/network-groups/defaults.yaml
+      handlers:
+        validate: config-types/network-groups/validate
+        deploy: config-types/network-groups/deploy
+        rollback: config-types/network-groups/rollback
+        healthCheck: config-types/network-groups/healthCheck
+        driftDetect: config-types/network-groups/driftDetect
+        getStatus: config-types/network-groups/getStatus
+      targets:
+        componentTypes: [gravityzone-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: network-policy-assignments
+      group: "Network"
+      name: Policy Assignments
+      description: Assign an existing policy (or restore inheritance) to a declared set of endpoint ids, reconciled by a stable assignment name
+      canvasTemplate: config-types/network-policy-assignments/canvas.yaml
+      defaultConfig: config-types/network-policy-assignments/defaults.yaml
+      handlers:
+        validate: config-types/network-policy-assignments/validate
+        deploy: config-types/network-policy-assignments/deploy
+        rollback: config-types/network-policy-assignments/rollback
+        healthCheck: config-types/network-policy-assignments/healthCheck
+        driftDetect: config-types/network-policy-assignments/driftDetect
+        getStatus: config-types/network-policy-assignments/getStatus
+      targets:
+        componentTypes: [gravityzone-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: policy-module-states
+      group: "Policies"
+      name: Policy Module States
+      description: Enable/disable an existing policy's protection modules, reconciled by policyId — policies themselves are authored only in the Control Center console
+      canvasTemplate: config-types/policy-module-states/canvas.yaml
+      defaultConfig: config-types/policy-module-states/defaults.yaml
+      handlers:
+        validate: config-types/policy-module-states/validate
+        deploy: config-types/policy-module-states/deploy
+        rollback: config-types/policy-module-states/rollback
+        healthCheck: config-types/policy-module-states/healthCheck
+        driftDetect: config-types/policy-module-states/driftDetect
+        getStatus: config-types/policy-module-states/getStatus
+      targets:
+        componentTypes: [gravityzone-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: installation-packages
+      group: "Deployment"
+      name: Installation Packages
+      description: Installation package configuration — name, modules, scan mode, roles, deployment options — reconciled by packageName (not the installer binary)
+      canvasTemplate: config-types/installation-packages/canvas.yaml
+      defaultConfig: config-types/installation-packages/defaults.yaml
+      handlers:
+        validate: config-types/installation-packages/validate
+        deploy: config-types/installation-packages/deploy
+        rollback: config-types/installation-packages/rollback
+        healthCheck: config-types/installation-packages/healthCheck
+        driftDetect: config-types/installation-packages/driftDetect
+        getStatus: config-types/installation-packages/getStatus
+      targets:
+        componentTypes: [gravityzone-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: integrations
+      group: "Integrations"
+      name: Integrations
+      description: Third-party integration configuration, reconciled by name
+      canvasTemplate: config-types/integrations/canvas.yaml
+      defaultConfig: config-types/integrations/defaults.yaml
+      handlers:
+        validate: config-types/integrations/validate
+        deploy: config-types/integrations/deploy
+        rollback: config-types/integrations/rollback
+        healthCheck: config-types/integrations/healthCheck
+        driftDetect: config-types/integrations/driftDetect
+        getStatus: config-types/integrations/getStatus
+      targets:
+        componentTypes: [gravityzone-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: user-accounts
+      group: "Platform Administration"
+      name: User Accounts
+      description: Control Center user accounts — email, role, rights, target scope — reconciled by email
+      canvasTemplate: config-types/user-accounts/canvas.yaml
+      defaultConfig: config-types/user-accounts/defaults.yaml
+      handlers:
+        validate: config-types/user-accounts/validate
+        deploy: config-types/user-accounts/deploy
+        rollback: config-types/user-accounts/rollback
+        healthCheck: config-types/user-accounts/healthCheck
+        driftDetect: config-types/user-accounts/driftDetect
+        getStatus: config-types/user-accounts/getStatus
+      targets:
+        componentTypes: [gravityzone-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: notification-settings
+      group: "Platform Administration"
+      name: Notification Settings
+      description: Per-account notification preferences, reconciled by accountId (blank = the API key's own account)
+      canvasTemplate: config-types/notification-settings/canvas.yaml
+      defaultConfig: config-types/notification-settings/defaults.yaml
+      handlers:
+        validate: config-types/notification-settings/validate
+        deploy: config-types/notification-settings/deploy
+        rollback: config-types/notification-settings/rollback
+        healthCheck: config-types/notification-settings/healthCheck
+        driftDetect: config-types/notification-settings/driftDetect
+        getStatus: config-types/notification-settings/getStatus
+      targets:
+        componentTypes: [gravityzone-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: company-profile
+      group: "Company"
+      name: Company Profile
+      description: The company/tenant profile — name, address, 2FA enforcement, contacts — reconciled by companyId (blank = the API key's own company)
+      canvasTemplate: config-types/company-profile/canvas.yaml
+      defaultConfig: config-types/company-profile/defaults.yaml
+      handlers:
+        validate: config-types/company-profile/validate
+        deploy: config-types/company-profile/deploy
+        rollback: config-types/company-profile/rollback
+        healthCheck: config-types/company-profile/healthCheck
+        driftDetect: config-types/company-profile/driftDetect
+        getStatus: config-types/company-profile/getStatus
+      targets:
+        componentTypes: [gravityzone-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: push-event-settings
+      group: "Integrations"
+      name: Push Event Settings
+      description: The tenant-wide outbound push event (webhook/SIEM) integration. Singleton.
+      canvasTemplate: config-types/push-event-settings/canvas.yaml
+      defaultConfig: config-types/push-event-settings/defaults.yaml
+      handlers:
+        validate: config-types/push-event-settings/validate
+        deploy: config-types/push-event-settings/deploy
+        rollback: config-types/push-event-settings/rollback
+        healthCheck: config-types/push-event-settings/healthCheck
+        driftDetect: config-types/push-event-settings/driftDetect
+        getStatus: config-types/push-event-settings/getStatus
+      targets:
+        componentTypes: [gravityzone-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/bitdefender-gravityzone
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: calls general.getApiKeyDetails — the
+# lightest documented call, taking no parameters, that both proves the API
+# key is valid and identifies the account it belongs to.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: API Request Timeout (seconds)
+    description: Timeout applied to each GravityZone JSON-RPC request.
+    default: 30
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

@@ -1,0 +1,109 @@
+# =============================================================================
+# Canvas Template — GravityZone Installation Packages
+#
+# Installation PACKAGE CONFIGURATION (not the installer binary itself),
+# reconciled by packageName — GravityZone assigns the package id on create.
+# Applied via the GravityZone Packages service:
+#   POST packages.getPackagesList   { companyId?, page?, perPage? }
+#   POST packages.getPackageDetails { packageId }
+#   POST packages.createPackage     { packageName, description?, language?, modules?, scanMode?, settings?, roles?, deploymentOptions?, productType? }
+#   POST packages.updatePackage     { packageId, packageName, description?, language?, modules?, scanMode?, settings?, roles?, deploymentOptions?, productType? }
+#   POST packages.deletePackage     { packageId }
+# Field keys must match config-types/installation-packages/_shared.ts.
+# =============================================================================
+
+id: "bitdefender-gravityzone-installation-packages"
+name: "Installation Package"
+toolType: "bitdefender-gravityzone"
+entityType: "installation-packages"
+
+item:
+  label: "Installation Package"
+  identityField: "packageName"
+  repeatable: true
+  minItems: 1
+  maxItems: 2000
+  groups:
+    - name: "Identity"
+      icon: "package"
+      description: "The package's name"
+      fields:
+        - key: "packageName"
+          label: "Package Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 250
+          helpText: "The installation package's name — its logical identity. GravityZone assigns the package id on create."
+
+    - name: "Configuration"
+      icon: "settings"
+      description: "General package options"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional free-text description shown in the Control Center."
+
+        - key: "language"
+          label: "Language"
+          fieldType: "select"
+          required: false
+          defaultValue: "en_US"
+          options:
+            - { label: "English (en_US)", value: "en_US" }
+            - { label: "French (fr_FR)", value: "fr_FR" }
+            - { label: "German (de_DE)", value: "de_DE" }
+            - { label: "Italian (it_IT)", value: "it_IT" }
+            - { label: "Polish (pl_PL)", value: "pl_PL" }
+            - { label: "Portuguese (Brazil) (pt_BR)", value: "pt_BR" }
+            - { label: "Romanian (ro_RO)", value: "ro_RO" }
+            - { label: "Russian (ru_RU)", value: "ru_RU" }
+            - { label: "Spanish (es_ES)", value: "es_ES" }
+          helpText: "Installer UI language, per updatePackage's documented language list."
+
+        - key: "productType"
+          label: "Product Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "0"
+          options:
+            - { label: "0 (default)", value: "0" }
+            - { label: "3", value: "3" }
+            - { label: "5", value: "5" }
+          helpText: "The operation mode of the security agent. GravityZone documents only these three values without further detail in the docs reviewed for this app."
+
+    - name: "Advanced (JSON)"
+      icon: "code"
+      description: "Open-ended package sub-objects — no fixed schema is published"
+      fields:
+        - key: "modules"
+          label: "Modules (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "A JSON object of module enable/disable flags. GravityZone documents this as an open object with no fixed schema in the docs reviewed for this app."
+
+        - key: "scanMode"
+          label: "Scan Mode (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "A JSON object describing the package's scan mode. GravityZone documents this as an open object with no fixed schema in the docs reviewed for this app."
+
+        - key: "settings"
+          label: "Settings (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "A JSON object of package settings. GravityZone documents this as an open object with no fixed schema in the docs reviewed for this app."
+
+        - key: "roles"
+          label: "Roles (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "A JSON object describing the package's roles (e.g. relay). GravityZone documents this as an open object with no fixed schema in the docs reviewed for this app."
+
+        - key: "deploymentOptions"
+          label: "Deployment Options (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "A JSON object of deployment options. GravityZone documents this as an open object with no fixed schema in the docs reviewed for this app."

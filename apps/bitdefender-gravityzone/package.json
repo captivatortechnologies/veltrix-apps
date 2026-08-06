@@ -1,0 +1,16 @@
+{
+  "name": "veltrix-app-bitdefender-gravityzone",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage Bitdefender GravityZone endpoint security configuration as code through the GravityZone Control Center Public API (JSON-RPC 2.0) — network groups, policy assignment, policy module states, installation packages, integrations, accounts, notification settings, company profile, push event settings",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.7.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

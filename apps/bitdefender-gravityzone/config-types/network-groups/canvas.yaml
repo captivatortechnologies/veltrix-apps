@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — GravityZone Network Groups
+#
+# Custom network groups/containers under Network > Custom Groups. A per-object
+# resource: GravityZone assigns the group id on create and exposes no rename
+# API, so this is reconciled by the PAIR (groupName, parentId) — changing
+# groupName for an existing declaration creates a new group rather than
+# renaming the old one. Existence and drift are checked only among the
+# declared parent's DIRECT CHILDREN (network.getCustomGroupsList lists one
+# parent's children at a time; there is no flat "list every group" call), so
+# a group is only ever found where it was declared. Applied via the
+# GravityZone Network service:
+#   POST network.createCustomGroup { groupName, parentId? }
+#   POST network.deleteCustomGroup { groupId, force? }
+#   POST network.getCustomGroupsList { parentId? }
+# Field keys must match config-types/network-groups/_shared.ts.
+# =============================================================================
+
+id: "bitdefender-gravityzone-network-groups"
+name: "Network Group"
+toolType: "bitdefender-gravityzone"
+entityType: "network-groups"
+
+item:
+  label: "Network Group"
+  identityField: "groupName"
+  repeatable: true
+  minItems: 1
+  maxItems: 2000
+  groups:
+    - name: "Identity"
+      icon: "folder"
+      description: "The group's name and parent location"
+      fields:
+        - key: "groupName"
+          label: "Group Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 250
+          helpText: "The custom group's name. GravityZone assigns the group id on create and has no rename API — changing this value creates a new group rather than renaming the old one."
+
+        - key: "parentId"
+          label: "Parent Group ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "The parent custom group's GravityZone id. Leave blank to create directly under the company's top-level Custom Groups container. Find ids via the GravityZone console (Network > right-click a group > Group Details) or a prior deploy's artifacts."
+
+        - key: "force"
+          label: "Force delete when rolled back"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "If this deploy is rolled back after creating the group, delete it even if it is not empty (GravityZone's deleteCustomGroup 'force' flag). Leave unchecked to fail the rollback instead of deleting a non-empty group."

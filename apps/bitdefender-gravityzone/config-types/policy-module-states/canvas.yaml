@@ -1,0 +1,49 @@
+# =============================================================================
+# Canvas Template — GravityZone Policy Module States
+#
+# Enable/disable an EXISTING policy's protection modules. This is the one
+# genuine write GravityZone's Policies service exposes — an exhaustive review
+# of every documented Policies-service method found only getPoliciesList,
+# getPolicyDetails (both list/read) and setPolicyModulesState. Policies
+# themselves (their name, targets, and full rule tree) are authored only in
+# the GravityZone Control Center console; this app does not create or
+# structurally edit a policy, only toggle its modules on/off.
+#   POST policies.setPolicyModulesState { policyId, settings }
+# `settings` has no fixed schema in the documentation this app was built
+# against — it is authored as JSON. Field keys must match
+# config-types/policy-module-states/_shared.ts.
+# =============================================================================
+
+id: "bitdefender-gravityzone-policy-module-states"
+name: "Policy Module States"
+toolType: "bitdefender-gravityzone"
+entityType: "policy-module-states"
+
+item:
+  label: "Policy Module States"
+  identityField: "policyId"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "The existing policy to modify"
+      fields:
+        - key: "policyId"
+          label: "Policy ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "The id of an EXISTING GravityZone policy, authored in the Control Center console. This app does not create or delete policies — find ids via policies.getPoliciesList or the console."
+
+    - name: "Module States"
+      icon: "toggle"
+      description: "Which protection modules should be enabled or disabled"
+      fields:
+        - key: "settings"
+          label: "Settings (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: "The module enable/disable object passed to setPolicyModulesState, e.g. {\"antimalware\": true, \"firewall\": false}. GravityZone documents this as an open 'settings object' with no fixed schema in the public docs this app was built against — author it exactly as the Control Center's own policy module toggles would set it."

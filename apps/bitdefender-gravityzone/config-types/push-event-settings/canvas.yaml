@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — GravityZone Push Event Settings
+#
+# The tenant-wide outbound push-notification (webhook/SIEM) configuration — a
+# SINGLETON; declare this config type at most once per canvas.
+# push.setPushEventSettings REPLACES the entire configuration (every
+# parameter is required), so a deploy always sends the full declared object
+# when anything differs. Applied via the GravityZone Push service:
+#   POST push.getPushEventSettings {}
+#   POST push.setPushEventSettings { status, serviceType, serviceSettings, subscribeToEventTypes }
+# Field keys must match config-types/push-event-settings/_shared.ts.
+# =============================================================================
+
+id: "bitdefender-gravityzone-push-event-settings"
+name: "Push Event Settings"
+toolType: "bitdefender-gravityzone"
+entityType: "push-event-settings"
+description: "Manage the GravityZone tenant-wide outbound push event (webhook/SIEM) integration via push.setPushEventSettings. Tenant-wide singleton."
+
+item:
+  label: "Push Event Settings"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Status"
+      icon: "toggle"
+      description: "Whether push notifications are enabled"
+      fields:
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          required: true
+          defaultValue: "1"
+          options:
+            - { label: "Disabled", value: "0" }
+            - { label: "Enabled", value: "1" }
+
+    - name: "Destination"
+      icon: "send"
+      description: "Where push events are delivered"
+      fields:
+        - key: "serviceType"
+          label: "Service Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "jsonRPC"
+          options:
+            - { label: "JSON-RPC", value: "jsonRPC" }
+            - { label: "CEF", value: "cef" }
+            - { label: "Splunk", value: "splunk" }
+            - { label: "QRadar", value: "qradar" }
+            - { label: "Azure Sentinel", value: "azuresentinel" }
+
+        - key: "serviceSettings"
+          label: "Service Settings (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: "Service-specific settings for the chosen Service Type (e.g. destination URL/auth for jsonRPC/cef, or vendor-specific fields for splunk/qradar/azuresentinel) — GravityZone documents this as an open object varying per Service Type."
+
+    - name: "Events"
+      icon: "list"
+      description: "Which event types are pushed"
+      fields:
+        - key: "subscribeToEventTypes"
+          label: "Subscribed Event Types"
+          fieldType: "tags"
+          required: true
+          helpText: "GravityZone event type codes to push, e.g. av, fw, avc, ransomware-mitigation. GravityZone documents 28 event type values as of this app's research; this app does not enumerate all 28 as fixed select options so it never silently goes stale if Bitdefender adds more — consult the Control Center's own Push notification event-type list for the current full set."

@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — GravityZone User Accounts
+#
+# Control Center user accounts, reconciled by email — GravityZone assigns the
+# accountId on create. Full CRUD via the Accounts service:
+#   POST accounts.getAccountsList  { page?, perPage? }
+#   POST accounts.createAccount    { email, profile: { fullName, timezone?, language? }, password?, role?, rights?, targetIds? }
+#   POST accounts.updateAccount    { accountId, email?, fullName?, role?, timezone?, language?, password?, rights?, targetIds? }
+#   POST accounts.deleteAccount    { accountId }
+# Field keys must match config-types/user-accounts/_shared.ts.
+# =============================================================================
+
+id: "bitdefender-gravityzone-user-accounts"
+name: "User Account"
+toolType: "bitdefender-gravityzone"
+entityType: "user-accounts"
+
+item:
+  label: "User Account"
+  identityField: "email"
+  repeatable: true
+  minItems: 1
+  maxItems: 2000
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Who this account belongs to"
+      fields:
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+          helpText: "The account's email address — its logical identity. GravityZone assigns the accountId on create."
+
+        - key: "fullName"
+          label: "Full Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+
+    - name: "Access"
+      icon: "shield"
+      description: "Role and management scope"
+      fields:
+        - key: "role"
+          label: "Role"
+          fieldType: "select"
+          required: true
+          defaultValue: "1"
+          options:
+            - { label: "Company Administrator", value: "1" }
+            - { label: "Network Administrator", value: "2" }
+            - { label: "Reporter", value: "3" }
+            - { label: "Custom", value: "5" }
+          helpText: "Documented account roles (updateAccount). Role 4 is not documented in the current API surface. Choose Custom to grant a specific Rights object below."
+
+        - key: "timezone"
+          label: "Timezone"
+          fieldType: "text"
+          required: false
+          defaultValue: "UTC"
+          validation:
+            maxLength: 100
+          helpText: "e.g. Europe/Bucharest."
+
+        - key: "language"
+          label: "Console Language"
+          fieldType: "text"
+          required: false
+          defaultValue: "en_US"
+          validation:
+            maxLength: 20
+
+        - key: "targetIds"
+          label: "Target IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Target company/network ids this account is scoped to manage, as documented by createAccount/updateAccount. Leave empty for an account with no scoped targets."
+
+    - name: "Security"
+      icon: "lock"
+      description: "Password and custom rights"
+      fields:
+        - key: "password"
+          label: "Password"
+          fieldType: "password"
+          required: false
+          helpText: "Write-only — GravityZone never returns a stored password, so this app cannot detect drift on it. Leave blank to let GravityZone generate one at creation and never manage it afterward. If set, the account's password is reset to this value on every deploy."
+
+        - key: "rights"
+          label: "Rights (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "A JSON object of custom permission grants — only used when Role is Custom. GravityZone documents this as an open 'rights object'; author it exactly as the Control Center's Custom Role editor would produce."

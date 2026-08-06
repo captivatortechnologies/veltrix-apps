@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — GravityZone Integrations
+#
+# Third-party integration configuration, reconciled by name — GravityZone
+# assigns the integrationId on create. `type` is immutable after creation
+# (updateIntegration has no type parameter). Applied via the GravityZone
+# Integrations service:
+#   POST integrations.getConfiguredIntegrations { companyId?, page?, perPage? }
+#   POST integrations.getIntegrationDetails     { integrationId }
+#   POST integrations.createIntegration         { name, type, specifics }
+#   POST integrations.updateIntegration         { integrationId, name?, specifics? }
+#   POST integrations.deleteIntegration         { integrationId }
+# Field keys must match config-types/integrations/_shared.ts.
+# =============================================================================
+
+id: "bitdefender-gravityzone-integrations"
+name: "Integration"
+toolType: "bitdefender-gravityzone"
+entityType: "integrations"
+
+item:
+  label: "Integration"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "plug"
+      description: "The integration's name"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 250
+          helpText: "The integration's name — its logical identity. GravityZone assigns the integrationId on create."
+
+    - name: "Type"
+      icon: "tag"
+      description: "The kind of third-party integration"
+      fields:
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "1"
+          options:
+            - { label: "VMware", value: "1" }
+          helpText: "Only type 1 (VMware) is documented in the public API surface this app was built against. Immutable after creation — updateIntegration has no type parameter; delete and redeclare to change it."
+
+    - name: "Configuration"
+      icon: "code"
+      description: "Integration-specific settings"
+      fields:
+        - key: "specifics"
+          label: "Specifics (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: "Integration-specific configuration object — GravityZone documents this as an open object with no fixed schema. NOTE: for integrations like VMware this may include credential material (e.g. a service-account password) — the same treatment apps/teleport gives its GitHub connector client_secret: it is authored here as declared and never masked beyond the platform's own canvas-field encryption at rest."

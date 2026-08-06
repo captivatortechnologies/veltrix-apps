@@ -1,0 +1,84 @@
+# =============================================================================
+# Canvas Template — GravityZone Notification Settings
+#
+# Per-account notification preferences, reconciled by accountId (blank = the
+# account that generated the API key — an account always exists, so there is
+# no create/delete, only update). Only declared (non-blank) fields are
+# managed; a blank field means "leave this field alone", not "clear it".
+# Applied via the GravityZone Accounts service:
+#   POST accounts.getNotificationsSettings        { accountId? }
+#   POST accounts.configureNotificationsSettings  { accountId?, deleteAfter?, emailAddresses?, includeDeviceFQDN?, includeDeviceName?, notificationsSettings?, sendOnlyPlainTextEmail? }
+# Field keys must match config-types/notification-settings/_shared.ts.
+# =============================================================================
+
+id: "bitdefender-gravityzone-notification-settings"
+name: "Notification Settings"
+toolType: "bitdefender-gravityzone"
+entityType: "notification-settings"
+
+item:
+  label: "Notification Settings"
+  identityField: "accountId"
+  identityDerived: true
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Which account these settings target"
+      fields:
+        - key: "accountId"
+          label: "Account ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "Leave blank to configure notifications for the account that generated the API key."
+
+    - name: "Preferences"
+      icon: "bell"
+      description: "Delivery preferences — leave a field blank to leave it unmanaged"
+      fields:
+        - key: "deleteAfter"
+          label: "Delete After (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+            max: 365
+          helpText: "Days after which generated notifications are auto-deleted, 1-365."
+
+        - key: "emailAddresses"
+          label: "Additional Email Addresses"
+          fieldType: "tags"
+          required: false
+          helpText: "Additional email addresses to receive notifications."
+
+        - key: "includeDeviceFQDN"
+          label: "Include Device FQDN"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+        - key: "includeDeviceName"
+          label: "Include Device Name"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+        - key: "sendOnlyPlainTextEmail"
+          label: "Send Only Plain-Text Email"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+    - name: "Notification Types (JSON)"
+      icon: "code"
+      description: "Per-notification-type settings — no fixed schema is published"
+      fields:
+        - key: "notificationsSettings"
+          label: "Notification Types (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: "A JSON array of per-notification-type setting objects, e.g. [{\"type\": ..., \"enabled\": true}] — GravityZone documents this as an open array with no fixed per-type schema in the docs reviewed for this app."
