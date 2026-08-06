@@ -1,0 +1,80 @@
+# =============================================================================
+# Canvas Template - Akeyless Gateway Allowed Access
+#
+# Declares ONE Gateway Allowed Access rule - the item. This binds an auth
+# method (by Access ID) to a set of Gateway-admin permissions, optionally
+# scoped by sub-claims. Identity is its NAME (POST
+# /gateway-create-allowed-access, /gateway-update-allowed-access,
+# /gateway-delete-allowed-access, /gateway-get-allowed-access - operations
+# gatewayCreateAllowedAccess, gatewayUpdateAllowedAccess,
+# gatewayDeleteAllowedAccess, gatewayGetAllowedAccess).
+#
+# Field keys must match what
+# config-types/gateway-allowed-access/validate.ts checks.
+# API reference: https://docs.akeyless.io
+# =============================================================================
+
+id: "akeyless-gateway-allowed-access"
+name: "Gateway Allowed Access"
+toolType: "akeyless"
+entityType: "gateway-allowed-access"
+description: "Bind auth methods to Gateway-admin permissions as code through the Akeyless REST API."
+
+item:
+  label: "Allowed Access Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Rule"
+      icon: "shield-check"
+      description: "Name, bound auth method and permissions"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule's name - unique within the account and the identity this app uses to find and update it on every deploy."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+
+        - key: "accessId"
+          label: "Auth Method"
+          fieldType: "remote-select"
+          optionsSource: "auth-methods"
+          required: true
+          helpText: "The Access ID this rule grants Gateway-admin permissions to (see Auth Method Configuration)."
+
+        - key: "permissions"
+          label: "Permissions"
+          fieldType: "multiselect"
+          options:
+            - { label: "Defaults", value: "defaults" }
+            - { label: "Targets", value: "targets" }
+            - { label: "Classic Keys", value: "classic_keys" }
+            - { label: "Automatic Migration", value: "automatic_migration" }
+            - { label: "LDAP Auth", value: "ldap_auth" }
+            - { label: "Dynamic Secret", value: "dynamic_secret" }
+            - { label: "K8s Auth", value: "k8s_auth" }
+            - { label: "Log Forwarding", value: "log_forwarding" }
+            - { label: "Zero Knowledge Encryption", value: "zero_knowledge_encryption" }
+            - { label: "Rotated Secret", value: "rotated_secret" }
+            - { label: "Caching", value: "caching" }
+            - { label: "Event Forwarding", value: "event_forwarding" }
+            - { label: "Admin", value: "admin" }
+            - { label: "KMIP", value: "kmip" }
+            - { label: "General", value: "general" }
+            - { label: "Rotate Secret Value", value: "rotate_secret_value" }
+
+        - key: "subClaims"
+          label: "Sub-Claims"
+          fieldType: "keyvalue"
+          helpText: "Optional key/value scoping, e.g. group -> admins,developers (comma-separate multiple values for one key)."
+
+        - key: "caseSensitive"
+          label: "Sub-Claims Case-Sensitive"
+          fieldType: "checkbox"
+          defaultValue: true

@@ -1,0 +1,321 @@
+# =============================================================================
+# Canvas Template - Akeyless Dynamic Secret Configs
+#
+# Declares ONE Dynamic Secret CONFIG - the producer definition that tells
+# Akeyless HOW to generate a short-lived credential on demand. This is NOT
+# the produced credential itself - the actual generated username/password
+# (fetched via /dynamic-secret-get-value / /get-dynamic-secret-value) is
+# secret material and is NEVER read, written or diffed by this app.
+#
+# Identity is the config's NAME (POST /dynamic-secret-create-{type},
+# /dynamic-secret-update-{type}, /dynamic-secret-delete, /dynamic-secret-get,
+# /dynamic-secret-list - operations dynamicSecretCreate/UpdatePostgreSql,
+# dynamicSecretCreate/UpdateAws, dynamicSecretCreate/UpdateK8s,
+# dynamicSecretDelete/Get/List).
+#
+# Covers 3 of Akeyless's ~24 dynamic-secret producer types (PostgreSQL, AWS,
+# Kubernetes) - the same DB/cloud/k8s spread as Targets; see README Coverage
+# for the rest (MySQL, MSSQL, MongoDB, GCP, Azure, GitHub, Docker Hub, ...).
+#
+# Admin credentials the producer itself uses to connect to the target
+# (postgresqlPassword, awsAccessSecretKey, k8sClusterToken/CaCert) are
+# WRITE-ONLY and never read back, diffed, or logged by this app.
+#
+# Field keys must match what config-types/dynamic-secret-configs/validate.ts
+# checks. API reference: https://docs.akeyless.io
+# =============================================================================
+
+id: "akeyless-dynamic-secret-configs"
+name: "Dynamic Secret Configuration"
+toolType: "akeyless"
+entityType: "dynamic-secret-configs"
+description: "Define Akeyless Dynamic Secret producer configs (PostgreSQL, AWS, Kubernetes) as code through the Akeyless REST API. The produced credential VALUES are never managed here - only the producer definition."
+
+item:
+  label: "Dynamic Secret Config"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Producer"
+      icon: "zap"
+      description: "Name, type and target"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The producer's name - unique within the account and the identity this app uses to find and update it on every deploy."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "PostgreSQL", value: "postgresql" }
+            - { label: "AWS", value: "aws" }
+            - { label: "Kubernetes", value: "k8s" }
+          helpText: "IMMUTABLE once created - each type has a dedicated create/update endpoint. This app refuses to change an existing producer's type in place."
+
+        - key: "targetName"
+          label: "Target Name"
+          fieldType: "remote-select"
+          optionsSource: "targets"
+          helpText: "The Target this producer connects through (Target Configuration's identity field). Optional - some producer types can be configured with inline connection details instead."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+
+        - key: "deleteProtection"
+          label: "Delete Protection"
+          fieldType: "checkbox"
+
+        - key: "userTtl"
+          label: "Credential TTL"
+          fieldType: "text"
+          defaultValue: "60m"
+          helpText: "Lifetime of a generated credential, e.g. 60m, 24h."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+
+        - key: "itemCustomFields"
+          label: "Custom Fields"
+          fieldType: "keyvalue"
+
+    - name: "PostgreSQL"
+      icon: "database"
+      description: "Only used when Type = PostgreSQL"
+      fields:
+        - key: "postgresqlHost"
+          label: "Host"
+          fieldType: "text"
+          defaultValue: "127.0.0.1"
+          visibleWhen:
+            field: "type"
+            equals: "postgresql"
+          helpText: "Ignored when a Target Name above is set - the Target supplies connection details."
+
+        - key: "postgresqlPort"
+          label: "Port"
+          fieldType: "text"
+          defaultValue: "5432"
+          visibleWhen:
+            field: "type"
+            equals: "postgresql"
+
+        - key: "postgresqlDbName"
+          label: "Database Name"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "postgresql"
+
+        - key: "postgresqlUsername"
+          label: "Admin Username"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "postgresql"
+          helpText: "The privileged account this producer uses to create/drop temporary users. Ignored when a Target is set."
+
+        - key: "postgresqlPassword"
+          label: "Admin Password"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "postgresql"
+          helpText: >
+            WRITE-ONLY secret. Required when creating a NEW producer without
+            a Target; leave blank on an EXISTING one to keep it unchanged.
+
+        - key: "ssl"
+          label: "Enable SSL"
+          fieldType: "checkbox"
+          visibleWhen:
+            field: "type"
+            equals: "postgresql"
+
+        - key: "passwordLengthPostgresql"
+          label: "Generated Password Length"
+          fieldType: "number"
+          visibleWhen:
+            field: "type"
+            equals: "postgresql"
+
+        - key: "creationStatements"
+          label: "Creation Statements"
+          fieldType: "textarea"
+          visibleWhen:
+            field: "type"
+            equals: "postgresql"
+          helpText: 'SQL run to create the temporary user, e.g. CREATE USER "{{name}}" WITH PASSWORD ''{{password}}'';. Leave blank for the Akeyless default.'
+
+        - key: "revocationStatements"
+          label: "Revocation Statements"
+          fieldType: "textarea"
+          visibleWhen:
+            field: "type"
+            equals: "postgresql"
+          helpText: "SQL run to revoke/drop the temporary user. Leave blank for the Akeyless default."
+
+    - name: "AWS"
+      icon: "cloud"
+      description: "Only used when Type = AWS"
+      fields:
+        - key: "accessMode"
+          label: "Access Mode"
+          fieldType: "select"
+          defaultValue: "iam_user"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          options:
+            - { label: "Temporary IAM User", value: "iam_user" }
+            - { label: "Assume Role", value: "assume_role" }
+
+        - key: "awsAccessKeyId"
+          label: "Admin Access Key ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: "Ignored when a Target is set."
+
+        - key: "awsAccessSecretKey"
+          label: "Admin Secret Access Key"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: >
+            WRITE-ONLY secret. Required when creating a NEW producer without
+            a Target; leave blank on an EXISTING one to keep it unchanged.
+
+        - key: "region"
+          label: "Region"
+          fieldType: "text"
+          defaultValue: "us-east-2"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+
+        - key: "awsUserPolicies"
+          label: "IAM Policy ARNs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: "Only used with Access Mode = Temporary IAM User."
+
+        - key: "awsUserGroups"
+          label: "IAM Group Names"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: "Only used with Access Mode = Temporary IAM User."
+
+        - key: "awsRoleArns"
+          label: "Role ARNs to Assume"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: "Only used with Access Mode = Assume Role."
+
+        - key: "awsExternalId"
+          label: "External ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: "Only used with Access Mode = Assume Role."
+
+        - key: "passwordLengthAws"
+          label: "Generated Password Length"
+          fieldType: "number"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+
+        - key: "enableAdminRotation"
+          label: "Enable Admin Credential Rotation"
+          fieldType: "checkbox"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+
+        - key: "adminRotationIntervalDays"
+          label: "Admin Rotation Interval (days)"
+          fieldType: "number"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+
+    - name: "Kubernetes"
+      icon: "server"
+      description: "Only used when Type = Kubernetes"
+      fields:
+        - key: "k8sClusterEndpoint"
+          label: "Cluster Endpoint URL"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+          helpText: "Ignored when a Target is set."
+
+        - key: "k8sClusterCaCert"
+          label: "Cluster CA Certificate (base64)"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+          helpText: "WRITE-ONLY. Ignored when a Target is set."
+
+        - key: "k8sClusterToken"
+          label: "Cluster Bearer Token"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+          helpText: "WRITE-ONLY. Ignored when a Target is set (or when Use Gateway Service Account is enabled)."
+
+        - key: "k8sClusterName"
+          label: "Cluster Name"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+
+        - key: "k8sNamespace"
+          label: "Namespace"
+          fieldType: "text"
+          defaultValue: "default"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+          helpText: "Namespace containing the Service Account to extract a token from."
+
+        - key: "k8sServiceAccount"
+          label: "Service Account"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+          helpText: >
+            A pre-existing Service Account this producer extracts tokens
+            from. This app models only the "fixed" Service Account mode -
+            Akeyless's "dynamic" mode (auto-provisioning a fresh Service
+            Account + RoleBinding per credential) is not modeled - see
+            README Coverage.
+
+        - key: "useGwServiceAccount"
+          label: "Use Gateway Service Account"
+          fieldType: "checkbox"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"

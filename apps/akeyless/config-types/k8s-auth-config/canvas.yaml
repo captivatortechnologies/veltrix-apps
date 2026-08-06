@@ -1,0 +1,130 @@
+# =============================================================================
+# Canvas Template - Akeyless Gateway Kubernetes Auth Config
+#
+# Declares ONE Gateway K8s Auth Config - the item. This is the Gateway-side
+# configuration a Kubernetes auth method (Auth Method Configuration, Type =
+# Kubernetes) needs in order to validate incoming service-account tokens.
+# Identity is its NAME (POST /gateway-create-k8s-auth-config,
+# /gateway-update-k8s-auth-config, /gateway-delete-k8s-auth-config,
+# /gateway-get-k8s-auth-config - operations gatewayCreateK8SAuthConfig,
+# gatewayUpdateK8SAuthConfig, gatewayDeleteK8SAuthConfig,
+# gatewayGetK8SAuthConfig).
+#
+# UNLIKE most write-only secrets in this app, "Signing Key" is REQUIRED on
+# EVERY create AND update call (confirmed directly from the OpenAPI spec -
+# both operations mark signing-key as required) - there is no "leave blank
+# to keep unchanged" here; it must be supplied on every deploy.
+#
+# Field keys must match what config-types/k8s-auth-config/validate.ts
+# checks. API reference: https://docs.akeyless.io
+# =============================================================================
+
+id: "akeyless-k8s-auth-config"
+name: "Kubernetes Gateway Auth Config"
+toolType: "akeyless"
+entityType: "k8s-auth-config"
+description: "Configure the Akeyless Gateway's Kubernetes auth validation (signing key, K8s API host/CA, issuer) as code through the Akeyless REST API."
+
+item:
+  label: "K8s Auth Config"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Config"
+      icon: "server"
+      description: "Name and bound auth method"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The config's name - unique within the account and the identity this app uses to find and update it on every deploy."
+
+        - key: "accessId"
+          label: "Kubernetes Auth Method"
+          fieldType: "remote-select"
+          optionsSource: "auth-methods"
+          required: true
+          helpText: "The Access ID of the Kubernetes-type auth method this config validates tokens for (see Auth Method Configuration)."
+
+        - key: "signingKey"
+          label: "Signing Key (base64 PEM)"
+          fieldType: "password"
+          required: true
+          helpText: >
+            WRITE-ONLY. REQUIRED on every deploy (Akeyless has no
+            "leave blank to keep unchanged" for this field - it must be
+            resent on every create AND update call). The private key
+            matching the public key configured on the Kubernetes auth
+            method.
+
+        - key: "tokenExp"
+          label: "Akeyless Token Expiration (seconds)"
+          fieldType: "number"
+          defaultValue: 300
+
+        - key: "k8sHost"
+          label: "Kubernetes API Server URL"
+          fieldType: "text"
+          required: true
+
+        - key: "k8sCaCert"
+          label: "Kubernetes API CA Certificate (base64)"
+          fieldType: "textarea"
+
+        - key: "tokenReviewerJwt"
+          label: "Token Reviewer JWT"
+          fieldType: "password"
+          helpText: "WRITE-ONLY. Only used with Cluster Access Type = Native Kubernetes. If unset, the JWT submitted at authentication time is used instead."
+
+        - key: "k8sIssuer"
+          label: "Kubernetes JWT Issuer"
+          fieldType: "text"
+          defaultValue: "kubernetes/serviceaccount"
+
+        - key: "disableIssuerValidation"
+          label: "Disable Issuer Validation"
+          fieldType: "checkbox"
+
+        - key: "clusterApiType"
+          label: "Cluster Access Type"
+          fieldType: "select"
+          defaultValue: "native_k8s"
+          options:
+            - { label: "Native Kubernetes", value: "native_k8s" }
+            - { label: "Rancher", value: "rancher" }
+
+        - key: "rancherApiKey"
+          label: "Rancher API Key"
+          fieldType: "password"
+          helpText: "WRITE-ONLY. Only used with Cluster Access Type = Rancher."
+
+        - key: "rancherClusterId"
+          label: "Rancher Cluster ID"
+          fieldType: "text"
+          helpText: "Only used with Cluster Access Type = Rancher."
+
+        - key: "useLocalCaJwt"
+          label: "Use Gateway's Service Account"
+          fieldType: "checkbox"
+
+        - key: "k8sAuthType"
+          label: "K8s Auth Type"
+          fieldType: "select"
+          defaultValue: "token"
+          options:
+            - { label: "Token", value: "token" }
+            - { label: "Certificate", value: "certificate" }
+          helpText: "Only used with Cluster Access Type = Native Kubernetes."
+
+        - key: "k8sClientCertificate"
+          label: "Client Certificate (base64 PEM)"
+          fieldType: "textarea"
+          helpText: "Only used when K8s Auth Type = Certificate."
+
+        - key: "k8sClientKey"
+          label: "Client Private Key (base64 PEM)"
+          fieldType: "password"
+          helpText: "WRITE-ONLY. Only used when K8s Auth Type = Certificate."

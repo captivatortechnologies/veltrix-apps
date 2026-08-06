@@ -1,0 +1,209 @@
+# =============================================================================
+# Canvas Template - Akeyless Roles
+#
+# Declares ONE Role - the item. Users add as many as they need. A role's
+# identity in Akeyless is its NAME (POST /create-role, /update-role,
+# /delete-role, /get-role, /list-roles - operations createRole/updateRole/
+# deleteRole/getRole/listRoles).
+#
+# Two nested lists don't fit the flat canvas field model (no field type here
+# supports an array-of-objects), so - matching this app's established
+# convention for deeply-nested, per-vendor-shaped structures (see the
+# hashicorp-vault and onelogin apps' own JSON-authored fields) - they are
+# authored as JSON arrays in a textarea, with the exact shape documented in
+# each field's help text:
+#
+#   - "rules": path-based access rules (POST /set-role-rule). ADDITIVE ONLY -
+#     every declared rule is created/updated on each deploy, but a rule
+#     removed from the canvas is NOT deleted from Akeyless (Akeyless has no
+#     "list all rules for a role" bulk-replace endpoint, and rules an admin
+#     added outside this canvas - e.g. a deny rule - must never be silently
+#     removed). Delete a rule from Akeyless directly if it's no longer
+#     needed; rollback only removes/reverts what THIS deploy itself changed.
+#
+#   - "authMethodAssociations": role<->auth-method bindings (POST
+#     /assoc-role-am, /update-assoc, /delete-assoc). This one IS a full
+#     replace - Akeyless's GetRole returns the role's complete, current
+#     association list, so this app can safely diff declared vs live and
+#     add/update/remove to match exactly what's declared.
+#
+# Field keys must match what config-types/roles/validate.ts checks.
+# API reference: https://docs.akeyless.io (createRole/updateRole/getRole/
+# deleteRole/listRoles/setRoleRule/deleteRoleRule/assocRoleAuthMethod/
+# updateAssoc/deleteRoleAssociation)
+# =============================================================================
+
+id: "akeyless-roles"
+name: "Role Configuration"
+toolType: "akeyless"
+entityType: "roles"
+description: "Define Akeyless Roles - their dashboard access levels, path-based rules and auth-method associations - as code through the Akeyless REST API."
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Role"
+      icon: "shield-check"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The role's name - unique within the account and the identity
+            this app uses to find and update it on every deploy. Renaming
+            here is treated as a new role on the next deploy (matching is by
+            name), not an in-place rename of the old one.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional human description of the role."
+
+        - key: "deleteProtection"
+          label: "Delete Protection"
+          fieldType: "checkbox"
+          helpText: "Protect this role from accidental deletion. This app's deploy/rollback will refuse to delete it while enabled."
+
+    - name: "Dashboard Access"
+      icon: "eye"
+      description: "What this role's associated auth methods may view in the Akeyless console"
+      fields:
+        - key: "auditAccess"
+          label: "Audit Log Access"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - { label: "(unset)", value: "" }
+            - { label: "None", value: "none" }
+            - { label: "Own", value: "own" }
+            - { label: "Scoped", value: "scoped" }
+            - { label: "All", value: "all" }
+
+        - key: "analyticsAccess"
+          label: "Analytics Access"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - { label: "(unset)", value: "" }
+            - { label: "None", value: "none" }
+            - { label: "Own", value: "own" }
+            - { label: "All", value: "all" }
+
+        - key: "gwAnalyticsAccess"
+          label: "Gateway Analytics Access"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - { label: "(unset)", value: "" }
+            - { label: "None", value: "none" }
+            - { label: "Scoped", value: "scoped" }
+            - { label: "All", value: "all" }
+
+        - key: "sraReportsAccess"
+          label: "SRA Reports Access"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - { label: "(unset)", value: "" }
+            - { label: "None", value: "none" }
+            - { label: "Scoped", value: "scoped" }
+            - { label: "All", value: "all" }
+
+        - key: "usageReportsAccess"
+          label: "Usage Reports Access"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - { label: "(unset)", value: "" }
+            - { label: "None", value: "none" }
+            - { label: "All", value: "all" }
+
+        - key: "eventCenterAccess"
+          label: "Event Center Access"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - { label: "(unset)", value: "" }
+            - { label: "None", value: "none" }
+            - { label: "Scoped", value: "scoped" }
+            - { label: "All", value: "all" }
+
+        - key: "isiAccess"
+          label: "Identity & Secrets Intelligence Access"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - { label: "(unset)", value: "" }
+            - { label: "None", value: "none" }
+            - { label: "Scoped", value: "scoped" }
+            - { label: "All", value: "all" }
+
+        - key: "reverseRbacAccess"
+          label: "Reverse RBAC Access"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - { label: "(unset)", value: "" }
+            - { label: "Scoped", value: "scoped" }
+            - { label: "All", value: "all" }
+
+        - key: "eventForwardersAccess"
+          label: "Event Forwarders Management"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - { label: "(unset)", value: "" }
+            - { label: "None", value: "none" }
+            - { label: "All", value: "all" }
+          helpText: "Whether this role may manage ALL Event Forwarders, or none. To scope to specific forwarders, list them below."
+
+        - key: "eventForwardersName"
+          label: "Scoped Event Forwarders"
+          fieldType: "tags"
+          helpText: >
+            Specific Event Forwarder names this role may manage (used
+            instead of, or alongside, the account-wide setting above). No
+            list-event-forwarders API exists, so type each name exactly as
+            declared in the Event Forwarders config type.
+
+    - name: "Rules"
+      icon: "list"
+      description: "Path-based access rules - JSON array, additive only (see canvas header)"
+      fields:
+        - key: "rules"
+          label: "Rules (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            A JSON array of rule objects:
+            [{"path": "/services/*", "ruleType": "item-rule", "capability": ["read", "list"]}].
+            "ruleType" is one of item-rule, target-rule, role-rule,
+            auth-method-rule (default item-rule if omitted). "capability" is
+            one or more of read, create, update, delete, list, deny. Every
+            declared rule is created/updated via set-role-rule on each
+            deploy; removing a rule from this list does NOT delete it from
+            Akeyless (see canvas header) - remove it directly in Akeyless if
+            it's no longer needed.
+
+    - name: "Auth Method Associations"
+      icon: "link"
+      description: "Which auth methods this role is bound to - JSON array, full replace"
+      fields:
+        - key: "authMethodAssociations"
+          label: "Associations (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            A JSON array of association objects:
+            [{"authMethodName": "/services/ci-runner", "subClaims": {"group": ["admins","developers"]}, "caseSensitive": true}].
+            "authMethodName" must match an existing auth method's Name
+            (Auth Method Configuration's identity field) exactly. "subClaims"
+            and "caseSensitive" are optional. This IS a full replace - the
+            declared list becomes this role's complete set of auth-method
+            associations on every deploy (Akeyless's GetRole returns the
+            current full list, so associations no longer declared here ARE
+            removed on deploy).

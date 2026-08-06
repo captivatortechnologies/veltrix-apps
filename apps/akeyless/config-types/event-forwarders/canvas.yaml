@@ -1,0 +1,319 @@
+# =============================================================================
+# Canvas Template - Akeyless Event Forwarders
+#
+# Declares ONE Event Forwarder - the item. Identity is its NAME (POST
+# /event-forwarder-create-slack|email|webhook|teams|servicenow,
+# /event-forwarder-update-{type}, /event-forwarder-delete,
+# /event-forwarder-get - operations eventForwarderCreate/Update*,
+# eventForwarderDelete/Get). There is NO list endpoint for Event Forwarders
+# in the Akeyless API - existence is checked directly by name via
+# /event-forwarder-get (see deploy.ts); Roles' "Scoped Event Forwarders"
+# field is a plain tags field for the same reason (see roles/canvas.yaml).
+#
+# Covers 5 of Akeyless's 5 event-forwarder types - full coverage.
+#
+# Every embedded credential (Slack/Teams Webhook URL, Webhook auth
+# secrets, ServiceNow password/client secret/private key) is WRITE-ONLY and
+# is never read back, diffed, or logged by this app.
+#
+# Field keys must match what config-types/event-forwarders/validate.ts
+# checks. API reference: https://docs.akeyless.io
+# =============================================================================
+
+id: "akeyless-event-forwarders"
+name: "Event Forwarder Configuration"
+toolType: "akeyless"
+entityType: "event-forwarders"
+description: "Create and update Akeyless Event Forwarders (Slack, Email, Webhook, Teams, ServiceNow) as code through the Akeyless REST API. Webhook/credential secrets are write-only."
+
+item:
+  label: "Event Forwarder"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Forwarder"
+      icon: "bell"
+      description: "Name, type and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The forwarder's name - unique within the account and the identity this app uses to find and update it on every deploy."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "Slack", value: "slack" }
+            - { label: "Email", value: "email" }
+            - { label: "Webhook", value: "webhook" }
+            - { label: "Microsoft Teams", value: "teams" }
+            - { label: "ServiceNow", value: "servicenow" }
+          helpText: "IMMUTABLE once created - each type has a dedicated create/update endpoint."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+
+        - key: "enable"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "runnerType"
+          label: "Runner Type"
+          fieldType: "select"
+          defaultValue: "immediate"
+          options:
+            - { label: "Immediate", value: "immediate" }
+            - { label: "Periodic", value: "periodic" }
+          helpText: "Required when Type = Microsoft Teams; optional (defaults to Immediate) for every other type."
+
+        - key: "every"
+          label: "Repeat Every (hours)"
+          fieldType: "number"
+          helpText: "Only used when Runner Type = Periodic."
+
+    - name: "Event Sources"
+      icon: "filter"
+      description: "Which sources' events this forwarder receives"
+      fields:
+        - key: "itemsEventSourceLocations"
+          label: "Item Event Sources"
+          fieldType: "tags"
+          helpText: "Item path prefixes to forward events about, e.g. /services/*."
+
+        - key: "targetsEventSourceLocations"
+          label: "Target Event Sources"
+          fieldType: "tags"
+
+        - key: "authMethodsEventSourceLocations"
+          label: "Auth Method Event Sources"
+          fieldType: "tags"
+
+        - key: "gatewaysEventSourceLocations"
+          label: "Gateway Event Sources"
+          fieldType: "tags"
+          helpText: "Gateway cluster URLs, e.g. http://localhost:8000. Required when Type = Microsoft Teams."
+
+        - key: "eventTypes"
+          label: "Event Types"
+          fieldType: "multiselect"
+          options:
+            - { label: "Request Access", value: "request-access" }
+            - { label: "Certificate Pending Expiration", value: "certificate-pending-expiration" }
+            - { label: "Certificate Expired", value: "certificate-expired" }
+            - { label: "Certificate Provisioning Success", value: "certificate-provisioning-success" }
+            - { label: "Certificate Provisioning Failure", value: "certificate-provisioning-failure" }
+            - { label: "Auth Method Pending Expiration", value: "auth-method-pending-expiration" }
+            - { label: "Auth Method Expired", value: "auth-method-expired" }
+            - { label: "Next Automatic Rotation", value: "next-automatic-rotation" }
+            - { label: "Rotated Secret Success", value: "rotated-secret-success" }
+            - { label: "Rotated Secret Failure", value: "rotated-secret-failure" }
+            - { label: "Dynamic Secret Failure", value: "dynamic-secret-failure" }
+            - { label: "Multi-Auth Failure", value: "multi-auth-failure" }
+            - { label: "UID Rotation Failure", value: "uid-rotation-failure" }
+            - { label: "Apply Justification", value: "apply-justification" }
+            - { label: "Email Auth Method Approved", value: "email-auth-method-approved" }
+            - { label: "Usage", value: "usage" }
+            - { label: "Rotation Usage", value: "rotation-usage" }
+            - { label: "Gateway Inactive", value: "gateway-inactive" }
+            - { label: "Static Secret Updated", value: "static-secret-updated" }
+            - { label: "Rate Limiting", value: "rate-limiting" }
+            - { label: "Usage Report", value: "usage-report" }
+            - { label: "Secret Sync", value: "secret-sync" }
+          helpText: "Leave empty to receive every event type from the selected sources."
+
+    - name: "Slack / Teams"
+      icon: "message-square"
+      description: "Only used when Type = Slack or Microsoft Teams"
+      fields:
+        - key: "webhookUrl"
+          label: "Webhook URL"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "slack"
+          helpText: >
+            WRITE-ONLY secret. Required when creating a NEW Slack forwarder;
+            leave blank on an EXISTING one to keep its current URL unchanged.
+
+        - key: "webhookUrlTeams"
+          label: "Webhook URL"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "teams"
+          helpText: "WRITE-ONLY secret. Required for every deploy - Akeyless does not support updating a Teams forwarder without resending its Webhook URL."
+
+    - name: "Email"
+      icon: "mail"
+      description: "Only used when Type = Email"
+      fields:
+        - key: "emailTo"
+          label: "Recipients"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "email"
+          helpText: "Comma-separated email addresses."
+
+        - key: "overrideUrl"
+          label: "Override URL"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "email"
+          helpText: "Override the default Akeyless URL in the email with your own Gateway URL (port 18888)."
+
+        - key: "includeError"
+          label: "Include Error Details"
+          fieldType: "checkbox"
+          visibleWhen:
+            field: "type"
+            equals: "email"
+
+    - name: "Webhook"
+      icon: "link"
+      description: "Only used when Type = Webhook"
+      fields:
+        - key: "url"
+          label: "Webhook URL"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "webhook"
+
+        - key: "authType"
+          label: "Authentication Type"
+          fieldType: "select"
+          defaultValue: "user-pass"
+          visibleWhen:
+            field: "type"
+            equals: "webhook"
+          options:
+            - { label: "Username/Password", value: "user-pass" }
+            - { label: "Bearer Token", value: "bearer-token" }
+            - { label: "Client Certificate", value: "certificate" }
+
+        - key: "username"
+          label: "Username"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "webhook"
+          helpText: "Only used with Authentication Type = Username/Password."
+
+        - key: "password"
+          label: "Password"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "webhook"
+          helpText: "WRITE-ONLY. Only used with Authentication Type = Username/Password."
+
+        - key: "authToken"
+          label: "Bearer Token"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "webhook"
+          helpText: "WRITE-ONLY, base64-encoded. Only used with Authentication Type = Bearer Token."
+
+        - key: "serverCertificates"
+          label: "Server Certificate (PEM, base64)"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "webhook"
+          helpText: "WRITE-ONLY. Verifies the webhook server's TLS certificate."
+
+        - key: "clientCertData"
+          label: "Client Certificate (PEM, base64)"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "webhook"
+          helpText: "WRITE-ONLY. Only used with Authentication Type = Client Certificate."
+
+        - key: "privateKeyData"
+          label: "Client Private Key (PEM, base64)"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "webhook"
+          helpText: "WRITE-ONLY. Only used with Authentication Type = Client Certificate."
+
+    - name: "ServiceNow"
+      icon: "briefcase"
+      description: "Only used when Type = ServiceNow"
+      fields:
+        - key: "host"
+          label: "Workstation Host"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "servicenow"
+
+        - key: "serviceNowAuthType"
+          label: "Authentication Type"
+          fieldType: "select"
+          defaultValue: "user-pass"
+          visibleWhen:
+            field: "type"
+            equals: "servicenow"
+          options:
+            - { label: "Username/Password", value: "user-pass" }
+            - { label: "JWT", value: "jwt" }
+
+        - key: "adminName"
+          label: "Admin Username"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "servicenow"
+          helpText: "Only used with Authentication Type = Username/Password."
+
+        - key: "adminPwd"
+          label: "Admin Password"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "servicenow"
+          helpText: "WRITE-ONLY. Only used with Authentication Type = Username/Password."
+
+        - key: "userEmail"
+          label: "User Email"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "servicenow"
+          helpText: "Only used with Authentication Type = JWT."
+
+        - key: "clientId"
+          label: "Client ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "servicenow"
+          helpText: "Only used with Authentication Type = JWT."
+
+        - key: "clientSecret"
+          label: "Client Secret"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "servicenow"
+          helpText: "WRITE-ONLY. Only used with Authentication Type = JWT."
+
+        - key: "appPrivateKeyBase64"
+          label: "App Private Key (base64)"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "servicenow"
+          helpText: "WRITE-ONLY, RSA private key. Only used with Authentication Type = JWT."

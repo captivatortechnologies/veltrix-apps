@@ -1,0 +1,343 @@
+# =============================================================================
+# Canvas Template - Akeyless Targets
+#
+# Declares ONE Target - the item. A Target is Akeyless's connection profile
+# to an external system (database, cloud account, Kubernetes cluster, ...)
+# that Dynamic Secret and Rotated Secret configs point at. Identity is its
+# NAME (POST /target-create-{type}, /target-update-{type}, /target-delete,
+# /target-get-details, /target-list - operations targetCreateDB/Aws/K8s,
+# targetUpdateDB/Aws/K8s, targetDelete, targetGetDetails, targetList).
+#
+# Covers the 3 clearest, most commonly used target types (Database, AWS,
+# Kubernetes) - Akeyless supports ~35 target types in total (Azure, GCP,
+# LDAP, SSH, Web, GitHub, Salesforce, PKI CAs, ...); see README Coverage.
+#
+# Every embedded credential is WRITE-ONLY (Sensitive in Akeyless's own
+# tooling) - password, access-key, session-token, k8s-cluster-token,
+# k8s-cluster-ca-cert, client-certificate/-private-key/-key-passphrase - and
+# is never read back, diffed, or logged by this app.
+#
+# Field keys must match what config-types/targets/validate.ts checks.
+# API reference: https://docs.akeyless.io (targetCreateDB/Aws/K8s,
+# targetUpdateDB/Aws/K8s, targetDelete, targetGetDetails, targetList)
+# =============================================================================
+
+id: "akeyless-targets"
+name: "Target Configuration"
+toolType: "akeyless"
+entityType: "targets"
+description: "Create and update Akeyless Targets (Database, AWS, Kubernetes connection profiles) as code through the Akeyless REST API. Embedded credentials are write-only."
+
+item:
+  label: "Target"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Target"
+      icon: "server"
+      description: "Name, type and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The target's name - unique within the account and the identity this app uses to find and update it on every deploy."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "Database", value: "db" }
+            - { label: "AWS", value: "aws" }
+            - { label: "Kubernetes", value: "k8s" }
+          helpText: "IMMUTABLE once created - each type has a dedicated create/update endpoint. This app refuses to change an existing target's type in place."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+
+        - key: "deleteProtection"
+          label: "Delete Protection"
+          fieldType: "checkbox"
+          helpText: "Protect this target from accidental deletion."
+
+        - key: "maxVersions"
+          label: "Max Versions"
+          fieldType: "number"
+          helpText: "Maximum number of historical versions Akeyless keeps for this target. Leave blank for the account default."
+
+    - name: "Database"
+      icon: "database"
+      description: "Only used when Type = Database"
+      fields:
+        - key: "dbType"
+          label: "Database Type"
+          fieldType: "select"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+          options:
+            - { label: "MySQL", value: "mysql" }
+            - { label: "PostgreSQL", value: "postgres" }
+            - { label: "MS SQL Server", value: "mssql" }
+            - { label: "MongoDB", value: "mongodb" }
+            - { label: "Snowflake", value: "snowflake" }
+            - { label: "Oracle", value: "oracle" }
+            - { label: "Cassandra", value: "cassandra" }
+            - { label: "Redshift", value: "redshift" }
+          helpText: "Required for Database targets."
+
+        - key: "connectionType"
+          label: "Connection Type"
+          fieldType: "select"
+          defaultValue: "credentials"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+          options:
+            - { label: "Credentials", value: "credentials" }
+            - { label: "Cloud Identity", value: "cloud-identity" }
+          helpText: >
+            "Credentials" (username/password) is the universal option this
+            app models. "Wallet" (Oracle) and "Parent Target" connection
+            types are not modeled in this release - see README Coverage.
+
+        - key: "host"
+          label: "Host"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+
+        - key: "port"
+          label: "Port"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+
+        - key: "dbName"
+          label: "Database Name"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+
+        - key: "userName"
+          label: "Username"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+
+        - key: "pwd"
+          label: "Password"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+          helpText: >
+            WRITE-ONLY secret. Akeyless never returns it on GET. Required
+            when creating a NEW Database target with Connection Type =
+            Credentials; leave blank on an EXISTING target to keep its
+            current password unchanged.
+
+        - key: "ssl"
+          label: "Enable SSL"
+          fieldType: "checkbox"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+
+        - key: "sslCertificate"
+          label: "SSL Certificate (PEM)"
+          fieldType: "textarea"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+
+        - key: "dbServerCertificates"
+          label: "DB Server Certificates (PEM)"
+          fieldType: "textarea"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+
+        - key: "dbServerName"
+          label: "Server Name (for certificate verification)"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+
+        - key: "enableMtls"
+          label: "Enable Mutual TLS"
+          fieldType: "checkbox"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+
+        - key: "clientCertificate"
+          label: "Client Certificate (PEM, base64)"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+          helpText: "WRITE-ONLY. Only used when Mutual TLS is enabled."
+
+        - key: "clientPrivateKey"
+          label: "Client Private Key (PEM, base64)"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+          helpText: "WRITE-ONLY. Only used when Mutual TLS is enabled."
+
+        - key: "clientKeyPassphrase"
+          label: "Client Private Key Passphrase"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "db"
+          helpText: "WRITE-ONLY. Only used when the client private key above is passphrase-protected."
+
+    - name: "AWS"
+      icon: "cloud"
+      description: "Only used when Type = AWS"
+      fields:
+        - key: "accessKeyId"
+          label: "Access Key ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: "Required for AWS targets."
+
+        - key: "accessKey"
+          label: "Secret Access Key"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: >
+            WRITE-ONLY secret. Required when creating a NEW AWS target
+            (unless Use Gateway Cloud Identity is enabled); leave blank on
+            an EXISTING target to keep its current key unchanged.
+
+        - key: "sessionToken"
+          label: "Session Token"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: "WRITE-ONLY. Only needed for temporary STS credentials."
+
+        - key: "region"
+          label: "Region"
+          fieldType: "text"
+          defaultValue: "us-east-2"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+
+        - key: "useGwCloudIdentity"
+          label: "Use Gateway Cloud Identity"
+          fieldType: "checkbox"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: "Use the Gateway's own IAM identity instead of an Access Key/Secret."
+
+        - key: "generateExternalId"
+          label: "Generate External ID"
+          fieldType: "checkbox"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: "Relevant only when Use Gateway Cloud Identity is enabled - generates a unique External ID for a cross-account IAM role trust policy."
+
+        - key: "roleArn"
+          label: "Role ARN"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: "The IAM role the Gateway assumes, relevant only when using an External ID."
+
+    - name: "Kubernetes"
+      icon: "server"
+      description: "Only used when Type = Kubernetes"
+      fields:
+        - key: "k8sClusterEndpoint"
+          label: "Cluster Endpoint URL"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+          helpText: "Required for Kubernetes targets."
+
+        - key: "k8sClusterCaCert"
+          label: "Cluster CA Certificate (base64)"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+          helpText: >
+            WRITE-ONLY. Required when creating a NEW Kubernetes target;
+            leave blank on an EXISTING target to keep it unchanged.
+
+        - key: "k8sClusterToken"
+          label: "Cluster Bearer Token"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+          helpText: >
+            WRITE-ONLY. Required when creating a NEW Kubernetes target
+            (unless Use Gateway Service Account is enabled); leave blank on
+            an EXISTING target to keep it unchanged.
+
+        - key: "k8sAuthType"
+          label: "Auth Type"
+          fieldType: "select"
+          defaultValue: "token"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+          options:
+            - { label: "Token", value: "token" }
+            - { label: "Certificate", value: "certificate" }
+
+        - key: "k8sClientCertificate"
+          label: "Client Certificate (PEM, base64)"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+          helpText: "WRITE-ONLY. Only used when Auth Type = Certificate."
+
+        - key: "k8sClientKey"
+          label: "Client Private Key (PEM, base64)"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+          helpText: "WRITE-ONLY. Only used when Auth Type = Certificate."
+
+        - key: "k8sClusterName"
+          label: "Cluster Name"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+
+        - key: "useGwServiceAccount"
+          label: "Use Gateway Service Account"
+          fieldType: "checkbox"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+          helpText: "Use the Gateway's own in-cluster service account instead of a Cluster Bearer Token."

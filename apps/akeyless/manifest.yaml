@@ -1,0 +1,258 @@
+id: akeyless
+name: Akeyless
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Akeyless (secrets management / secure remote access platform)
+  configuration as code through the Akeyless REST API. Covers auth methods
+  (API Key, AWS IAM, Azure AD, Kubernetes, OIDC), roles (dashboard access,
+  path-based rules, auth-method associations), targets (Database, AWS,
+  Kubernetes connection profiles), dynamic secret and rotated secret
+  producer configs, event forwarders (Slack, Email, Webhook, Teams,
+  ServiceNow) and Gateway Kubernetes auth / allowed-access configuration -
+  with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline. Static, dynamic and rotated secret VALUES are
+  never read, written or diffed by this app.
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/akeyless
+icon: "🔐"
+
+platform:
+  minVersion: "1.0.0"
+
+# Akeyless brand: deep navy primary with the brand's signature teal accent.
+branding:
+  primaryColor: "#0E1E36"
+  accentColor: "#00D2B4"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: auth-methods
+      actions: [read, write, delete]
+      description: Manage Akeyless auth methods (API Key, AWS IAM, Azure AD, Kubernetes, OIDC) - credentials are write-only
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage Akeyless roles, their dashboard access levels, path-based rules and auth-method associations
+    - resource: targets
+      actions: [read, write, delete]
+      description: Manage Akeyless targets (Database, AWS, Kubernetes connection profiles) - embedded credentials are write-only
+    - resource: dynamic-secret-configs
+      actions: [read, write, delete]
+      description: Manage Akeyless dynamic secret producer configs (PostgreSQL, AWS, Kubernetes) - never the produced credential values
+    - resource: rotated-secret-configs
+      actions: [read, write, delete]
+      description: Manage Akeyless rotated secret configs (PostgreSQL, AWS) - never the rotated credential values
+    - resource: event-forwarders
+      actions: [read, write, delete]
+      description: Manage Akeyless event forwarders (Slack, Email, Webhook, Teams, ServiceNow) - webhook/credential secrets are write-only
+    - resource: k8s-auth-config
+      actions: [read, write, delete]
+      description: Manage the Akeyless Gateway's Kubernetes auth validation configuration
+    - resource: gateway-allowed-access
+      actions: [read, write, delete]
+      description: Manage Akeyless Gateway allowed-access rules (auth method to Gateway-admin permission bindings)
+
+pipeline:
+  configurationTypes:
+    - id: auth-methods
+      group: "Authentication"
+      name: Auth Methods
+      description: API Key, AWS IAM, Azure AD, Kubernetes and OIDC auth methods (type is immutable; credentials/secrets are write-only)
+      canvasTemplate: config-types/auth-methods/canvas.yaml
+      defaultConfig: config-types/auth-methods/defaults.yaml
+      handlers:
+        validate: config-types/auth-methods/validate
+        deploy: config-types/auth-methods/deploy
+        rollback: config-types/auth-methods/rollback
+        healthCheck: config-types/auth-methods/healthCheck
+        driftDetect: config-types/auth-methods/driftDetect
+        getStatus: config-types/auth-methods/getStatus
+      targets:
+        componentTypes: [akeyless-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: roles
+      group: "Authorization"
+      name: Roles
+      description: Roles - dashboard access levels, path-based rules (additive) and auth-method associations (full replace)
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [akeyless-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: targets
+      group: "Targets"
+      name: Targets
+      description: Database, AWS and Kubernetes connection profiles (type is immutable; embedded credentials are write-only)
+      canvasTemplate: config-types/targets/canvas.yaml
+      defaultConfig: config-types/targets/defaults.yaml
+      handlers:
+        validate: config-types/targets/validate
+        deploy: config-types/targets/deploy
+        rollback: config-types/targets/rollback
+        healthCheck: config-types/targets/healthCheck
+        driftDetect: config-types/targets/driftDetect
+        getStatus: config-types/targets/getStatus
+      targets:
+        componentTypes: [akeyless-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: dynamic-secret-configs
+      group: "Secrets Engines"
+      name: Dynamic Secret Configs
+      description: PostgreSQL, AWS and Kubernetes dynamic secret producer definitions - never the produced credential values
+      canvasTemplate: config-types/dynamic-secret-configs/canvas.yaml
+      defaultConfig: config-types/dynamic-secret-configs/defaults.yaml
+      handlers:
+        validate: config-types/dynamic-secret-configs/validate
+        deploy: config-types/dynamic-secret-configs/deploy
+        rollback: config-types/dynamic-secret-configs/rollback
+        healthCheck: config-types/dynamic-secret-configs/healthCheck
+        driftDetect: config-types/dynamic-secret-configs/driftDetect
+        getStatus: config-types/dynamic-secret-configs/getStatus
+        options: config-types/dynamic-secret-configs/options
+      targets:
+        componentTypes: [akeyless-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: rotated-secret-configs
+      group: "Secrets Engines"
+      name: Rotated Secret Configs
+      description: PostgreSQL and AWS rotated secret configs - never the rotated credential values (existence-only drift detection; see README)
+      canvasTemplate: config-types/rotated-secret-configs/canvas.yaml
+      defaultConfig: config-types/rotated-secret-configs/defaults.yaml
+      handlers:
+        validate: config-types/rotated-secret-configs/validate
+        deploy: config-types/rotated-secret-configs/deploy
+        rollback: config-types/rotated-secret-configs/rollback
+        healthCheck: config-types/rotated-secret-configs/healthCheck
+        driftDetect: config-types/rotated-secret-configs/driftDetect
+        getStatus: config-types/rotated-secret-configs/getStatus
+        options: config-types/rotated-secret-configs/options
+      targets:
+        componentTypes: [akeyless-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: event-forwarders
+      group: "Operations"
+      name: Event Forwarders
+      description: Slack, Email, Webhook, Microsoft Teams and ServiceNow event forwarders (type is immutable; webhook/credential secrets are write-only)
+      canvasTemplate: config-types/event-forwarders/canvas.yaml
+      defaultConfig: config-types/event-forwarders/defaults.yaml
+      handlers:
+        validate: config-types/event-forwarders/validate
+        deploy: config-types/event-forwarders/deploy
+        rollback: config-types/event-forwarders/rollback
+        healthCheck: config-types/event-forwarders/healthCheck
+        driftDetect: config-types/event-forwarders/driftDetect
+        getStatus: config-types/event-forwarders/getStatus
+      targets:
+        componentTypes: [akeyless-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: k8s-auth-config
+      group: "Gateway"
+      name: Kubernetes Gateway Auth Config
+      description: Gateway-side Kubernetes auth validation config (signing key is required and write-only on every deploy)
+      canvasTemplate: config-types/k8s-auth-config/canvas.yaml
+      defaultConfig: config-types/k8s-auth-config/defaults.yaml
+      handlers:
+        validate: config-types/k8s-auth-config/validate
+        deploy: config-types/k8s-auth-config/deploy
+        rollback: config-types/k8s-auth-config/rollback
+        healthCheck: config-types/k8s-auth-config/healthCheck
+        driftDetect: config-types/k8s-auth-config/driftDetect
+        getStatus: config-types/k8s-auth-config/getStatus
+        options: config-types/k8s-auth-config/options
+      targets:
+        componentTypes: [akeyless-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: gateway-allowed-access
+      group: "Gateway"
+      name: Gateway Allowed Access
+      description: Auth-method to Gateway-admin permission bindings
+      canvasTemplate: config-types/gateway-allowed-access/canvas.yaml
+      defaultConfig: config-types/gateway-allowed-access/defaults.yaml
+      handlers:
+        validate: config-types/gateway-allowed-access/validate
+        deploy: config-types/gateway-allowed-access/deploy
+        rollback: config-types/gateway-allowed-access/rollback
+        healthCheck: config-types/gateway-allowed-access/healthCheck
+        driftDetect: config-types/gateway-allowed-access/driftDetect
+        getStatus: config-types/gateway-allowed-access/getStatus
+        options: config-types/gateway-allowed-access/options
+      targets:
+        componentTypes: [akeyless-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/akeyless
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: exchanges the Access ID/Key for a
+# token (POST /auth) and confirms it can list roles (POST /list-roles).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Akeyless API calls.
+    default: 30
+    required: false

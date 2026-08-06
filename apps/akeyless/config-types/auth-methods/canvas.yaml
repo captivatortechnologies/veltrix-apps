@@ -1,0 +1,435 @@
+# =============================================================================
+# Canvas Template - Akeyless Auth Methods
+#
+# Declares ONE Auth Method - the item. Users add as many as they need. An
+# auth method's identity is its NAME; its TYPE is set at creation and is
+# IMMUTABLE - Akeyless exposes a separate create/update/get endpoint PER
+# type (auth-method-create-api-key, -aws-iam, -azure-ad, -k8s, -oidc), so
+# this app refuses to convert one type into another in place (see
+# validate.ts / deploy.ts) rather than silently deleting and recreating,
+# which would rotate the Access ID every dependent role association uses.
+#
+# Auth-method CREDENTIALS are write-only and are never modeled here:
+#   - api-key: Akeyless GENERATES the Access ID/Key on create - this app
+#     never sends or reads them back.
+#   - oidc: the OIDC Client Secret is accepted on create/update but never
+#     returned by GET - the password field below is write-only.
+#
+# Covers the 5 auth-method types with the clearest, most commonly deployed
+# declarative shape (api-key, aws-iam, azure-ad, k8s, oidc). Akeyless also
+# supports cert/email/gcp/kerberos/ldap/oauth2/oci/saml/universal-identity
+# auth methods (see README Coverage) - deferred to a future pass.
+#
+# Field keys must match what config-types/auth-methods/validate.ts checks.
+# API reference: https://docs.akeyless.io (operations auth-method-create-*,
+# auth-method-update-*, auth-method-get, auth-method-delete, auth-method-list)
+# =============================================================================
+
+id: "akeyless-auth-methods"
+name: "Auth Method Configuration"
+toolType: "akeyless"
+entityType: "auth-methods"
+description: "Create and tune Akeyless auth methods (API Key, AWS IAM, Azure AD, Kubernetes, OIDC) as code through the Akeyless REST API. Type is immutable; credentials/secrets are write-only."
+
+item:
+  label: "Auth Method"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Method"
+      icon: "key"
+      description: "Name, type and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The auth method's name/path - unique within the account and the
+            identity this app uses to find and update it on every deploy
+            (e.g. /services/ci-runner). Renaming here is treated as a new
+            auth method on the next deploy (matching is by name).
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "API Key", value: "api-key" }
+            - { label: "AWS IAM", value: "aws-iam" }
+            - { label: "Azure AD", value: "azure-ad" }
+            - { label: "Kubernetes", value: "k8s" }
+            - { label: "OIDC", value: "oidc" }
+          helpText: >
+            IMMUTABLE once created - Akeyless has a separate create/update
+            endpoint per type, so this app refuses to change an existing auth
+            method's type (that would require deleting and recreating it,
+            which rotates its Access ID and breaks every Role association
+            and Gateway Allowed Access rule that references it).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional human description of the auth method."
+
+    - name: "Access Control"
+      icon: "shield"
+      description: "Common access restrictions, applicable to every type"
+      fields:
+        - key: "accessExpires"
+          label: "Access Expiration (Unix timestamp)"
+          fieldType: "number"
+          defaultValue: 0
+          helpText: "Unix timestamp the access expires at. 0 = no expiration."
+
+        - key: "boundIps"
+          label: "Bound IPs (CIDR)"
+          fieldType: "tags"
+          helpText: "CIDR whitelist restricting which client IPs may use this auth method. One CIDR per tag."
+
+        - key: "gwBoundIps"
+          label: "Bound Gateway IPs (CIDR)"
+          fieldType: "tags"
+          helpText: "CIDR whitelist restricting which Gateway IPs may use this auth method. One CIDR per tag."
+
+        - key: "forceSubClaims"
+          label: "Force Sub-Claims"
+          fieldType: "checkbox"
+          helpText: "If enabled, every Role association for this auth method must include sub-claims."
+
+        - key: "jwtTtl"
+          label: "JWT TTL (minutes)"
+          fieldType: "number"
+          defaultValue: 0
+          helpText: "Lifetime of the Akeyless token issued to this auth method's callers. 0 = account default."
+
+        - key: "allowedClientType"
+          label: "Allowed Client Types"
+          fieldType: "multiselect"
+          options:
+            - { label: "CLI", value: "cli" }
+            - { label: "UI", value: "ui" }
+            - { label: "Gateway Admin", value: "gateway-admin" }
+            - { label: "SDK", value: "sdk" }
+            - { label: "Mobile", value: "mobile" }
+            - { label: "Extension", value: "extension" }
+          helpText: "Limit which client types may authenticate with this method. Leave empty to allow every client type."
+
+        - key: "productType"
+          label: "Product Types"
+          fieldType: "multiselect"
+          options:
+            - { label: "Secrets Management (sm)", value: "sm" }
+            - { label: "Secure Remote Access (sra)", value: "sra" }
+            - { label: "Privileged Access Mgmt (pm)", value: "pm" }
+            - { label: "Data Protection (dp)", value: "dp" }
+            - { label: "Cloud Access (ca)", value: "ca" }
+          helpText: "Which Akeyless products this auth method is relevant for. Leave empty for the account default."
+
+        - key: "auditLogsClaims"
+          label: "Audit Log Sub-Claims"
+          fieldType: "tags"
+          helpText: "Sub-claim names to include in audit logs for this auth method, e.g. email, username."
+
+        - key: "expirationEventIn"
+          label: "Expiration Notification (days before)"
+          fieldType: "tags"
+          helpText: "How many days before this auth method expires to send an expiration event. One number per tag."
+
+        - key: "deleteProtection"
+          label: "Delete Protection"
+          fieldType: "checkbox"
+          helpText: "Protect this auth method from accidental deletion. This app's deploy/rollback will refuse to delete it while enabled."
+
+    - name: "AWS IAM"
+      icon: "cloud"
+      description: "Only used when Type = AWS IAM"
+      fields:
+        - key: "boundAwsAccountId"
+          label: "Bound AWS Account IDs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "aws-iam"
+          helpText: "Required for AWS IAM. AWS account IDs the caller's signed STS request must originate from."
+
+        - key: "stsUrl"
+          label: "STS URL"
+          fieldType: "text"
+          defaultValue: "https://sts.amazonaws.com"
+          visibleWhen:
+            field: "type"
+            equals: "aws-iam"
+          helpText: "The AWS STS endpoint used to validate the caller's identity."
+
+        - key: "boundArn"
+          label: "Bound ARNs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "aws-iam"
+          helpText: "Full IAM ARNs the caller's identity is restricted to."
+
+        - key: "boundRoleName"
+          label: "Bound Role Names"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "aws-iam"
+          helpText: "IAM role names the caller's identity is restricted to."
+
+        - key: "boundRoleId"
+          label: "Bound Role IDs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "aws-iam"
+
+        - key: "boundResourceId"
+          label: "Bound Resource IDs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "aws-iam"
+
+        - key: "boundUserName"
+          label: "Bound User Names"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "aws-iam"
+
+        - key: "boundUserId"
+          label: "Bound User IDs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "aws-iam"
+
+        - key: "uniqueIdentifierAwsIam"
+          label: "Unique Identifier Sub-Claim"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "aws-iam"
+          helpText: "A sub-claim name that uniquely identifies the calling identity, used to distinguish identities from each other."
+
+    - name: "Azure AD"
+      icon: "cloud"
+      description: "Only used when Type = Azure AD"
+      fields:
+        - key: "boundTenantId"
+          label: "Bound Tenant ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "azure-ad"
+          helpText: "Required for Azure AD. The Azure AD tenant ID the caller's identity must belong to."
+
+        - key: "issuerAzureAd"
+          label: "Issuer"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "azure-ad"
+          helpText: "Issuer URL of the Azure AD JWT."
+
+        - key: "jwksUri"
+          label: "JWKS URI"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "azure-ad"
+
+        - key: "audienceAzureAd"
+          label: "Audience"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "azure-ad"
+
+        - key: "boundSpid"
+          label: "Bound Service Principal IDs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "azure-ad"
+
+        - key: "boundGroupId"
+          label: "Bound Group IDs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "azure-ad"
+
+        - key: "boundSubId"
+          label: "Bound Subscription IDs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "azure-ad"
+
+        - key: "boundRgId"
+          label: "Bound Resource Group IDs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "azure-ad"
+
+        - key: "boundProviders"
+          label: "Bound Providers"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "azure-ad"
+
+        - key: "boundResourceTypes"
+          label: "Bound Resource Types"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "azure-ad"
+
+        - key: "boundResourceNames"
+          label: "Bound Resource Names"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "azure-ad"
+
+        - key: "boundResourceIdAzureAd"
+          label: "Bound Resource IDs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "azure-ad"
+
+        - key: "uniqueIdentifierAzureAd"
+          label: "Unique Identifier Sub-Claim"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "azure-ad"
+
+    - name: "Kubernetes"
+      icon: "server"
+      description: "Only used when Type = Kubernetes"
+      fields:
+        - key: "audienceK8s"
+          label: "Audience"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+          helpText: "The audience in the Kubernetes service-account JWT the access is restricted to."
+
+        - key: "boundSaNames"
+          label: "Bound Service Account Names"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+
+        - key: "boundPodNames"
+          label: "Bound Pod Names"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+
+        - key: "boundNamespaces"
+          label: "Bound Namespaces"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+
+        - key: "publicKey"
+          label: "Public Key (PEM, base64)"
+          fieldType: "textarea"
+          visibleWhen:
+            field: "type"
+            equals: "k8s"
+          helpText: >
+            Base64-encoded PEM public key Akeyless uses to verify tokens it
+            issues for this method. Leave blank to let Akeyless auto-generate
+            a key pair on first create ONLY - once set, this app always
+            resends the same value on update so re-deploys stay idempotent
+            (a blank value here after the first deploy would make every
+            subsequent deploy request a brand-new, non-idempotent key pair).
+
+    - name: "OIDC"
+      icon: "lock"
+      description: "Only used when Type = OIDC"
+      fields:
+        - key: "issuerOidc"
+          label: "Issuer"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "oidc"
+          helpText: "Required for OIDC. The OIDC issuer URL, e.g. https://accounts.google.com."
+
+        - key: "clientId"
+          label: "Client ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "oidc"
+
+        - key: "clientSecret"
+          label: "Client Secret"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "oidc"
+          helpText: >
+            WRITE-ONLY secret. Akeyless never returns it on GET. Required
+            when creating a NEW OIDC auth method; leave blank on an EXISTING
+            one to keep its current secret unchanged (this app never clears
+            it implicitly).
+
+        - key: "uniqueIdentifierOidc"
+          label: "Unique Identifier Sub-Claim"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "oidc"
+
+        - key: "allowedRedirectUri"
+          label: "Allowed Redirect URIs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "oidc"
+
+        - key: "requiredScopes"
+          label: "Required Scopes"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "oidc"
+
+        - key: "requiredScopesPrefix"
+          label: "Required Scopes Prefix"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "oidc"
+
+        - key: "audienceOidc"
+          label: "Audience"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "oidc"
+
+        - key: "subclaimsDelimiters"
+          label: "Sub-Claims Delimiters"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "oidc"
+          helpText: "Delimiter characters Akeyless uses to split multi-value OIDC sub-claims."

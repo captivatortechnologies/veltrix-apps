@@ -1,0 +1,187 @@
+# =============================================================================
+# Canvas Template - Akeyless Rotated Secret Configs
+#
+# Declares ONE Rotated Secret CONFIG - the rotator definition that tells
+# Akeyless HOW and WHEN to rotate an existing credential in place (unlike a
+# Dynamic Secret, which creates a brand-new temporary one). This is NOT the
+# rotated credential's VALUE - the current rotated username/password (fetched
+# via /rotated-secret-get-value) is secret material and is NEVER read,
+# written or diffed by this app.
+#
+# Identity is the config's NAME (POST /rotated-secret-create-postgresql|aws,
+# /rotated-secret-update-postgresql|aws, /rotated-secret-delete,
+# /rotated-secret-list - operations rotatedSecretCreate/UpdatePostgresql,
+# rotatedSecretCreate/UpdateAws, rotatedSecretDelete/List).
+#
+# IMPORTANT DRIFT-DETECTION LIMITATION: Akeyless's public API has no
+# "get rotated-secret configuration" endpoint - only /rotated-secret-list
+# (returns id/name/type/active, not the rotation settings) and
+# /rotated-secret-get-value (returns the rotated credential VALUE, out of
+# scope). This app's drift detection for this config type is therefore
+# EXISTENCE + TYPE only; field-level drift (rotation interval, target
+# association, etc.) cannot be verified without reading secret material, so
+# it is intentionally not attempted (see driftDetect.ts).
+#
+# Covers 2 of Akeyless's ~19 rotator types (PostgreSQL, AWS) - see README
+# Coverage for the rest (MySQL, MSSQL, LDAP, SSH, Windows, ...).
+#
+# Field keys must match what
+# config-types/rotated-secret-configs/validate.ts checks.
+# API reference: https://docs.akeyless.io
+# =============================================================================
+
+id: "akeyless-rotated-secret-configs"
+name: "Rotated Secret Configuration"
+toolType: "akeyless"
+entityType: "rotated-secret-configs"
+description: "Define Akeyless Rotated Secret configs (PostgreSQL, AWS) as code through the Akeyless REST API. The rotated credential VALUE is never managed here - only the rotator definition."
+
+item:
+  label: "Rotated Secret Config"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rotator"
+      icon: "refresh-cw"
+      description: "Name, type and target"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rotator's name - unique within the account and the identity this app uses to find and update it on every deploy."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "PostgreSQL", value: "postgresql" }
+            - { label: "AWS", value: "aws" }
+          helpText: "IMMUTABLE once created - each type has a dedicated create/update endpoint."
+
+        - key: "targetName"
+          label: "Target Name"
+          fieldType: "remote-select"
+          optionsSource: "targets"
+          required: true
+          helpText: "The Target holding the connection this rotator uses (Target Configuration's identity field). Required by Akeyless for every rotator type."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+
+        - key: "deleteProtection"
+          label: "Delete Protection"
+          fieldType: "checkbox"
+
+        - key: "rotatorType"
+          label: "Rotator Type"
+          fieldType: "select"
+          options:
+            - { label: "Target credentials (rotate the Target's own login)", value: "target" }
+            - { label: "Password (PostgreSQL only - a separate managed user)", value: "password" }
+            - { label: "API Key (AWS only)", value: "api-key" }
+          helpText: 'PostgreSQL supports "target" or "password"; AWS supports "target" or "api-key". Picking the wrong option for the selected Type fails validation.'
+
+        - key: "authenticationCredentials"
+          label: "Authentication Credentials"
+          fieldType: "select"
+          defaultValue: "use-self-creds"
+          options:
+            - { label: "Use the rotated user's own credentials", value: "use-self-creds" }
+            - { label: "Use the Target's credentials", value: "use-target-creds" }
+
+        - key: "autoRotate"
+          label: "Auto-Rotate"
+          fieldType: "checkbox"
+          helpText: "Automatically rotate every Rotation Interval days."
+
+        - key: "rotationInterval"
+          label: "Rotation Interval (days)"
+          fieldType: "number"
+          helpText: "1-365. Only used when Auto-Rotate is enabled."
+
+        - key: "rotationHour"
+          label: "Rotation Hour (UTC)"
+          fieldType: "number"
+
+        - key: "passwordLength"
+          label: "Generated Password Length"
+          fieldType: "number"
+
+        - key: "rotateAfterDisconnect"
+          label: "Rotate After Disconnect (SRA)"
+          fieldType: "checkbox"
+          helpText: "Rotate the value after a Secure Remote Access session ends."
+
+        - key: "rotationEventIn"
+          label: "Rotation Notification (days before)"
+          fieldType: "tags"
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+
+        - key: "itemCustomFields"
+          label: "Custom Fields"
+          fieldType: "keyvalue"
+
+    - name: "PostgreSQL"
+      icon: "database"
+      description: "Only used when Type = PostgreSQL and Rotator Type = Password"
+      fields:
+        - key: "rotatedUsername"
+          label: "Rotated Username"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "postgresql"
+          helpText: >
+            Which database user this rotator manages. The rotated user's
+            CURRENT password is never read or set here - Akeyless generates
+            and rotates it; only WHICH account to rotate is config.
+
+    - name: "AWS"
+      icon: "cloud"
+      description: "Only used when Type = AWS"
+      fields:
+        - key: "apiId"
+          label: "API ID (Rotator Type = API Key)"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: "Which AWS access key ID to rotate. The key's CURRENT secret value is never read or set here."
+
+        - key: "awsRegion"
+          label: "AWS Region"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+
+        - key: "graceRotation"
+          label: "Grace Rotation"
+          fieldType: "checkbox"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: "Create a new access key without deleting the old one immediately (a rollback window)."
+
+        - key: "graceRotationHour"
+          label: "Grace Rotation Hour (UTC)"
+          fieldType: "number"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+
+        - key: "graceRotationInterval"
+          label: "Grace Rotation Interval (days)"
+          fieldType: "number"
+          visibleWhen:
+            field: "type"
+            equals: "aws"
+          helpText: "Days to wait before deleting the old key. Must be greater than Rotation Interval."
