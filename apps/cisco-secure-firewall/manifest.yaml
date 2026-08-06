@@ -1,0 +1,304 @@
+id: cisco-secure-firewall
+name: Cisco Secure Firewall (FMC)
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Cisco Secure Firewall Management Center (FMC, formerly Firepower
+  Management Center) configuration as code through the FMC REST API - access
+  control policies and rules, network objects (hosts/networks/ranges/FQDNs)
+  and network groups, port objects and port groups, URL objects and URL
+  groups, and security zones - with validation, drift detection and rollback
+  handled by the Security-as-Code pipeline. Deploying to managed firewalls
+  (FTDs) is a separate, opt-in activation step, not a configuration type.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-secure-firewall
+icon: "🔥"
+
+platform:
+  minVersion: "1.0.0"
+
+# Cisco brand: Cisco blue.
+branding:
+  primaryColor: "#005073"
+  accentColor: "#049FD9"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: access-control-policies
+      actions: [read, write, delete]
+      description: Manage FMC Access Control Policies (name, default action and default-action logging) via /policy/accesspolicies
+    - resource: access-rules
+      actions: [read, write, delete]
+      description: Manage FMC Access Rules inside an Access Control Policy (action, zones, networks, ports, logging) via /policy/accesspolicies/{id}/accessrules
+    - resource: network-objects
+      actions: [read, write, delete]
+      description: Manage FMC Host, Network, Range and FQDN objects via /object/hosts|networks|ranges|fqdns
+    - resource: network-groups
+      actions: [read, write, delete]
+      description: Manage FMC Network Groups (named sets of Host/Network/Range/FQDN/Network Group members) via /object/networkgroups
+    - resource: port-objects
+      actions: [read, write, delete]
+      description: Manage FMC protocol/port objects via /object/protocolportobjects
+    - resource: port-groups
+      actions: [read, write, delete]
+      description: Manage FMC Port Groups (named sets of Port object members) via /object/portobjectgroups
+    - resource: url-objects
+      actions: [read, write, delete]
+      description: Manage FMC URL objects via /object/urls
+    - resource: url-groups
+      actions: [read, write, delete]
+      description: Manage FMC URL Groups (URL object members and/or literal URLs) via /object/urlgroups
+    - resource: security-zones
+      actions: [read, write, delete]
+      description: Manage FMC Security Zones via /object/securityzones
+
+pipeline:
+  configurationTypes:
+    - id: security-zones
+      group: "Objects"
+      name: Security Zones
+      description: Security zones - the interface mode grouping Access Rules match against (/object/securityzones)
+      canvasTemplate: config-types/security-zones/canvas.yaml
+      defaultConfig: config-types/security-zones/defaults.yaml
+      handlers:
+        validate: config-types/security-zones/validate
+        deploy: config-types/security-zones/deploy
+        rollback: config-types/security-zones/rollback
+        healthCheck: config-types/security-zones/healthCheck
+        driftDetect: config-types/security-zones/driftDetect
+        getStatus: config-types/security-zones/getStatus
+      targets:
+        componentTypes: [fmc]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: network-objects
+      group: "Objects"
+      name: Network Objects
+      description: Host, Network, Range and FQDN objects (/object/hosts|networks|ranges|fqdns)
+      canvasTemplate: config-types/network-objects/canvas.yaml
+      defaultConfig: config-types/network-objects/defaults.yaml
+      handlers:
+        validate: config-types/network-objects/validate
+        deploy: config-types/network-objects/deploy
+        rollback: config-types/network-objects/rollback
+        healthCheck: config-types/network-objects/healthCheck
+        driftDetect: config-types/network-objects/driftDetect
+        getStatus: config-types/network-objects/getStatus
+      targets:
+        componentTypes: [fmc]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: network-groups
+      group: "Objects"
+      name: Network Groups
+      description: Named sets of Host/Network/Range/FQDN/Network Group members (/object/networkgroups). Deploy Network Objects first.
+      canvasTemplate: config-types/network-groups/canvas.yaml
+      defaultConfig: config-types/network-groups/defaults.yaml
+      handlers:
+        validate: config-types/network-groups/validate
+        deploy: config-types/network-groups/deploy
+        rollback: config-types/network-groups/rollback
+        healthCheck: config-types/network-groups/healthCheck
+        driftDetect: config-types/network-groups/driftDetect
+        getStatus: config-types/network-groups/getStatus
+      targets:
+        componentTypes: [fmc]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: port-objects
+      group: "Objects"
+      name: Port Objects
+      description: Protocol/port objects (/object/protocolportobjects)
+      canvasTemplate: config-types/port-objects/canvas.yaml
+      defaultConfig: config-types/port-objects/defaults.yaml
+      handlers:
+        validate: config-types/port-objects/validate
+        deploy: config-types/port-objects/deploy
+        rollback: config-types/port-objects/rollback
+        healthCheck: config-types/port-objects/healthCheck
+        driftDetect: config-types/port-objects/driftDetect
+        getStatus: config-types/port-objects/getStatus
+      targets:
+        componentTypes: [fmc]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: port-groups
+      group: "Objects"
+      name: Port Groups
+      description: Named sets of Port object members (/object/portobjectgroups). Deploy Port Objects first.
+      canvasTemplate: config-types/port-groups/canvas.yaml
+      defaultConfig: config-types/port-groups/defaults.yaml
+      handlers:
+        validate: config-types/port-groups/validate
+        deploy: config-types/port-groups/deploy
+        rollback: config-types/port-groups/rollback
+        healthCheck: config-types/port-groups/healthCheck
+        driftDetect: config-types/port-groups/driftDetect
+        getStatus: config-types/port-groups/getStatus
+      targets:
+        componentTypes: [fmc]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: url-objects
+      group: "Objects"
+      name: URL Objects
+      description: URL objects (/object/urls)
+      canvasTemplate: config-types/url-objects/canvas.yaml
+      defaultConfig: config-types/url-objects/defaults.yaml
+      handlers:
+        validate: config-types/url-objects/validate
+        deploy: config-types/url-objects/deploy
+        rollback: config-types/url-objects/rollback
+        healthCheck: config-types/url-objects/healthCheck
+        driftDetect: config-types/url-objects/driftDetect
+        getStatus: config-types/url-objects/getStatus
+      targets:
+        componentTypes: [fmc]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: url-groups
+      group: "Objects"
+      name: URL Groups
+      description: Named sets of URL object members and/or literal URLs (/object/urlgroups). Deploy URL Objects first.
+      canvasTemplate: config-types/url-groups/canvas.yaml
+      defaultConfig: config-types/url-groups/defaults.yaml
+      handlers:
+        validate: config-types/url-groups/validate
+        deploy: config-types/url-groups/deploy
+        rollback: config-types/url-groups/rollback
+        healthCheck: config-types/url-groups/healthCheck
+        driftDetect: config-types/url-groups/driftDetect
+        getStatus: config-types/url-groups/getStatus
+      targets:
+        componentTypes: [fmc]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: access-control-policies
+      group: "Policies"
+      name: Access Control Policies
+      description: Access Control Policy containers - name, default action and default-action logging (/policy/accesspolicies). Deploy before Access Rules.
+      canvasTemplate: config-types/access-control-policies/canvas.yaml
+      defaultConfig: config-types/access-control-policies/defaults.yaml
+      handlers:
+        validate: config-types/access-control-policies/validate
+        deploy: config-types/access-control-policies/deploy
+        rollback: config-types/access-control-policies/rollback
+        healthCheck: config-types/access-control-policies/healthCheck
+        driftDetect: config-types/access-control-policies/driftDetect
+        getStatus: config-types/access-control-policies/getStatus
+      targets:
+        componentTypes: [fmc]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: access-rules
+      group: "Policies"
+      name: Access Rules
+      description: Rules inside an Access Control Policy - action, zones, networks, ports and logging (/policy/accesspolicies/{id}/accessrules)
+      canvasTemplate: config-types/access-rules/canvas.yaml
+      defaultConfig: config-types/access-rules/defaults.yaml
+      handlers:
+        validate: config-types/access-rules/validate
+        deploy: config-types/access-rules/deploy
+        rollback: config-types/access-rules/rollback
+        healthCheck: config-types/access-rules/healthCheck
+        driftDetect: config-types/access-rules/driftDetect
+        getStatus: config-types/access-rules/getStatus
+      targets:
+        componentTypes: [fmc]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/cisco-secure-firewall
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: generates a token
+# (POST /api/fmc_platform/v1/auth/generatetoken) and confirms the session can
+# list Access Control Policies.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: domain_name
+    type: string
+    label: Domain Name
+    description: >
+      Explicit FMC domain name override (e.g. "Global/Branch") for a
+      multi-domain deployment. Leave blank to use the connecting user's own
+      login domain - the correct choice for the overwhelmingly common
+      single/Global-domain deployment.
+    default: ""
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for calls to the FMC REST API.
+    default: 30
+    required: false
+  - key: auto_deploy_to_devices
+    type: boolean
+    label: Auto-deploy to devices
+    description: >
+      When enabled, a successful deploy or rollback additionally triggers a
+      deployment to every FTD device with pending changes
+      (POST /deployment/deploymentrequests) - the one-shot activation step
+      that pushes FMC's configuration database onto managed firewalls. When
+      off (the default), configuration changes are written to FMC but left
+      for an operator to deploy from the FMC UI or a separate process.
+    default: false
+    required: false
+  - key: ignore_deploy_warnings
+    type: boolean
+    label: Ignore deploy warnings
+    description: >
+      Only applies when Auto-deploy to devices is on. Passed through as
+      `ignoreWarning` on the deployment request, so a non-blocking FMC
+      warning (e.g. an unused object) does not stop device deployment.
+    default: true
+    required: false

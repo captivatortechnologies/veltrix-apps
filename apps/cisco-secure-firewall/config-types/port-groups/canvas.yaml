@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — FMC Port Groups (/object/portobjectgroups)
+#
+# Members reference existing Port objects BY NAME - resolved to {id, type} at
+# deploy/drift time. FMC also allows ICMPv4/ICMPv6 objects as Port Group
+# members (gen/definitions/port_group.yaml's enum_values), but this app does
+# not manage those object types (see README Coverage) - a name that only
+# exists as an ICMP object will not resolve here.
+#
+# Verified against gen/definitions/port_group.yaml `rest_endpoint`.
+# Deploy Port Objects BEFORE this type.
+# =============================================================================
+
+id: "cisco-secure-firewall-port-groups"
+name: "Port Group Configuration"
+toolType: "cisco-secure-firewall"
+entityType: "port-groups"
+description: "Define FMC Port Groups as code (/object/portobjectgroups). Members reference existing Port objects by name."
+
+item:
+  label: "Port Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "folder"
+      description: "Name and members"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_.-]+$"
+            message: "FMC object names allow letters, numbers, periods, underscores and hyphens only - no spaces."
+          helpText: "The group's name in FMC. Must be unique within this canvas."
+
+        - key: "member_names"
+          label: "Members"
+          fieldType: "tags"
+          helpText: "Names of existing Port objects to include. Each must already exist in FMC (deploy this app's Port Objects config type first)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+        - key: "overridable"
+          label: "Overridable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether child domains may override this group's members. Only meaningful in a multi-domain FMC deployment."

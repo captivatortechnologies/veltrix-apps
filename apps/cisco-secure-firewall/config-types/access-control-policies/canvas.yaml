@@ -1,0 +1,79 @@
+# =============================================================================
+# Canvas Template — FMC Access Control Policies (/policy/accesspolicies)
+#
+# The policy CONTAINER only - name, default action and default-action logging.
+# Rules that belong to this policy are authored separately in the
+# "Access Rules" config type, referencing this policy by name (mirrors
+# apps/palo-alto-panorama's tags/objects-before-rules deploy ordering: create
+# the container objects a rule needs before the rule references them).
+#
+# Verified against CiscoDevNet/terraform-provider-fmc's
+# gen/definitions/access_control_policy.yaml ("Manual resource - Data Source
+# (Read), Resource (Read, Create, Update, Delete)").
+# =============================================================================
+
+id: "cisco-secure-firewall-access-control-policies"
+name: "Access Control Policy Configuration"
+toolType: "cisco-secure-firewall"
+entityType: "access-control-policies"
+description: "Define FMC Access Control Policies as code (/policy/accesspolicies). Reconciled by name. Deploy this before Access Rules that reference it."
+
+item:
+  label: "Access Control Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_.-]+$"
+            message: "FMC object names allow letters, numbers, periods, underscores and hyphens only - no spaces."
+          helpText: "The policy's name in FMC. Must be unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+    - name: "Default Action"
+      icon: "settings"
+      description: "What happens to traffic that matches no Access Rule"
+      fields:
+        - key: "default_action"
+          label: "Default Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "BLOCK"
+          options:
+            - { label: "Block", value: "BLOCK" }
+            - { label: "Trust", value: "TRUST" }
+            - { label: "Permit (Network Discovery only)", value: "PERMIT" }
+            - { label: "Network Discovery Only", value: "NETWORK_DISCOVERY" }
+            - { label: "Inherit from Parent Policy", value: "INHERIT_FROM_PARENT" }
+          helpText: "Action taken when traffic does not match any Access Rule."
+
+        - key: "default_action_log_begin"
+          label: "Log at Connection Begin"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Log events at the beginning of connections matching the default action."
+
+        - key: "default_action_log_end"
+          label: "Log at Connection End"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Log events at the end of connections matching the default action."
+
+        - key: "default_action_send_events_to_fmc"
+          label: "Send Events to FMC"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Send default-action connection events to the FMC event viewer."

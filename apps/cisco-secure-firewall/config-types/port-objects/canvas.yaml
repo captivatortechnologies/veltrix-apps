@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — FMC Port Objects (/object/protocolportobjects)
+#
+# Verified against CiscoDevNet/terraform-provider-fmc's
+# gen/definitions/port.yaml. `protocol` accepts a common name (TCP/UDP/ICMP/...)
+# or a numeric IANA protocol number.
+# =============================================================================
+
+id: "cisco-secure-firewall-port-objects"
+name: "Port Object Configuration"
+toolType: "cisco-secure-firewall"
+entityType: "port-objects"
+description: "Define FMC protocol/port objects as code (/object/protocolportobjects). Reconciled by name."
+
+item:
+  label: "Port Object"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 1000
+  groups:
+    - name: "Port"
+      icon: "plug"
+      description: "Name, protocol and port"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_.-]+$"
+            message: "FMC object names allow letters, numbers, periods, underscores and hyphens only - no spaces."
+          helpText: "The object's name in FMC. Must be unique within this canvas."
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "select"
+          required: true
+          defaultValue: "TCP"
+          options:
+            - { label: "TCP", value: "TCP" }
+            - { label: "UDP", value: "UDP" }
+            - { label: "ICMP", value: "ICMP" }
+            - { label: "SCTP", value: "SCTP" }
+            - { label: "GRE", value: "47" }
+            - { label: "ESP", value: "50" }
+            - { label: "AH", value: "51" }
+            - { label: "Other (enter IANA number)", value: "other" }
+          helpText: "Common protocols, or \"Other\" to enter any IANA protocol number."
+
+        - key: "protocol_other"
+          label: "IANA Protocol Number"
+          fieldType: "text"
+          helpText: "Only used when Protocol is \"Other\" - the numeric IANA protocol number, e.g. 41 for IPv6-in-IPv4."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "text"
+          helpText: "A single port (e.g. 443) or a range (e.g. 1024-2048). Only meaningful for TCP/UDP/SCTP - leave blank otherwise."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+        - key: "overridable"
+          label: "Overridable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether child domains may override this object's value. Only meaningful in a multi-domain FMC deployment."

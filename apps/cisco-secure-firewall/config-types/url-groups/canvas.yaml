@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — FMC URL Groups (/object/urlgroups)
+#
+# Members are EITHER a name reference to an existing URL object (resolved to
+# its id) OR a literal URL string sent inline - both are well-defined, distinct
+# arrays in FMC's schema (`objects: [{id}]` vs `literals: [{url}]`), verified
+# against gen/definitions/url_group.yaml, so - unlike Network/Port Groups -
+# this app supports both without ambiguity.
+# =============================================================================
+
+id: "cisco-secure-firewall-url-groups"
+name: "URL Group Configuration"
+toolType: "cisco-secure-firewall"
+entityType: "url-groups"
+description: "Define FMC URL Groups as code (/object/urlgroups). Members are existing URL objects (by name) and/or literal URLs."
+
+item:
+  label: "URL Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "folder"
+      description: "Name and members"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_.-]+$"
+            message: "FMC object names allow letters, numbers, periods, underscores and hyphens only - no spaces."
+          helpText: "The group's name in FMC. Must be unique within this canvas."
+
+        - key: "url_object_names"
+          label: "URL Object Members"
+          fieldType: "tags"
+          helpText: "Names of existing URL objects to include. Each must already exist in FMC (deploy this app's URL Objects config type first)."
+
+        - key: "literal_urls"
+          label: "Literal URL Members"
+          fieldType: "tags"
+          helpText: "Raw URLs to include directly, without a backing URL object, e.g. https://www.example.com/app."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+        - key: "overridable"
+          label: "Overridable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether child domains may override this group's members. Only meaningful in a multi-domain FMC deployment."

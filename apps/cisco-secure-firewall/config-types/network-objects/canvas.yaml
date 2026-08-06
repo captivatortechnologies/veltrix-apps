@@ -1,0 +1,86 @@
+# =============================================================================
+# Canvas Template — FMC Network Objects
+# (/object/hosts, /object/networks, /object/ranges, /object/fqdns)
+#
+# One item = one Host, Network, Range or FQDN object, selected via "Kind".
+# Each kind is a genuinely separate FMC REST endpoint (verified against
+# CiscoDevNet/terraform-provider-fmc's gen/definitions/{host,network,range,fqdn}.yaml)
+# but all four share the same name + single "value" shape, so they are
+# authored as one config type with a discriminator field, exactly like
+# apps/palo-alto-panorama's Address Objects combine ip-netmask/ip-range/fqdn.
+#
+# Field keys must match config-types/network-objects/validate.ts.
+# =============================================================================
+
+id: "cisco-secure-firewall-network-objects"
+name: "Network Object Configuration"
+toolType: "cisco-secure-firewall"
+entityType: "network-objects"
+description: "Define FMC Host, Network, Range and FQDN objects as code (/object/hosts|networks|ranges|fqdns). Reconciled by name."
+
+item:
+  label: "Network Object"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 1000
+  groups:
+    - name: "Identity"
+      icon: "globe"
+      description: "Name and kind"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_.-]+$"
+            message: "FMC object names allow letters, numbers, periods, underscores and hyphens only - no spaces."
+          helpText: "The object's name in FMC. Must be unique within this canvas."
+
+        - key: "kind"
+          label: "Kind"
+          fieldType: "select"
+          required: true
+          defaultValue: "host"
+          options:
+            - { label: "Host (single IP)", value: "host" }
+            - { label: "Network (CIDR)", value: "network" }
+            - { label: "Range (IP range)", value: "range" }
+            - { label: "FQDN", value: "fqdn" }
+          helpText: "Which FMC object endpoint this item deploys to. Changing Kind after deploy creates a NEW object at the new endpoint rather than converting the old one."
+
+    - name: "Value"
+      icon: "target"
+      description: "The address value"
+      fields:
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: true
+          helpText: "Host: an IP address (e.g. 10.1.1.5). Network: a CIDR prefix (e.g. 10.1.0.0/24). Range: \"start-end\" (e.g. 10.1.1.1-10.1.1.9). FQDN: a domain name (e.g. app.example.com)."
+
+        - key: "dns_resolution"
+          label: "DNS Resolution"
+          fieldType: "select"
+          defaultValue: "IPV4_AND_IPV6"
+          options:
+            - { label: "IPv4 and IPv6", value: "IPV4_AND_IPV6" }
+            - { label: "IPv4 only", value: "IPV4_ONLY" }
+            - { label: "IPv6 only", value: "IPV6_ONLY" }
+          helpText: "Only applies when Kind is FQDN; ignored otherwise."
+
+    - name: "Metadata"
+      icon: "info"
+      description: "Description and override behavior"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+        - key: "overridable"
+          label: "Overridable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether child domains may override this object's value. Only meaningful in a multi-domain FMC deployment."

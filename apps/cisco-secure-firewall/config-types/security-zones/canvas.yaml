@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template — FMC Security Zones (/object/securityzones)
+#
+# Verified against CiscoDevNet/terraform-provider-fmc's
+# gen/definitions/security_zone.yaml. `interface_type` is immutable once set
+# (the FMC API rejects changing it on an existing zone) - see validate.ts.
+# =============================================================================
+
+id: "cisco-secure-firewall-security-zones"
+name: "Security Zone Configuration"
+toolType: "cisco-secure-firewall"
+entityType: "security-zones"
+description: "Define FMC Security Zones as code (/object/securityzones). Reconciled by name."
+
+item:
+  label: "Security Zone"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 500
+  groups:
+    - name: "Zone"
+      icon: "shield"
+      description: "Name and interface mode"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_.-]+$"
+            message: "FMC object names allow letters, numbers, periods, underscores and hyphens only - no spaces."
+          helpText: "The zone's name in FMC. Must be unique within this canvas."
+
+        - key: "interface_type"
+          label: "Interface Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "ROUTED"
+          options:
+            - { label: "Routed", value: "ROUTED" }
+            - { label: "Switched", value: "SWITCHED" }
+            - { label: "Inline", value: "INLINE" }
+            - { label: "Passive", value: "PASSIVE" }
+            - { label: "ASA", value: "ASA" }
+          helpText: "The mode of interfaces assigned to this zone. FMC does not allow changing this on an existing zone - to change it, delete and recreate the zone."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."

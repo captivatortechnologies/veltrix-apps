@@ -1,0 +1,50 @@
+# =============================================================================
+# Canvas Template — FMC URL Objects (/object/urls)
+#
+# Verified against CiscoDevNet/terraform-provider-fmc's
+# gen/definitions/url.yaml and its NewURLResource/NewURLsResource
+# registration in internal/provider/provider.go (full CRUD).
+# =============================================================================
+
+id: "cisco-secure-firewall-url-objects"
+name: "URL Object Configuration"
+toolType: "cisco-secure-firewall"
+entityType: "url-objects"
+description: "Define FMC URL objects as code (/object/urls). Reconciled by name."
+
+item:
+  label: "URL Object"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 1000
+  groups:
+    - name: "URL"
+      icon: "link"
+      description: "Name and URL"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_.-]+$"
+            message: "FMC object names allow letters, numbers, periods, underscores and hyphens only - no spaces."
+          helpText: "The object's name in FMC. Must be unique within this canvas."
+
+        - key: "url"
+          label: "URL"
+          fieldType: "text"
+          required: true
+          helpText: "The URL string, e.g. https://www.example.com/app."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+        - key: "overridable"
+          label: "Overridable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether child domains may override this object's value. Only meaningful in a multi-domain FMC deployment."

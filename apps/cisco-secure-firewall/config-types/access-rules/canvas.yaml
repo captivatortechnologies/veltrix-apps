@@ -1,0 +1,135 @@
+# =============================================================================
+# Canvas Template — FMC Access Rules
+# (/policy/accesspolicies/{policyId}/accessrules)
+#
+# One rule inside ONE Access Control Policy, referenced here by name (resolved
+# to its UUID at deploy/drift time - lib/fmcRefs.ts-style resolution, done
+# inline in this type's deploy.ts since it targets a per-policy sub-path
+# rather than one fixed endpoint). Zones/networks/ports are named references
+# to objects this app's other config types create - deploy those FIRST, then
+# the owning Access Control Policy, then this type.
+#
+# Verified against CiscoDevNet/terraform-provider-fmc's
+# gen/definitions/access_rule.yaml and access_rules.yaml (the bulk variant,
+# whose header confirms the shared endpoint supports Read/Create/Update/Delete).
+# =============================================================================
+
+id: "cisco-secure-firewall-access-rules"
+name: "Access Rule Configuration"
+toolType: "cisco-secure-firewall"
+entityType: "access-rules"
+description: "Define FMC Access Rules as code, inside an existing Access Control Policy. Reconciled by name within that policy."
+
+item:
+  label: "Access Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 2000
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      description: "Owning policy, name and action"
+      fields:
+        - key: "policy_name"
+          label: "Access Control Policy"
+          fieldType: "text"
+          required: true
+          helpText: "Name of the Access Control Policy this rule belongs to. Must already exist (deploy the Access Control Policies config type first)."
+
+        - key: "name"
+          label: "Rule Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule's name. Must be unique within its policy."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "ALLOW"
+          options:
+            - { label: "Allow", value: "ALLOW" }
+            - { label: "Trust", value: "TRUST" }
+            - { label: "Block", value: "BLOCK" }
+            - { label: "Block with Reset", value: "BLOCK_RESET" }
+            - { label: "Monitor", value: "MONITOR" }
+            - { label: "Interactive Block", value: "BLOCK_INTERACTIVE" }
+            - { label: "Interactive Block with Reset", value: "BLOCK_RESET_INTERACTIVE" }
+          helpText: "What FMC does with matching traffic."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When unchecked, the rule is deployed disabled."
+
+        - key: "section"
+          label: "Section"
+          fieldType: "select"
+          defaultValue: "mandatory"
+          options:
+            - { label: "Mandatory", value: "mandatory" }
+            - { label: "Default", value: "default" }
+          helpText: "Which rulebase section the rule belongs to."
+
+    - name: "Match Conditions"
+      icon: "filter"
+      description: "Zones, networks and ports (all default to \"any\" when left blank)"
+      fields:
+        - key: "source_zones"
+          label: "Source Zones"
+          fieldType: "tags"
+          helpText: "Names of existing Security Zones. Blank matches any zone."
+
+        - key: "destination_zones"
+          label: "Destination Zones"
+          fieldType: "tags"
+          helpText: "Names of existing Security Zones. Blank matches any zone."
+
+        - key: "source_networks"
+          label: "Source Networks"
+          fieldType: "tags"
+          helpText: "Names of existing Host/Network/Range/FQDN/Network Group objects. Blank matches any source."
+
+        - key: "destination_networks"
+          label: "Destination Networks"
+          fieldType: "tags"
+          helpText: "Names of existing Host/Network/Range/FQDN/Network Group objects. Blank matches any destination."
+
+        - key: "source_ports"
+          label: "Source Ports"
+          fieldType: "tags"
+          helpText: "Names of existing Port objects/groups. Blank matches any source port."
+
+        - key: "destination_ports"
+          label: "Destination Ports"
+          fieldType: "tags"
+          helpText: "Names of existing Port objects/groups. Blank matches any destination port."
+
+    - name: "Logging"
+      icon: "activity"
+      description: "Connection event logging"
+      fields:
+        - key: "log_begin"
+          label: "Log at Connection Begin"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Must be false for a Monitor rule (FMC requirement)."
+
+        - key: "log_end"
+          label: "Log at Connection End"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Must be true for a Monitor rule (FMC requirement)."
+
+        - key: "send_events_to_fmc"
+          label: "Send Events to FMC"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Must be true for a Monitor rule (FMC requirement)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional. FMC does not return this field on read, so it cannot be drift-checked."

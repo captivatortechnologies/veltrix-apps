@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — FMC Network Groups (/object/networkgroups)
+#
+# Members reference existing Host/Network/Range/FQDN/Network Group objects BY
+# NAME - resolved to {id, type} at deploy/drift time (lib/fmcRefs.ts). Inline
+# literal CIDR members are intentionally NOT supported: the FMC literal shape
+# uses a generic, ambiguous "type" marker in the only ground truth this app
+# was built against (terraform-provider-fmc's gen/definitions/network_groups.yaml),
+# so this app requires referencing an actual object instead of guessing at
+# that shape - create the object here first (Network Objects config type).
+#
+# Verified against gen/definitions/network_group.yaml `rest_endpoint`.
+# Deploy Network Objects (and any nested Network Groups) BEFORE this type.
+# =============================================================================
+
+id: "cisco-secure-firewall-network-groups"
+name: "Network Group Configuration"
+toolType: "cisco-secure-firewall"
+entityType: "network-groups"
+description: "Define FMC Network Groups as code (/object/networkgroups). Members reference existing Host/Network/Range/FQDN/Network Group objects by name."
+
+item:
+  label: "Network Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "folder"
+      description: "Name and members"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_.-]+$"
+            message: "FMC object names allow letters, numbers, periods, underscores and hyphens only - no spaces."
+          helpText: "The group's name in FMC. Must be unique within this canvas."
+
+        - key: "member_names"
+          label: "Members"
+          fieldType: "tags"
+          helpText: "Names of existing Host, Network, Range, FQDN or Network Group objects to include. Each must already exist in FMC (deploy this app's Network Objects config type first)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+        - key: "overridable"
+          label: "Overridable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether child domains may override this group's members. Only meaningful in a multi-domain FMC deployment."
