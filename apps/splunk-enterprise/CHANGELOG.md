@@ -3,6 +3,13 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.21.2 — 2026-08-05
+
+Client-only type-safety cleanup; no runtime or behavior change.
+
+### Changed
+- **Explicit parameter types on inline UI event/callback handlers across `client/pages/`.** `AccessServersPage.tsx`, `ActivatePage.tsx`, `LicensePage.tsx`, `UpgradesPage.tsx`, and `VersionsPage.tsx` had inline `onChange` handlers on `@veltrixsecops/app-sdk/ui` components (`Input`, `Textarea`, `Checkbox`, `Select`, `MultiSelect`, `SortSelect`) whose parameters TypeScript could not contextually infer, tripping `noImplicitAny`. Each handler now carries an explicit annotation matching the component's documented signature (e.g. `(e: React.ChangeEvent<HTMLInputElement>)`, `(value: string)`, `(values: string[])`, `(field: string, direction: SortDirection)`), clearing the last `TS7006` errors in this app's `tsc --noEmit` output.
+
 ## 1.21.1 — 2026-08-05
 
 Hardening for the S3 installer-upload integration (GitHub issue #9).

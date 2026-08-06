@@ -136,7 +136,7 @@ export default function ActivatePage() {
                   type="password"
                   value={password}
                   autoComplete="new-password"
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                   placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
                 />
               </FormField>
@@ -147,7 +147,7 @@ export default function ActivatePage() {
                   type="password"
                   value={confirm}
                   autoComplete="new-password"
-                  onChange={(e) => setConfirm(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirm(e.target.value)}
                 />
               </FormField>
 

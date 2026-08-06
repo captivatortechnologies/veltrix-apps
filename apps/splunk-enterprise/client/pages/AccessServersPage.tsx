@@ -34,6 +34,7 @@ import {
   type DataTableColumn,
   type FilterDefinition,
   type SortOption,
+  type SortDirection,
 } from '@veltrixsecops/app-sdk/ui'
 import AccessServerDetailModal from './AccessServerDetailModal'
 
@@ -565,7 +566,7 @@ export default function AccessServersPage() {
                 options={sortOptions}
                 value={sortField}
                 direction={sortDir}
-                onChange={(field, direction) => {
+                onChange={(field: string, direction: SortDirection) => {
                   setSortField(field)
                   setSortDir(direction)
                 }}
@@ -613,7 +614,7 @@ export default function AccessServersPage() {
             <Input
               label="Hostname"
               value={form.hostname}
-              onChange={(e) => setField('hostname', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setField('hostname', e.target.value)}
               placeholder="e.g. idx1.splunk.internal"
               fullWidth
               autoFocus
@@ -623,14 +624,14 @@ export default function AccessServersPage() {
             <Input
               label="Management port"
               value={form.port}
-              onChange={(e) => setField('port', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setField('port', e.target.value)}
               placeholder="8089"
               fullWidth
             />
             <Input
               label="Web UI port"
               value={form.webPort}
-              onChange={(e) => setField('webPort', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setField('webPort', e.target.value)}
               placeholder="8000"
               fullWidth
             />
@@ -639,7 +640,7 @@ export default function AccessServersPage() {
             <Input
               label="SSH user"
               value={form.sshUser}
-              onChange={(e) => setField('sshUser', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setField('sshUser', e.target.value)}
               placeholder="root"
               helperText="OS login user for SSH over the tailnet (e.g. root, ubuntu) — not the Splunk connection user."
               fullWidth
@@ -647,7 +648,7 @@ export default function AccessServersPage() {
             <Input
               label="Splunk home"
               value={form.splunkHome}
-              onChange={(e) => setField('splunkHome', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setField('splunkHome', e.target.value)}
               placeholder="/opt/splunk"
               helperText="$SPLUNK_HOME on this server — /opt/splunk (full Splunk) or /opt/splunkforwarder. Used for staging-dir deploys; auto-detected if left blank."
               fullWidth
@@ -657,7 +658,7 @@ export default function AccessServersPage() {
             label="Environment"
             options={environmentOptions}
             value={form.environmentId}
-            onChange={(value) => setField('environmentId', value)}
+            onChange={(value: string) => setField('environmentId', value)}
             helperText="The deployment scope this server belongs to — configs deploy here per environment. Manage under Environments."
             fullWidth
           />
@@ -665,7 +666,7 @@ export default function AccessServersPage() {
             label="Type"
             options={SERVER_TYPES}
             value={form.type}
-            onChange={(values) => setField('type', values)}
+            onChange={(values: string[]) => setField('type', values)}
             placeholder="Select one or more roles"
             helperText="A server can serve multiple roles (e.g. indexer + search head)."
             fullWidth
@@ -673,7 +674,7 @@ export default function AccessServersPage() {
           <Input
             label="Domains (optional)"
             value={form.domains}
-            onChange={(e) => setField('domains', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setField('domains', e.target.value)}
             placeholder="comma-separated DNS names, e.g. idx1.corp.example.com"
             fullWidth
             spellCheck={false}
@@ -682,7 +683,7 @@ export default function AccessServersPage() {
           <Input
             label="IP ranges (optional)"
             value={form.ipRanges}
-            onChange={(e) => setField('ipRanges', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setField('ipRanges', e.target.value)}
             placeholder="comma-separated IP/CIDR, e.g. 10.0.1.0/24"
             fullWidth
             spellCheck={false}
@@ -692,7 +693,7 @@ export default function AccessServersPage() {
             label="Connection"
             options={connectionOptions}
             value={form.credentialId}
-            onChange={(value) => setField('credentialId', value)}
+            onChange={(value: string) => setField('credentialId', value)}
             helperText="The connection (credential) used to reach this server. Manage under Settings → Connections."
             fullWidth
           />
@@ -700,7 +701,7 @@ export default function AccessServersPage() {
             label="Connectivity (ZTNA)"
             options={providerOptions}
             value={form.connectivityProviderId}
-            onChange={(value) => setField('connectivityProviderId', value)}
+            onChange={(value: string) => setField('connectivityProviderId', value)}
             helperText="The Zero-Trust provider this server is reached through. Manage under Settings → Connectivity."
             fullWidth
           />

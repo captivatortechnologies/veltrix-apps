@@ -2,7 +2,7 @@
 
 > How a request is routed through the system — from the moment you act to when it reaches completion. **Auto-generated** from `manifest.yaml` (regenerate via `scripts/dataflow/generate.mjs`).
 
-**App:** `splunk-enterprise` · **Category:** SIEM · **Version:** 1.21.1  
+**App:** `splunk-enterprise` · **Category:** SIEM · **Version:** 1.21.2  
 **Operations:** Deploy a configuration · Detect drift · Roll back · Test connection  
 Talks to **Splunk Enterprise API** · credentials via the Credential Vault (`ctx.resolveConnection`) · reachable over `ctx.remote`.
 

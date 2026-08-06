@@ -17,6 +17,7 @@ import {
   type DataTableColumn,
   type FilterDefinition,
   type SortOption,
+  type SortDirection,
 } from '@veltrixsecops/app-sdk/ui'
 
 import VersionsPage from './VersionsPage'
@@ -358,7 +359,7 @@ function UpgradesPanel() {
                 options={sortOptions}
                 value={sortField}
                 direction={sortDir}
-                onChange={(field, direction) => {
+                onChange={(field: string, direction: SortDirection) => {
                   setSortField(field)
                   setSortDir(direction)
                 }}
@@ -404,20 +405,20 @@ function UpgradesPanel() {
           <Select
             label="Infrastructure"
             value={form.infrastructureId}
-            onChange={(value) => setField('infrastructureId', value)}
+            onChange={(value: string) => setField('infrastructureId', value)}
             options={infraOptions}
           />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Select
               label="Current version"
               value={form.fromVersionId}
-              onChange={(value) => setField('fromVersionId', value)}
+              onChange={(value: string) => setField('fromVersionId', value)}
               options={versionOptions}
             />
             <Select
               label="Target version"
               value={form.toVersionId}
-              onChange={(value) => setField('toVersionId', value)}
+              onChange={(value: string) => setField('toVersionId', value)}
               options={versionOptions}
             />
           </div>
@@ -425,13 +426,13 @@ function UpgradesPanel() {
             label="Scheduled for"
             type="datetime-local"
             value={form.scheduledFor}
-            onChange={(e) => setField('scheduledFor', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setField('scheduledFor', e.target.value)}
             fullWidth
           />
           <Input
             label="Maintenance window"
             value={form.maintenanceWindow}
-            onChange={(e) => setField('maintenanceWindow', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setField('maintenanceWindow', e.target.value)}
             placeholder="e.g. Sat 02:00–04:00 UTC"
             fullWidth
           />

@@ -326,7 +326,7 @@ export default function LicensePage() {
           <Textarea
             label="License XML"
             value={xml}
-            onChange={(e) => setXml(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setXml(e.target.value)}
             placeholder="<license><signature>…</signature><payload>…</payload></license>"
             rows={8}
             fullWidth
@@ -369,7 +369,7 @@ export default function LicensePage() {
                   aria-label="Splunk connection"
                   options={connectionOptions}
                   value={selectedConnId ?? undefined}
-                  onChange={(value) => setSelectedConnId(value)}
+                  onChange={(value: string) => setSelectedConnId(value)}
                   size="sm"
                   fullWidth={false}
                   disabled={liveLoading}

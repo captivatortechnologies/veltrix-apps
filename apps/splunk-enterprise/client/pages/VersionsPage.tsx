@@ -19,6 +19,7 @@ import {
   type DataTableColumn,
   type FilterDefinition,
   type SortOption,
+  type SortDirection,
 } from '@veltrixsecops/app-sdk/ui'
 
 const API = '/api/apps/splunk-enterprise/versions'
@@ -426,7 +427,7 @@ export default function VersionsPage() {
                 options={sortOptions}
                 value={sortField}
                 direction={sortDir}
-                onChange={(field, direction) => {
+                onChange={(field: string, direction: SortDirection) => {
                   setSortField(field)
                   setSortDir(direction)
                 }}
@@ -473,7 +474,7 @@ export default function VersionsPage() {
             <Input
               label="Version"
               value={form.version}
-              onChange={(e) => setField('version', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setField('version', e.target.value)}
               placeholder="e.g. 10.4.2"
               fullWidth
             />
@@ -481,7 +482,7 @@ export default function VersionsPage() {
               label="Release date"
               type="date"
               value={form.releaseDate}
-              onChange={(e) => setField('releaseDate', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setField('releaseDate', e.target.value)}
               fullWidth
             />
           </div>
@@ -489,7 +490,7 @@ export default function VersionsPage() {
           <Select
             label="Installer source"
             value={form.source}
-            onChange={(value) => setField('source', value as Source)}
+            onChange={(value: string) => setField('source', value as Source)}
             options={sourceOptions}
           />
 
@@ -497,7 +498,7 @@ export default function VersionsPage() {
             <Input
               label="Download URL"
               value={form.downloadUrl}
-              onChange={(e) => setField('downloadUrl', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setField('downloadUrl', e.target.value)}
               placeholder="https://download.splunk.com/…/splunk-10.4.2-linux-amd64.tgz"
               fullWidth
             />
@@ -521,7 +522,7 @@ export default function VersionsPage() {
           <Textarea
             label="Release notes"
             value={form.releaseNotes}
-            onChange={(e) => setField('releaseNotes', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setField('releaseNotes', e.target.value)}
             fullWidth
             rows={3}
           />
@@ -530,12 +531,12 @@ export default function VersionsPage() {
             <Checkbox
               label="Mark as latest"
               checked={form.isLatest}
-              onChange={(e) => setField('isLatest', e.target.checked)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setField('isLatest', e.target.checked)}
             />
             <Checkbox
               label="Active"
               checked={form.isActive}
-              onChange={(e) => setField('isActive', e.target.checked)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setField('isActive', e.target.checked)}
             />
           </div>
         </div>
