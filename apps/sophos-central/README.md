@@ -171,8 +171,19 @@ specifications, and the "How Our APIs Work" background docs, verified
 | Allowed items | list/create/get/update/delete `/endpoint/v1/settings/allowed-items[/{allowedItemId}]` |
 | Blocked items | list/create/get/delete `/endpoint/v1/settings/blocked-items[/{blockedItemId}]` (no update) |
 | Web Control local sites | list/create/get/update/delete `/endpoint/v1/settings/web-control/local-sites[/{localSiteId}]` |
-| Exploit Mitigation exclusions | list/create/get/update/delete `/endpoint/v1/settings/exploit-mitigation/applications[/{id}]` (custom applications only — `modifications` is documented for Sophos's own DETECTED applications, which this app does not create) |
+| Exploit Mitigation exclusions | list/create/get/update/delete `/endpoint/v1/settings/exploit-mitigation/applications[/{id}]` (`paths` only, `type: custom`)[^1] |
 | Custom roles | list/create/get/update/delete `/common/v1/roles[/{roleId}]` |
+
+[^1]: The `modifications` object this endpoint also documents (per-technique
+    toggles — ASLR, DEP, BannedAPI, StackPivot, etc.) does not apply to the
+    applications this config type manages. Sophos's own Endpoint API schema
+    for this resource's PATCH request body and POST/PATCH response body
+    states verbatim, "This object does not apply when type is custom" —
+    it only applies to Sophos's own `type: detected` applications, which
+    this app does not create. Re-verified directly against
+    developer.sophos.com's live Endpoint API reference
+    (`routes/settings/exploit-mitigation/applications/post` and
+    `.../{exploitMitigationApplicationId}/patch`) on 2026-08-06.
 
 ### Assessed and intentionally excluded
 
