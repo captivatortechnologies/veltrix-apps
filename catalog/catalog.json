@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-08-06T00:52:27.862Z",
+  "generatedAt": "2026-08-06T01:10:57.015Z",
   "apps": [
     {
       "appId": "akamai",
@@ -1411,7 +1411,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.21.1",
+      "version": "1.21.2",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, license pools, API access tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -1421,11 +1421,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.21.1/splunk-enterprise.zip",
-      "sha256": "9c465c824140305f8cf56b263224ef66f2e2a3622722389c8377115dfa22f087",
-      "sizeBytes": 549323,
-      "publishedAt": "2026-08-06T00:52:27.841Z",
-      "releaseNotes": "## 1.21.1 — 2026-08-05\n\nHardening for the S3 installer-upload integration (GitHub issue #9).\n\n### Changed\n- **`lib/s3.ts` now loads the AWS SDK v3 lazily.** The `@aws-sdk/client-s3` and\n  `@aws-sdk/s3-request-presigner` modules are imported dynamically inside the\n  presign/delete operations (with `import type` for the types) instead of at the\n  top of the module. Previously a top-level import coupled the app's **entire**\n  server module to that dependency resolving — if it didn't, the whole app failed\n  to load and every `/byol`, `/versions` and `/upgrades` route 404'd. Now the app\n  always loads; only an actual upload/download/delete defers the requirement and\n  fails with a clear message if the SDK is unavailable.\n- **Moved the two `@aws-sdk` packages from `dependencies` to `peerDependencies`.**\n  They are host-provided — the platform ships them for its own S3/SES/Cognito use\n  and the deploy links them into the apps checkout — so declaring them as bundled\n  runtime `dependencies` was misleading (and tripped the packager's runtime-deps\n  warning). `peerDependencies` states the contract correctly; they stay in\n  `devDependencies` for local type-checking.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.21.2/splunk-enterprise.zip",
+      "sha256": "39efe0adeb436d3d394be1459737af1b0b54b768ac24e1cc2d4b09159cbd84eb",
+      "sizeBytes": 549844,
+      "publishedAt": "2026-08-06T01:10:56.996Z",
+      "releaseNotes": "## 1.21.2 — 2026-08-05\n\nClient-only type-safety cleanup; no runtime or behavior change.\n\n### Changed\n- **Explicit parameter types on inline UI event/callback handlers across `client/pages/`.** `AccessServersPage.tsx`, `ActivatePage.tsx`, `LicensePage.tsx`, `UpgradesPage.tsx`, and `VersionsPage.tsx` had inline `onChange` handlers on `@veltrixsecops/app-sdk/ui` components (`Input`, `Textarea`, `Checkbox`, `Select`, `MultiSelect`, `SortSelect`) whose parameters TypeScript could not contextually infer, tripping `noImplicitAny`. Each handler now carries an explicit annotation matching the component's documented signature (e.g. `(e: React.ChangeEvent<HTMLInputElement>)`, `(value: string)`, `(values: string[])`, `(field: string, direction: SortDirection)`), clearing the last `TS7006` errors in this app's `tsc --noEmit` output.",
       "releasedAt": "2026-08-05T00:00:00.000Z"
     },
     {
