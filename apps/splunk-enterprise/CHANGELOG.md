@@ -3,6 +3,26 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.21.1 — 2026-08-05
+
+Hardening for the S3 installer-upload integration (GitHub issue #9).
+
+### Changed
+- **`lib/s3.ts` now loads the AWS SDK v3 lazily.** The `@aws-sdk/client-s3` and
+  `@aws-sdk/s3-request-presigner` modules are imported dynamically inside the
+  presign/delete operations (with `import type` for the types) instead of at the
+  top of the module. Previously a top-level import coupled the app's **entire**
+  server module to that dependency resolving — if it didn't, the whole app failed
+  to load and every `/byol`, `/versions` and `/upgrades` route 404'd. Now the app
+  always loads; only an actual upload/download/delete defers the requirement and
+  fails with a clear message if the SDK is unavailable.
+- **Moved the two `@aws-sdk` packages from `dependencies` to `peerDependencies`.**
+  They are host-provided — the platform ships them for its own S3/SES/Cognito use
+  and the deploy links them into the apps checkout — so declaring them as bundled
+  runtime `dependencies` was misleading (and tripped the packager's runtime-deps
+  warning). `peerDependencies` states the contract correctly; they stay in
+  `devDependencies` for local type-checking.
+
 ## 1.21.0 — 2026-08-05
 
 ### Added
