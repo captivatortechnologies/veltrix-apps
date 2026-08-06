@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-08-05T19:37:28.163Z",
+  "generatedAt": "2026-08-06T00:52:27.862Z",
   "apps": [
     {
       "appId": "akamai",
@@ -1411,7 +1411,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.21.0",
+      "version": "1.21.1",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, license pools, API access tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -1421,11 +1421,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.21.0/splunk-enterprise.zip",
-      "sha256": "e3d4d7bcdab2b2495f7b39207bcd95bec94b05b785541b66e1a739030ab3af7f",
-      "sizeBytes": 547624,
-      "publishedAt": "2026-08-05T14:23:32.490Z",
-      "releaseNotes": "## 1.21.0 — 2026-08-05\n\n### Added\n- **Two new config types — License Pools and API Access Tokens — after a full research pass against Splunk's REST API Reference.** This app had only 2 config types (`hec-tokens`, `apps`) and no documented rationale for why. Audited every genuinely declarative Splunk REST write surface this app did not yet manage (indexes, saved searches, data inputs, roles, authentication/LDAP, outputs, props/transforms, lookups, event types, tags, macros, workload pools, license pools, API access tokens, distributed search peers) against the official REST API Reference Manual. Result: everything expressible as a `.conf` file (indexes, roles, saved searches, props/transforms, inputs, outputs, macros, event types, tags, workload management, ...) was **already** covered — deliberately, by design — by authoring it inline in the `apps` config type's App Contents (the same reasoning that retired the old `config-files` type in v1.12.0: a generic REST config write lands in an app's `local/`, the user's override layer, while packaging the identical `.conf` content ships it in `default/`). Two genuinely REST-only, non-`.conf`-representable surfaces were found missing and are added as full config types:\n  - **License Pools** (`license-pools`, target: License Server) — `/services/licenser/pools`: daily indexing quota carved from a licensing stack (`Enterprise`/`download-trial`/`Forwarder`/`Free`/`Lite`/`Lite_Free`) and which indexer peers may draw from it. Deploy creates/edits pools, recreating (delete + create) one whose stack changed since Splunk has no \"move pool\" operation — surfaced as a clear error when the stack's fixed default pool can't be deleted. Health check verifies existence/stack/usable quota; drift detection compares precise byte quota (with a small rounding tolerance), stack, peers, and description, with the same `_audit`-backed who/when attribution `hec-tokens` and `apps` already have.\n  - **API Access Tokens** (`auth-tokens`, target: search-head/indexer/heavy-forwarder) — `/services/authorization/tokens` + `/services/admin/token-auth/tokens_auth`: Splunk's Token Authentication feature. Deploy idempotently enables Token Authentication (mirroring how `hec-tokens` enables the global HTTP input first), then creates a token per (username, audience) pair — Splunk gives a token no name of its own — and surfaces the Splunk-generated secret value **once**, at creation, as a masked reveal-once deploy resource exactly like `hec-tokens`. Splunk tokens are immutable after creation (type/expiration/not-before can never be edited, only enabled/disabled status can); a deploy that finds an immutable field drifted deletes the old token and creates a fresh one rather than silently leaving the mismatch.\n- **README \"Coverage\" section** documenting every managed config type + Splunk REST surface, the full list of `.conf` files intentionally folded into `apps` instead of separate REST types (with the REST surface each would otherwise use), and every intentionally excluded surface (license installation, search peer management, license-group activation, one-shot/read-only endpoints, system-namespace `.conf`, secret material) with a sourced one-line reason each.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.21.1/splunk-enterprise.zip",
+      "sha256": "9c465c824140305f8cf56b263224ef66f2e2a3622722389c8377115dfa22f087",
+      "sizeBytes": 549323,
+      "publishedAt": "2026-08-06T00:52:27.841Z",
+      "releaseNotes": "## 1.21.1 — 2026-08-05\n\nHardening for the S3 installer-upload integration (GitHub issue #9).\n\n### Changed\n- **`lib/s3.ts` now loads the AWS SDK v3 lazily.** The `@aws-sdk/client-s3` and\n  `@aws-sdk/s3-request-presigner` modules are imported dynamically inside the\n  presign/delete operations (with `import type` for the types) instead of at the\n  top of the module. Previously a top-level import coupled the app's **entire**\n  server module to that dependency resolving — if it didn't, the whole app failed\n  to load and every `/byol`, `/versions` and `/upgrades` route 404'd. Now the app\n  always loads; only an actual upload/download/delete defers the requirement and\n  fails with a clear message if the SDK is unavailable.\n- **Moved the two `@aws-sdk` packages from `dependencies` to `peerDependencies`.**\n  They are host-provided — the platform ships them for its own S3/SES/Cognito use\n  and the deploy links them into the apps checkout — so declaring them as bundled\n  runtime `dependencies` was misleading (and tripped the packager's runtime-deps\n  warning). `peerDependencies` states the contract correctly; they stay in\n  `devDependencies` for local type-checking.",
       "releasedAt": "2026-08-05T00:00:00.000Z"
     },
     {
