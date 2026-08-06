@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template - 1Password Users
+#
+# Declares ONE user - the item. Users add as many as they need. A user's
+# identity in this config type is the SCIM `userName` attribute (their email
+# address, RFC 7643 core User schema) - config-types/users/deploy.ts lists
+# every user on the SCIM Bridge, matches by userName, then PATCHes (update) or
+# POSTs (create) - the bridge has no upsert.
+#
+# The `active` toggle is 1Password's documented suspend/reactivate mechanism
+# (PATCH active:false/true). There is no confirmed DELETE for a SCIM user -
+# removing an item from this canvas SUSPENDS the corresponding user on the
+# next deploy of an unrelated change; it does not delete their account. See
+# README.md Coverage.
+#
+# Field keys must match what config-types/users/validate.ts checks.
+# Bridge capabilities: github.com/1Password/scim-examples PREPARATION.md
+# ("create, confirm, and suspend users"); protocol: IETF RFC 7643/7644.
+# =============================================================================
+
+id: "onepassword-users"
+name: "User Configuration"
+toolType: "onepassword"
+entityType: "users"
+description: "Provision 1Password users and manage their active/suspended status as code through the SCIM Bridge (SCIM 2.0 Users)."
+
+item:
+  label: "User"
+  identityField: "userName"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Profile - matched by email on every deploy"
+      fields:
+        - key: "userName"
+          label: "Email (Username)"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+            message: "Must be a valid email address - this is the SCIM userName, 1Password's identity attribute for a user."
+          helpText: >
+            The user's email address - the SCIM `userName` attribute, and this
+            item's identity. Used to find and update the user on every deploy.
+            Changing this is treated as provisioning a NEW user on the next
+            deploy, not an in-place rename - 1Password's own identity
+            provider integration is the intended way to change an existing
+            user's email (their encryption keys are derived from it).
+
+        - key: "givenName"
+          label: "First Name"
+          fieldType: "text"
+          helpText: >
+            SCIM name.givenName. Leave blank to not manage this field - an
+            existing user's first name is then left untouched.
+
+        - key: "familyName"
+          label: "Last Name"
+          fieldType: "text"
+          helpText: >
+            SCIM name.familyName. Leave blank to not manage this field - an
+            existing user's last name is then left untouched.
+
+    - name: "Access"
+      icon: "shield-check"
+      description: "Account status"
+      fields:
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: >
+            Unchecked SUSPENDS the user's 1Password access (SCIM
+            active: false) - the same effect as deprovisioning them in an
+            identity provider connected to the bridge. 1Password's SCIM
+            Bridge documents suspend/reactivate, not permanent deletion:
+            removing this item from the canvas does not delete the user or
+            their account. To permanently delete an account, do so in the
+            1Password web console - see README.md Coverage.

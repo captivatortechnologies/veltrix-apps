@@ -1,0 +1,16 @@
+{
+  "name": "veltrix-app-onepassword",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage 1Password Business/Team identity and access configuration as code - user provisioning and Group membership (the vault-access grant mechanism) - via the 1Password SCIM Bridge",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.7.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

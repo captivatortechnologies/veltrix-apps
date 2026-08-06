@@ -1,0 +1,7 @@
+# Defaults for a new user item.
+#
+# Intentionally near-empty: the platform no longer seeds default values into a
+# new item - it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (userName, givenName, familyName, active), since a user's
+# presentational groups share one flat item record. `active` defaults true via
+# the canvas field's own `defaultValue`, so it is not repeated here.

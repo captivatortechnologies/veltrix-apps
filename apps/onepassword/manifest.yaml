@@ -1,0 +1,138 @@
+id: onepassword
+name: 1Password
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage 1Password Business/Team identity and access configuration as code
+  through the 1Password SCIM Bridge - user provisioning (create, profile,
+  suspend/reactivate) and custom Groups with their membership, the mechanism
+  1Password uses to grant and revoke a set of users' access to vaults - with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline. 1Password's public APIs are secret-oriented (the Connect API
+  reads/writes vault items; the Events API is read-only); this app
+  deliberately never touches vaults or the secret items inside them - see
+  README Coverage.
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/onepassword
+icon: "🔒"
+
+platform:
+  minVersion: "1.0.0"
+
+# 1Password brand: signature blue on a near-black navy.
+branding:
+  primaryColor: "#0572EC"
+  accentColor: "#001E3C"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: users
+      actions: [read, write]
+      description: >
+        Provision 1Password users (email, name, active status) and
+        suspend/reactivate their access via the SCIM Bridge. Never creates,
+        reads or stores a master password, Secret Key, or any vault item -
+        1Password itself never exposes those over this API.
+    - resource: groups
+      actions: [read, write]
+      description: >
+        Create 1Password custom Groups and reconcile their membership via the
+        SCIM Bridge - the mechanism 1Password uses to grant/revoke a set of
+        users' access to whichever vaults the group has been given
+        permissions on. This app does not assign vault permissions to a group
+        (an unconfirmed, console-only step) - see README Coverage.
+
+pipeline:
+  configurationTypes:
+    - id: users
+      group: "Identity"
+      name: Users
+      description: Provision users (email, name) and their active/suspended status through the SCIM Bridge (SCIM 2.0 Users)
+      canvasTemplate: config-types/users/canvas.yaml
+      defaultConfig: config-types/users/defaults.yaml
+      handlers:
+        validate: config-types/users/validate
+        deploy: config-types/users/deploy
+        rollback: config-types/users/rollback
+        healthCheck: config-types/users/healthCheck
+        driftDetect: config-types/users/driftDetect
+        getStatus: config-types/users/getStatus
+      targets:
+        componentTypes: [onepassword-scim-bridge]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: groups
+      group: "Access"
+      name: Groups
+      description: Custom Groups and their full membership set - the access-grant mechanism for vaults - through the SCIM Bridge (SCIM 2.0 Groups)
+      canvasTemplate: config-types/groups/canvas.yaml
+      defaultConfig: config-types/groups/defaults.yaml
+      handlers:
+        validate: config-types/groups/validate
+        deploy: config-types/groups/deploy
+        rollback: config-types/groups/rollback
+        healthCheck: config-types/groups/healthCheck
+        driftDetect: config-types/groups/driftDetect
+        getStatus: config-types/groups/getStatus
+        options: config-types/groups/options
+      targets:
+        componentTypes: [onepassword-scim-bridge]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/onepassword
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: calls the self-hosted SCIM Bridge's
+# GET /health with the connection's bearer token and confirms every reported
+# subsystem (SCIMServer, RedisCache, ...) is healthy.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for calls to the 1Password SCIM Bridge.
+    default: 30
+    required: false

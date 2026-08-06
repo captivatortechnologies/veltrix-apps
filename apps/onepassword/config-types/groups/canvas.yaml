@@ -1,0 +1,75 @@
+# =============================================================================
+# Canvas Template - 1Password Groups
+#
+# Declares ONE custom Group - the item. Users add as many as they need. A
+# group's identity in this config type is the SCIM `displayName` attribute
+# (RFC 7643 core Group schema) - config-types/groups/deploy.ts lists every
+# group on the SCIM Bridge, matches by displayName, then PATCHes (update
+# membership) or POSTs (create) - the bridge has no upsert.
+#
+# Membership is a FULL REPLACE on every deploy: 1Password's own SCIM Bridge
+# documentation describes this capability as "create and manage access to
+# groups" (github.com/1Password/scim-examples PREPARATION.md) - GROUP
+# MEMBERSHIP is exactly how 1Password grants/revokes a set of users' access
+# to whichever vaults the group has been given permissions on. This app does
+# NOT assign vault permissions to a group - that mapping (which vaults a
+# group may view/edit) has no confirmed write API and is configured once, by
+# hand, in the 1Password web console after the group exists. See
+# README.md Coverage.
+#
+# There is no confirmed DELETE for a SCIM group - removing an item from this
+# canvas does not delete the group; only its own membership is ever cleared
+# by this app (on rollback of a group it created).
+#
+# Field keys must match what config-types/groups/validate.ts checks.
+# Bridge capabilities: github.com/1Password/scim-examples PREPARATION.md;
+# protocol: IETF RFC 7643/7644.
+# =============================================================================
+
+id: "onepassword-groups"
+name: "Group Configuration"
+toolType: "onepassword"
+entityType: "groups"
+description: "Create 1Password custom Groups and reconcile their full membership - the vault-access grant/revoke mechanism - as code through the SCIM Bridge (SCIM 2.0 Groups)."
+
+item:
+  label: "Group"
+  identityField: "displayName"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Group name - matched on every deploy"
+      fields:
+        - key: "displayName"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The group's display name - the SCIM `displayName` attribute, and
+            this item's identity. Used to find and update the group on every
+            deploy. Vault permissions for this group (which vaults it can
+            view/edit) are assigned separately, once, in the 1Password web
+            console after the group exists here - see README.md Coverage.
+            Renaming here is treated as a NEW group on the next deploy, not
+            an in-place rename of the old one.
+
+    - name: "Members"
+      icon: "user-plus"
+      description: "Membership - a full replace on every deploy"
+      fields:
+        - key: "memberUserNames"
+          label: "Members"
+          fieldType: "remote-multiselect"
+          optionsSource: "users"
+          optionsMulti: true
+          helpText: >
+            The users (by email) who belong to this group. This is a FULL
+            REPLACE on every deploy (1Password's SCIM PATCH for membership is
+            submitted as a complete "members" set) - leave blank to remove
+            every member, not to leave existing membership untouched. Each
+            email is resolved to the bridge's current user id at deploy time
+            - a member that no longer exists on the bridge fails the deploy
+            with a clear message rather than silently being dropped.
