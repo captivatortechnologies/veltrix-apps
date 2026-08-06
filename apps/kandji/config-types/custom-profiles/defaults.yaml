@@ -1,0 +1,10 @@
+# Defaults for a new Kandji Custom Profile item.
+#
+# A FLAT map keyed by the canvas field keys — mirrors the canvas field
+# defaults (active, macOS-only targeting) so a freshly added item starts in a
+# sane state until the operator pastes a real .mobileconfig payload.
+active: true
+runs_on_mac: true
+runs_on_iphone: false
+runs_on_ipad: false
+runs_on_tv: false

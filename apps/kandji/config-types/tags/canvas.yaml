@@ -1,0 +1,32 @@
+# =============================================================================
+# Canvas Template — Kandji Tags
+#
+# Declares ONE Kandji tenant tag — the item. Users add as many as they need.
+# Tags are created/updated/deleted through the Kandji tenant API
+# (POST/PATCH/DELETE /api/v1/tags) and identified for reconciliation by name.
+#
+# Field keys must match config-types/tags/validate.ts.
+# =============================================================================
+
+id: "kandji-tags"
+name: "Kandji Tag Configuration"
+toolType: "kandji"
+entityType: "tags"
+description: "Declare Kandji tenant tags as code through the Kandji tenant API (GET/POST/PATCH/DELETE /api/v1/tags). Reconciled by tag name."
+
+item:
+  label: "Tag"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Tag"
+      icon: "tag"
+      description: "Name"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The tag's name — its logical identity for reconciliation. Used elsewhere in Kandji to group and scope devices."

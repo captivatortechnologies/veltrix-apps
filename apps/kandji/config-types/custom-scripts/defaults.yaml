@@ -1,0 +1,10 @@
+# Defaults for a new Kandji Custom Script item.
+#
+# A FLAT map keyed by the canvas field keys — mirrors the canvas field
+# defaults so a freshly added item starts in a safe, inert state (not active,
+# no enforcement) until the operator fills in the script body.
+execution_frequency: "no_enforcement"
+active: true
+restart: false
+show_in_self_service: false
+self_service_recommended: false

@@ -1,0 +1,7 @@
+# Defaults for a new Kandji Blueprint item.
+#
+# Intentionally minimal: the platform starts a new item blank except for the
+# type and enrollment-active toggle, which mirror the canvas field defaults.
+# Values here are a FLAT map keyed by the canvas field keys.
+type: "classic"
+enrollment_active: true

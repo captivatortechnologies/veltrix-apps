@@ -1,0 +1,80 @@
+# =============================================================================
+# Canvas Template — Kandji Custom Profiles
+#
+# Declares ONE Kandji Library "Custom Profile" item — the item. Custom
+# Profiles are created/updated/deleted through the Kandji tenant API
+# (POST/PATCH/DELETE /api/v1/library/custom-profiles) and identified for
+# reconciliation by name.
+#
+# THE PAYLOAD IS OPAQUE: paste the FULL plist XML for the profile's payload(s)
+# (the same content you would import as a .mobileconfig file) verbatim into
+# "Profile (.mobileconfig XML)" below. This app does not parse, validate or
+# generate plist content — see config-types/custom-profiles/validate.ts. The
+# Kandji API itself transports this as a multipart file part (not an embedded
+# JSON string); deploy.ts builds that multipart body from the text you author
+# here.
+#
+# Field keys must match config-types/custom-profiles/validate.ts.
+# =============================================================================
+
+id: "kandji-custom-profiles"
+name: "Kandji Custom Profile Configuration"
+toolType: "kandji"
+entityType: "custom-profiles"
+description: "Declare Kandji Library Custom Profile items as code through the Kandji tenant API (GET/POST/PATCH/DELETE /api/v1/library/custom-profiles). Reconciled by name; the .mobileconfig payload is an opaque passthrough — see validate.ts."
+
+item:
+  label: "Custom Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Identity"
+      icon: "file-shield"
+      description: "Name and active state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The Custom Profile's name in the Kandji Library — its logical identity for reconciliation."
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+
+    - name: "Target Platforms"
+      icon: "smartphone"
+      description: "Which Apple platforms this profile can run on"
+      fields:
+        - key: "runs_on_mac"
+          label: "macOS"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "runs_on_iphone"
+          label: "iPhone"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "runs_on_ipad"
+          label: "iPad"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "runs_on_tv"
+          label: "Apple TV"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Payload"
+      icon: "file-code"
+      description: "The opaque, verbatim .mobileconfig plist payload"
+      fields:
+        - key: "profile"
+          label: "Profile (.mobileconfig XML)"
+          fieldType: "textarea"
+          required: true
+          helpText: "The FULL plist XML for this profile's payload(s), exactly as it would appear in a .mobileconfig file. Passed through verbatim — not parsed or validated by this app."

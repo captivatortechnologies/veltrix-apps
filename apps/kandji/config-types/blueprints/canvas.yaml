@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — Kandji Blueprints
+#
+# Declares ONE Kandji Blueprint — the item. A Blueprint is Kandji's core
+# device-assignment construct; this app manages its identity/metadata (name,
+# description, icon, color, enrollment code, active state) via
+# GET/POST /api/v1/blueprints and GET/PATCH/DELETE /api/v1/blueprints/{id}.
+#
+# NOT managed: which Library Items (scripts/profiles/apps) are assigned inside
+# a Blueprint, or Assignment Map conditional-node routing — see README §
+# Coverage for why. `type` (classic vs. assignment map) is accepted only on
+# create; Kandji's own PATCH does not support changing an existing
+# Blueprint's type, so this app never sends it on update.
+#
+# Field keys must match config-types/blueprints/validate.ts.
+# =============================================================================
+
+id: "kandji-blueprints"
+name: "Kandji Blueprint Configuration"
+toolType: "kandji"
+entityType: "blueprints"
+description: "Declare Kandji Blueprints as code through the Kandji tenant API (GET/POST/PUT/DELETE-style /api/v1/blueprints). Reconciled by Blueprint name."
+
+item:
+  label: "Blueprint"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Identity"
+      icon: "layout-template"
+      description: "Name, description and the Blueprint type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The Blueprint's display name in Kandji — must be unique across the tenant. Its logical identity for reconciliation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+
+        - key: "type"
+          label: "Blueprint Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "classic"
+          options:
+            - { label: "Classic Blueprint", value: "classic" }
+            - { label: "Assignment Map", value: "map" }
+          helpText: "Only used when CREATING a new Blueprint — Kandji does not support changing an existing Blueprint's type, so this app never sends it on update."
+
+    - name: "Appearance"
+      icon: "palette"
+      description: "Icon and color shown in the Kandji web app (ignored for Assignment Map blueprints)"
+      fields:
+        - key: "icon"
+          label: "Icon"
+          fieldType: "text"
+          helpText: "A Kandji icon code, e.g. \"ss-files\". See https://github.com/kandji-inc/support/wiki/Blueprint-API-Icon-Codes for the full list. Ignored for the Assignment Map type."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          helpText: "A Kandji color code, e.g. \"aqua-800\". See https://github.com/kandji-inc/support/wiki/Blueprint-API---Color-Codes for the full list. Ignored for the Assignment Map type."
+
+    - name: "Enrollment"
+      icon: "key"
+      description: "Manual enrollment via the Kandji enrollment portal"
+      fields:
+        - key: "enrollment_active"
+          label: "Enrollment Code Active"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether this Blueprint is available for manual device enrollment from the Kandji enrollment portal."
+
+        - key: "enrollment_code"
+          label: "Enrollment Code"
+          fieldType: "text"
+          helpText: "Leave blank on create to let Kandji generate one automatically. Leave blank on update to keep the current code unchanged."

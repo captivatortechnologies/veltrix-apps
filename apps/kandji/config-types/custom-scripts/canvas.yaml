@@ -1,0 +1,96 @@
+# =============================================================================
+# Canvas Template — Kandji Custom Scripts
+#
+# Declares ONE Kandji Library "Custom Script" item — the item. Custom Scripts
+# are created/updated/deleted through the Kandji tenant API
+# (POST/PATCH/DELETE /api/v1/library/custom-scripts) and identified for
+# reconciliation by name. This config type does NOT assign the script to any
+# Blueprint — see README § Coverage.
+#
+# Field keys must match config-types/custom-scripts/validate.ts.
+# =============================================================================
+
+id: "kandji-custom-scripts"
+name: "Kandji Custom Script Configuration"
+toolType: "kandji"
+entityType: "custom-scripts"
+description: "Declare Kandji Library Custom Script items as code through the Kandji tenant API (GET/POST/PATCH/DELETE /api/v1/library/custom-scripts). Reconciled by name."
+
+item:
+  label: "Custom Script"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Identity"
+      icon: "terminal"
+      description: "Name and execution behavior"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The Custom Script's name in the Kandji Library — its logical identity for reconciliation."
+
+        - key: "execution_frequency"
+          label: "Execution Frequency"
+          fieldType: "select"
+          required: true
+          defaultValue: "no_enforcement"
+          options:
+            - { label: "Run Once", value: "once" }
+            - { label: "Every 15 Minutes", value: "every_15_min" }
+            - { label: "Every Day", value: "every_day" }
+            - { label: "No Enforcement (run only via other triggers)", value: "no_enforcement" }
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "restart"
+          label: "Restart After Successful Run"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Script"
+      icon: "code"
+      description: "The shell script body and an optional remediation script"
+      fields:
+        - key: "script"
+          label: "Script"
+          fieldType: "textarea"
+          required: true
+          helpText: "The full shell script contents, e.g. starting with a #!/bin/zsh shebang. Passed through verbatim — not parsed, linted or executed by this app."
+
+        - key: "remediation_script"
+          label: "Remediation Script"
+          fieldType: "textarea"
+          helpText: "Optional remediation script Kandji runs when the audit script above exits non-zero."
+
+    - name: "Self Service"
+      icon: "shopping-bag"
+      description: "Whether this script is offered in the Kandji Self Service app"
+      fields:
+        - key: "show_in_self_service"
+          label: "Show in Self Service"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "self_service_category_id"
+          label: "Self Service Category ID"
+          fieldType: "text"
+          required: false
+          helpText: "Required when Show in Self Service is enabled. Look up the id via GET /api/v1/self-service/categories — Self Service categories are managed in the Kandji web app, not this API (see README § Coverage)."
+          visibleWhen:
+            field: "show_in_self_service"
+            equals: true
+
+        - key: "self_service_recommended"
+          label: "Recommended in Self Service"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen:
+            field: "show_in_self_service"
+            equals: true

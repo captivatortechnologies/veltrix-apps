@@ -1,0 +1,14 @@
+{
+  "name": "veltrix-app-kandji",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage Kandji (Apple device management / MDM) configuration as code — Blueprints, Tags, Custom Scripts and Custom Profiles — through the Kandji tenant API",
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.7.0",
+    "fastify": "^5.10.0",
+    "typescript": "^5.9.0"
+  }
+}
