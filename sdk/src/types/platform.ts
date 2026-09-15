@@ -225,16 +225,39 @@ export interface AppPermissionsApi {
 // --- Lifecycle hook types ---
 
 /**
- * Loosely-typed handle to the platform database, passed to lifecycle hooks.
- * At runtime this is the platform's Prisma client; model delegates are
- * accessed by name (e.g. `db.splunkVersion.upsert(...)` for an app table).
- * Apps should only touch their own prefixed tables and the raw-query
- * escape hatches — anything else is unsupported and may break between
- * platform versions.
+ * Handle to the app's own database, passed to lifecycle hooks and route
+ * contexts.
+ *
+ * This is NO LONGER the platform's Prisma client (platform change, 2026-09).
+ * It is a scoped handle bound to the app and the current tenant:
+ *
+ *  - Platform model delegates are GONE. `db.user`, `db.credential`,
+ *    `db.$transaction` and the rest are absent — not guarded, absent — so an
+ *    app has no handle through which to reach platform data. The one exception
+ *    is a deprecated `db.appInstallation` shim, pinned to this app and tenant,
+ *    kept only because every catalog app called it; use `getInstallation()`.
+ *  - The raw escape hatches remain, and every statement runs through an
+ *    ownership check, with the app's own least-privilege Postgres role and a
+ *    search_path pinned to the app's schema. "Unsafe" means what it means in
+ *    Prisma: you are interpolating. Prefer the `query`/`execute` tagged
+ *    templates in new code, which parameterise for you.
+ *  - `resolveConnection` is present only when the manifest declares
+ *    `credential:read`; otherwise it is absent at runtime.
+ *
+ * The index signature is retained so existing app code still compiles, but
+ * anything reached through it other than `appInstallation` is undefined at
+ * runtime. It will be removed in the next major SDK version.
  */
 export interface PlatformDatabaseClient {
+  /** Parameterised read against the app's own tables. */
   $queryRawUnsafe<T = unknown>(query: string, ...values: unknown[]): Promise<T>
+  /** Parameterised write against the app's own tables. Returns rows affected. */
   $executeRawUnsafe(query: string, ...values: unknown[]): Promise<number>
+  /** This app's installation row for the current tenant, or null. */
+  getInstallation?: () => Promise<unknown | null>
+  /** Shorthand for `getInstallation()?.settings ?? {}`. */
+  getSettings?: () => Promise<Record<string, unknown>>
+  /** @deprecated reaches nothing but `appInstallation`; see the note above. */
   [modelDelegate: string]: any
 }
 
@@ -337,11 +360,22 @@ export interface AppRouteContext {
    * Resolve one of the tenant's Connections (a stored Credential, by id) to its
    * DECRYPTED secret + endpoint, so a route can reach the connected system
    * WITHOUT re-implementing the platform's credential decryption or querying
-   * platform tables directly. Scoped to `customerId` (the tenant boundary);
-   * returns null when no matching connection exists. The decrypted secret stays
-   * server-side — never send it to the client. Pass a `credentialId` the app
-   * obtained from its own connections list (e.g. the SDK `listCredentials`
-   * helper), mirroring the platform's own "test connection" resolution.
+   * platform tables directly. Returns null when no matching connection exists.
+   * The decrypted secret stays server-side — never send it to the client. Pass a
+   * `credentialId` the app obtained from its own connections list (e.g. the SDK
+   * `listCredentials` helper), mirroring the platform's own "test connection"
+   * resolution.
+   *
+   * IMPORTANT — `customerId` is NO LONGER the tenant selector (platform change,
+   * 2026-09). This doc used to say the call was "scoped to `customerId`", which
+   * invited an app to choose the tenant. The platform now takes the tenant from
+   * the VERIFIED request context and ignores the value passed here; a value that
+   * disagrees with the request tenant is logged and the call returns null rather
+   * than being honoured silently, so a genuine app bug stays visible.
+   *
+   * The parameter is kept only for backward compatibility. Pass the tenant the
+   * route is already serving. There is no supported way for an app to read
+   * another tenant's credential.
    */
   resolveConnection: (customerId: string, credentialId: string) => Promise<ResolvedConnection | null>
 }

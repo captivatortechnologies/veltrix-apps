@@ -1041,8 +1041,31 @@ function validateDefaultsFile(appDir, ref, label, canvasShape, err, warn) {
  * namespace. Mirrors the platform's runtime ownership guard
  * (server app-engine migration-runner) so bad migrations fail at build time.
  */
+// Kept in step with the platform's migration-runner (2026-09-14). The platform
+// tightened these after `SET LOCAL ROLE NONE` was found to defeat app isolation
+// outright; without the same rules here a migration passes `veltrix validate`
+// locally and is refused at install time, which is the worst place for a
+// contributor to find out.
 const MIG_FORBIDDEN =
-  /\bCREATE\s+(ROLE|USER|DATABASE|EXTENSION|SCHEMA)\b|\bDROP\s+(ROLE|USER|DATABASE|SCHEMA)\b|\bALTER\s+(ROLE|USER|DATABASE|SYSTEM)\b|\b(GRANT|REVOKE)\b|\bSET\s+ROLE\b|\bCOPY\b|\bCREATE\s+(OR\s+REPLACE\s+)?FUNCTION\b/i
+  /\bCREATE\s+(ROLE|USER|DATABASE|EXTENSION|SCHEMA)\b|\bDROP\s+(ROLE|USER|DATABASE|SCHEMA)\b|\bALTER\s+(ROLE|USER|DATABASE|SYSTEM)\b|\b(GRANT|REVOKE)\b|\bSECURITY\s+DEFINER\b|\bCOPY\b|\bCREATE\s+(OR\s+REPLACE\s+)?FUNCTION\b|\bCREATE\s+(OR\s+REPLACE\s+)?PROCEDURE\b|\b(pg_catalog\s*\.\s*)?set_config\s*\(/i
+
+/**
+ * Session/transaction state statements a migration may never run.
+ *
+ * Postgres accepts these only as the FIRST token of a statement, and an app
+ * migration has no legitimate need for any of them, so the rule is "none of this
+ * family" rather than a list of members — enumerating members is exactly what
+ * let `SET LOCAL ROLE` slip past the platform guard. `UPDATE t SET c = v` and
+ * `ALTER TABLE t ... SET ...` are unaffected, because SET does not lead there.
+ */
+const MIG_FORBIDDEN_LEADING =
+  /^\s*(SET|RESET|DO|BEGIN|COMMIT|ROLLBACK|START\s+TRANSACTION|SAVEPOINT|LISTEN|NOTIFY|LOAD|DISCARD)\b/i
+
+/** CREATE TABLE, with the modifiers Postgres allows between the two words. */
+const MIG_CREATE_TABLE = /\bCREATE\s+(?:UNLOGGED\s+|TEMP(?:ORARY)?\s+)?TABLE\b/i
+const MIG_CREATE_TABLE_AS_SELECT =
+  /\bCREATE\s+(?:UNLOGGED\s+|TEMP(?:ORARY)?\s+)?TABLE\b[\s\S]*?\bAS\s+SELECT\b/i
+const MIG_DEFAULT_TENANT_COLUMN = 'customer_id'
 const MIG_OWNED_DDL =
   /\b(?:CREATE|ALTER|DROP)\s+(?:TABLE|INDEX|UNIQUE\s+INDEX|SEQUENCE|VIEW|MATERIALIZED\s+VIEW|TYPE|TRIGGER)\s+(?:IF\s+(?:NOT\s+)?EXISTS\s+)?(?:ONLY\s+)?("?[A-Za-z0-9_.]+"?)/i
 const MIG_PROTECTED_SCHEMAS = new Set(['public', 'pg_catalog', 'information_schema', 'pg_toast'])
@@ -1051,8 +1074,118 @@ function clipSql(s) {
   return s.length > 120 ? `${s.slice(0, 117)}...` : s
 }
 
+/**
+ * Split a migration into statements on top-level semicolons, dropping comments
+ * and preserving string bodies verbatim. Ported from the platform's
+ * migration-runner so this validator sees exactly the statements the platform
+ * will.
+ *
+ * The naive `sql.split(';')` this replaces was wrong in both directions. It
+ * split mid-comment whenever a comment contained a semicolon, so trailing prose
+ * became a bogus "statement"; and it left leading comments attached, which
+ * defeated the start-anchored check below — `-- note` followed by
+ * `SET LOCAL ROLE NONE` passed the validator and was then refused at install.
+ * A validator that disagrees with the platform is worse than none, because it
+ * is believed.
+ */
+function splitSqlStatements(sql) {
+  const statements = []
+  let current = ''
+  let i = 0
+  const n = sql.length
+
+  while (i < n) {
+    const ch = sql[i]
+    const next = sql[i + 1]
+
+    // Line comment: drop through end of line.
+    if (ch === '-' && next === '-') {
+      i += 2
+      while (i < n && sql[i] !== '\n') i++
+      current += ' '
+      continue
+    }
+
+    // Block comment: drop to the matching close (Postgres block comments nest).
+    if (ch === '/' && next === '*') {
+      let depth = 1
+      i += 2
+      while (i < n && depth > 0) {
+        if (sql[i] === '/' && sql[i + 1] === '*') {
+          depth++
+          i += 2
+        } else if (sql[i] === '*' && sql[i + 1] === '/') {
+          depth--
+          i += 2
+        } else {
+          i++
+        }
+      }
+      current += ' '
+      continue
+    }
+
+    // Single-quoted literal: copy verbatim, honouring '' escapes.
+    if (ch === "'") {
+      current += ch
+      i++
+      while (i < n) {
+        current += sql[i]
+        if (sql[i] === "'") {
+          if (sql[i + 1] === "'") {
+            current += sql[i + 1]
+            i += 2
+            continue
+          }
+          i++
+          break
+        }
+        i++
+      }
+      continue
+    }
+
+    // Dollar-quoted string: $tag$ ... $tag$ — everything inside is literal.
+    if (ch === '$') {
+      const opener = /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.exec(sql.slice(i))
+      if (opener) {
+        const tag = opener[0]
+        const end = sql.indexOf(tag, i + tag.length)
+        if (end === -1) {
+          current += sql.slice(i)
+          i = n
+        } else {
+          current += sql.slice(i, end + tag.length)
+          i = end + tag.length
+        }
+        continue
+      }
+    }
+
+    if (ch === ';') {
+      const trimmed = current.trim()
+      if (trimmed) statements.push(trimmed)
+      current = ''
+      i++
+      continue
+    }
+
+    current += ch
+    i++
+  }
+
+  const tail = current.trim()
+  if (tail) statements.push(tail)
+  return statements
+}
+
 function validateMigrationOwnership(migDir, database, err) {
-  const isolation = database.isolation === 'schema' ? 'schema' : 'shared'
+  // The platform treats 'database' isolation like 'schema' for the tenant-column
+  // rule, so preserve that distinction here rather than collapsing it away.
+  const declaredIsolation = database.isolation === 'schema' || database.isolation === 'database'
+    ? database.isolation
+    : 'shared'
+  const isolation = declaredIsolation === 'schema' ? 'schema' : declaredIsolation === 'database' ? 'database' : 'shared'
   const prefix = String(database.tablePrefix || '')
   let files
   try {
@@ -1067,12 +1200,46 @@ function validateMigrationOwnership(migDir, database, err) {
     } catch {
       continue
     }
-    const statements = sql.split(';').map((s) => s.trim()).filter(Boolean)
+    const statements = splitSqlStatements(sql)
     for (const st of statements) {
       const oneLine = st.replace(/\s+/g, ' ')
+      if (MIG_FORBIDDEN_LEADING.test(st)) {
+        err(
+          `migrations: ${file} may not run session or transaction state statements ` +
+            `(SET/RESET/DO/BEGIN/COMMIT/...); migrations run inside a transaction the ` +
+            `platform controls: "${clipSql(oneLine)}"`,
+        )
+        continue
+      }
       if (MIG_FORBIDDEN.test(st)) {
         err(`migrations: ${file} has a statement an app may not run (roles/schemas/functions/grants): "${clipSql(oneLine)}"`)
         continue
+      }
+      if (isolation === 'schema' || isolation === 'database') {
+        if (MIG_CREATE_TABLE_AS_SELECT.test(st)) {
+          err(
+            `migrations: ${file} may not use CREATE TABLE ... AS SELECT — it declares no ` +
+              `column list, so the table cannot be tenant-partitioned: "${clipSql(oneLine)}"`,
+          )
+          continue
+        }
+        if (MIG_CREATE_TABLE.test(st)) {
+          // Built by concatenation rather than a template literal: `\s` inside a
+          // backtick string is not an escape JS recognises, so it collapses to a
+          // literal `s` and the character class silently matches almost anything.
+          const declaresTenant = new RegExp(
+            '[\\s(,"]' + MIG_DEFAULT_TENANT_COLUMN + '[\\s"]',
+            'i',
+          ).test(st)
+          if (!declaresTenant) {
+            err(
+              `migrations: ${file} table must declare a "${MIG_DEFAULT_TENANT_COLUMN}" column — ` +
+                `an app's schema is per-APP, not per-tenant, so without it every tenant that ` +
+                `enables the app shares one undivided pool of rows: "${clipSql(oneLine)}"`,
+            )
+            continue
+          }
+        }
       }
       for (const m of oneLine.matchAll(/(?:^|[\s("])("?[A-Za-z_][A-Za-z0-9_]*"?)\s*\.\s*"?[A-Za-z_]/g)) {
         const schema = m[1].replace(/^"(.*)"$/, '$1')
