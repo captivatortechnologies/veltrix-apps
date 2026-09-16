@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-08-06T23:20:12.663Z",
+  "generatedAt": "2026-09-16T20:47:35.116Z",
   "apps": [
     {
       "appId": "akamai",
@@ -426,9 +426,9 @@
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr",
       "available": true,
       "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.13.2/crowdstrike-edr.zip",
-      "sha256": "dca68e344784eb786e5950f48af42546f9bbf99f7c502ca7bd519ec57a3c4bbd",
+      "sha256": "18d64ee8fd44fb2a7c0c35bf63fb085b7650b87ffd7a3226bc212a63e3135aaa",
       "sizeBytes": 1103390,
-      "publishedAt": "2026-08-06T02:31:35.529Z",
+      "publishedAt": "2026-09-16T20:47:35.045Z",
       "releaseNotes": "## 1.13.2 — 2026-08-05\n\n### Documentation (research-first coverage audit, no new config type)\n- **README Coverage section** — re-verified this app's 44 configuration types\n  against the current Falcon API surface (`developer.crowdstrike.com`'s\n  operations-by-collection index, the FalconPy SDK, and the official\n  Terraform provider). Confirmed the app's declarative write coverage —\n  built across five phases (v1.7.0–v1.13.1) — is complete: every genuinely\n  declarative, round-trippable Falcon write surface is already managed.\n  Added the full grouped Managed/Excluded breakdown, replacing the stale\n  \"Future work\" section (which listed Sensor Update Policies, Exclusions and\n  Response Policies as future — all three shipped in v1.8.0).\n- **Investigated and excluded: Falcon Fusion SOAR Workflows.** The Workflows\n  API does expose a definition CRUD (`search_definitions`/`export_definition`/\n  `import_definition`/`update_definition`), but the create path is a\n  multipart `application/x-yaml` upload of Fusion's internal\n  trigger/condition/action DSL with no publicly documented hand-authoring\n  schema — the same class of blocker already flagged unresolved for this\n  app's own `ngsiem-saved-queries`/`ngsiem-dashboards` `yaml_template`\n  uploads (v1.12.1). Deferred for the same reason; documented in Coverage\n  with sources.\n- Refreshed the README intro to describe the full 14-sidebar-group scope\n  (previously described only the original 3 types from v1.0) and pointed the\n  \"Detection/alert ingestion\" limitation at the new Coverage section instead\n  of the removed Future Work section.",
       "releasedAt": "2026-08-05T00:00:00.000Z"
     },
