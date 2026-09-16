@@ -105,10 +105,26 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   }
 }
 
-/** True when the policy is live and system-managed (system:true). */
+/**
+ * True when the policy is system-managed, OR when that could not be determined.
+ *
+ * This gate decides whether a DELETE proceeds, so it fails CLOSED. It used to
+ * return false on any non-OK read, which meant a 403 or a 5xx on the lookup read
+ * as "not a system policy" and the delete went ahead — the one direction the
+ * guard exists to prevent. Every other guard in this app fails closed.
+ *
+ * A 404 is different and stays false: the policy is already gone, so there is
+ * nothing to protect and the caller's DELETE tolerates its own 404.
+ *
+ * The cost of the safe direction is a policy the rollback created but could not
+ * remove — visible in the console and removable by hand. The cost of the unsafe
+ * direction is deleting one of Okta's system policies, which breaks
+ * authentication for the whole org and cannot be undone from here.
+ */
 async function isSystemPolicy(client: OktaClient, policyId: string): Promise<boolean> {
   const res = await client.request('GET', `/policies/${policyId}`)
-  if (!res.ok) return false
+  if (res.status === 404) return false
+  if (!res.ok) return true
   return parseJson<LivePolicy>(res.body)?.system === true
 }
 

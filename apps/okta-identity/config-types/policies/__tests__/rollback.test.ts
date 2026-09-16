@@ -129,6 +129,39 @@ describe('policies rollback', () => {
     })
   })
 
+  // The guard used to `return false` on any non-OK read, so a 403 or a 5xx on
+  // the lookup read as "not a system policy" and the DELETE went ahead — the one
+  // direction it exists to prevent. It now fails CLOSED: an unreadable policy is
+  // treated as system-managed and left alone. The cost is an orphaned policy,
+  // visible and removable by hand; the cost of the other direction is deleting
+  // an Okta system policy and breaking authentication for the whole org.
+  it('refuses to delete when the system check is FORBIDDEN, rather than assuming it is safe', async () => {
+    await withFetch([apiError(403, 'Insufficient permissions')], async (calls) => {
+      const result = await rollback(rollbackContext({ previousState: [created()] }))
+
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+      expect(result.message).toMatch(/system policy — not deleted/)
+    })
+  })
+
+  it('refuses to delete when the system check ERRORS, rather than assuming it is safe', async () => {
+    await withFetch([apiError(500, 'Internal error')], async (calls) => {
+      const result = await rollback(rollbackContext({ previousState: [created()] }))
+
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+    })
+  })
+
+  it('still deletes when the policy is already gone (404), which protects nothing', async () => {
+    // A 404 is not an unknown — the policy does not exist, so there is no system
+    // policy to protect and the delete is allowed to run and no-op.
+    await withFetch([notFound(), notFound()], async (calls) => {
+      await rollback(rollbackContext({ previousState: [created()] }))
+
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(true)
+    })
+  })
+
   it('treats a 404 on the delete as already gone', async () => {
     await withFetch([ok({ id: 'pol-NEW', system: false }), notFound()], async () => {
       const result = await rollback(rollbackContext({ previousState: [created()] }))
