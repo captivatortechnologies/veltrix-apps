@@ -85,6 +85,24 @@ export interface DriftDiff {
 export interface DriftResult {
   hasDrift: boolean
   diffs: DriftDiff[]
+  /**
+   * Set `false` when the handler could not determine drift at all — typically
+   * because the vendor exposes no endpoint to read back the resource this
+   * configuration type manages.
+   *
+   * Omit it when you did check. Absent means checked, so existing handlers keep
+   * their current meaning.
+   *
+   * Why it exists: `hasDrift: false` is a POSITIVE assurance, and the platform
+   * acts on it. The drift detector treats "no drift" as in sync and marks any
+   * outstanding drift record for that component resolved, with
+   * `resolvedAction: 'drift_cleared'`. A handler that cannot look was therefore
+   * telling the platform it had looked and found nothing, and real drift
+   * recorded by other means was cleared on the next scheduled run. If your
+   * handler's comment says it "always reports no drift to avoid false
+   * positives", it wants `checked: false`.
+   */
+  checked?: boolean
 }
 
 export interface ComponentConfigStatus {

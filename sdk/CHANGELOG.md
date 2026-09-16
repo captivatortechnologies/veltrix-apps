@@ -1,5 +1,28 @@
 # Changelog
 
+## 3.9.0 — 2026-09-16
+
+### `DriftResult.checked` — say "I could not look"
+
+`DriftResult` was `{ hasDrift, diffs }` and nothing else, so a handler whose
+vendor exposes no way to read a resource back had exactly one thing it could
+return: `hasDrift: false`.
+
+That is a POSITIVE assurance, and the platform acts on it. Its drift detector
+treats "no drift" as in sync and marks any outstanding drift record for that
+component resolved, with `resolvedAction: 'drift_cleared'`. So a handler that
+could not look was telling the platform it had looked and found nothing — and
+real drift recorded by other means was cleared on the next scheduled run.
+
+Set `checked: false` when you genuinely cannot determine drift. The platform
+then records nothing and clears nothing, leaving the component's drift state
+untouched. Omit the field when you did check: absent means checked, so every
+existing handler keeps its current meaning.
+
+If your handler's comment says it "always reports no drift to avoid false
+positives", it wants this field. Five handlers in the catalog were in exactly
+that position and have been updated.
+
 ## 3.8.0 — 2026-09-16
 
 Type and documentation corrections only — no runtime code changed. Both entries

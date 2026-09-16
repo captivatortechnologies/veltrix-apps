@@ -11,5 +11,10 @@ import type { DriftContext, DriftResult } from '@veltrixsecops/app-sdk'
  * item's declared state is compared to the live state here.
  */
 export default async function driftDetect(_ctx: DriftContext): Promise<DriftResult> {
-  return { hasDrift: false, diffs: [] }
+  // `checked: false` (SDK 3.9.0): this handler cannot read the live state, so
+  // it makes no claim. Without it, `hasDrift: false` reads as a positive
+  // assurance and the platform marks outstanding drift for this component
+  // resolved with `drift_cleared` — turning "could not look" into "looked and
+  // it is fine", and clearing real drift on every scheduled run.
+  return { hasDrift: false, diffs: [], checked: false }
 }
