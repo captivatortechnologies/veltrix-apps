@@ -1,0 +1,72 @@
+import type { ConfigFixture } from '../../../lib/__tests__/configFixture'
+
+/** The live server points at a DIFFERENT LDAP host — authentication silently
+ *  moved to another directory. The bind password is write-only: it is sent on
+ *  every deploy and must never come back in a message, a prior or a diff. */
+export const fixture: ConfigFixture = {
+  id: 'user-ldap-servers',
+  objectPath: '/obj/user/ldap',
+  checkName: 'fmg-user-ldap',
+  name: 'corp-ldap',
+  writeOnlySecret: 'ldap-bind-secret-MUST-NOT-LEAK',
+  item: {
+    id: 'item-1',
+    name: 'corp-ldap',
+    fields: {
+      name: 'corp-ldap',
+      server: 'ldap.corp.example.com',
+      cnid: 'sAMAccountName',
+      dn: 'dc=corp,dc=example,dc=com',
+      type: 'regular',
+      username: 'cn=svc-fmg,ou=svc,dc=corp,dc=example,dc=com',
+      password: 'ldap-bind-secret-MUST-NOT-LEAK',
+      port: '389',
+      secure: 'disable',
+    },
+  },
+  body: {
+    name: 'corp-ldap',
+    server: 'ldap.corp.example.com',
+    type: 'regular',
+    secure: 'disable',
+    cnid: 'sAMAccountName',
+    dn: 'dc=corp,dc=example,dc=com',
+    username: 'cn=svc-fmg,ou=svc,dc=corp,dc=example,dc=com',
+    password: 'ldap-bind-secret-MUST-NOT-LEAK',
+    port: 389,
+  },
+  livePrior: {
+    name: 'corp-ldap',
+    server: 'ldap-old.corp.example.com',
+    cnid: 'sAMAccountName',
+    dn: 'dc=corp,dc=example,dc=com',
+    type: 'regular',
+    username: 'cn=svc-fmg,ou=svc,dc=corp,dc=example,dc=com',
+    port: 389,
+    secure: 'disable',
+  },
+  priorSnapshot: {
+    name: 'corp-ldap',
+    server: 'ldap-old.corp.example.com',
+    cnid: 'sAMAccountName',
+    dn: 'dc=corp,dc=example,dc=com',
+    type: 'regular',
+    username: 'cn=svc-fmg,ou=svc,dc=corp,dc=example,dc=com',
+    port: 389,
+    secure: 'disable',
+  },
+  liveInSync: {
+    name: 'corp-ldap',
+    server: 'ldap.corp.example.com',
+    cnid: 'sAMAccountName',
+    dn: 'dc=corp,dc=example,dc=com',
+    type: 'regular',
+    username: 'cn=svc-fmg,ou=svc,dc=corp,dc=example,dc=com',
+    port: 389,
+    secure: 'disable',
+  },
+  driftField: 'corp-ldap.server',
+  deploySuccess: 'Deployed 1 LDAP server(s)',
+  deployFailurePrefix: 'Some LDAP servers failed',
+  rollbackPrefix: 'Rolled back LDAP servers',
+}

@@ -1,0 +1,56 @@
+import type { ConfigFixture } from '../../../lib/__tests__/configFixture'
+
+export const fixture: ConfigFixture = {
+  id: 'firewall-per-ip-shapers',
+  objectPath: '/obj/firewall/shaper/per-ip-shaper',
+  checkName: 'fmg-firewall-per-ip-shaper',
+  name: 'guest-per-ip',
+  item: {
+    id: 'item-1',
+    name: 'guest-per-ip',
+    fields: {
+      name: 'guest-per-ip',
+      maxBandwidth: 2000,
+      bandwidthUnit: 'kbps',
+      maxConcurrentSession: 500,
+      diffservForward: false,
+      diffservReverse: false,
+    },
+  },
+  body: {
+    name: 'guest-per-ip',
+    'bandwidth-unit': 'kbps',
+    'diffserv-forward': 'disable',
+    'diffserv-reverse': 'disable',
+    'max-bandwidth': 2000,
+    'max-concurrent-session': 500,
+  },
+  livePrior: {
+    name: 'guest-per-ip',
+    'max-bandwidth': 4000,
+    'bandwidth-unit': 'kbps',
+    'max-concurrent-session': 500,
+    'diffserv-forward': 'disable',
+    'diffserv-reverse': 'disable',
+  },
+  priorSnapshot: {
+    name: 'guest-per-ip',
+    'max-bandwidth': 4000,
+    'bandwidth-unit': 'kbps',
+    'max-concurrent-session': 500,
+    'diffserv-forward': 'disable',
+    'diffserv-reverse': 'disable',
+  },
+  liveInSync: {
+    name: 'guest-per-ip',
+    'max-bandwidth': 2000,
+    'bandwidth-unit': 'kbps',
+    'max-concurrent-session': 500,
+    'diffserv-forward': 'disable',
+    'diffserv-reverse': 'disable',
+  },
+  driftField: 'guest-per-ip.max-bandwidth',
+  deploySuccess: 'Deployed 1 firewall per-IP shaper(s)',
+  deployFailurePrefix: 'Some per-IP shapers failed',
+  rollbackPrefix: 'Rolled back firewall per-IP shapers',
+}

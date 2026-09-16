@@ -1,0 +1,65 @@
+import type { ConfigFixture } from '../../../lib/__tests__/configFixture'
+
+/** The live profile PASSES unknown applications where the canvas blocks them —
+ *  a security control silently relaxed, which is what drift must surface. */
+export const fixture: ConfigFixture = {
+  id: 'application-control-lists',
+  objectPath: '/obj/application/list',
+  checkName: 'fmg-application-list',
+  name: 'corp-appctrl',
+  item: {
+    id: 'item-1',
+    name: 'corp-appctrl',
+    fields: {
+      name: 'corp-appctrl',
+      comment: 'Corporate application control',
+      otherApplicationAction: 'pass',
+      unknownApplicationAction: 'block',
+      appReplacemsg: true,
+      deepAppInspection: true,
+      enforceDefaultAppPort: false,
+      entries: '[{"id":1,"category":[2],"action":"block"}]',
+    },
+  },
+  body: {
+    name: 'corp-appctrl',
+    'other-application-action': 'pass',
+    'unknown-application-action': 'block',
+    'app-replacemsg': 'enable',
+    'deep-app-inspection': 'enable',
+    'enforce-default-app-port': 'disable',
+    comment: 'Corporate application control',
+    entries: [{ id: 1, category: [2], action: 'block' }],
+  },
+  livePrior: {
+    name: 'corp-appctrl',
+    comment: 'Corporate application control',
+    'other-application-action': 'pass',
+    'unknown-application-action': 'pass',
+    'app-replacemsg': 'enable',
+    'deep-app-inspection': 'enable',
+    'enforce-default-app-port': 'disable',
+  },
+  priorSnapshot: {
+    name: 'corp-appctrl',
+    comment: 'Corporate application control',
+    'other-application-action': 'pass',
+    'unknown-application-action': 'pass',
+    'app-replacemsg': 'enable',
+    'deep-app-inspection': 'enable',
+    'enforce-default-app-port': 'disable',
+  },
+  liveInSync: {
+    name: 'corp-appctrl',
+    comment: 'Corporate application control',
+    'other-application-action': 'pass',
+    'unknown-application-action': 'block',
+    'app-replacemsg': 'enable',
+    'deep-app-inspection': 'enable',
+    'enforce-default-app-port': 'disable',
+  },
+  driftField: 'corp-appctrl.unknown-application-action',
+  deploySuccess: 'Deployed 1 application control profile(s)',
+  deployFailurePrefix: 'Some application control profiles failed',
+  rollbackPrefix: 'Rolled back application control profiles',
+}

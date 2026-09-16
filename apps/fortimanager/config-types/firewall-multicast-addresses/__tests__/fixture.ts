@@ -1,0 +1,56 @@
+import type { ConfigFixture } from '../../../lib/__tests__/configFixture'
+
+export const fixture: ConfigFixture = {
+  id: 'firewall-multicast-addresses',
+  objectPath: '/obj/firewall/multicast-address',
+  checkName: 'fmg-firewall-multicast-address',
+  name: 'mcast-video',
+  item: {
+    id: 'item-1',
+    name: 'mcast-video',
+    fields: {
+      name: 'mcast-video',
+      type: 'multicastrange',
+      startIp: '239.1.1.10',
+      endIp: '239.1.1.20',
+      associatedInterface: 'port2',
+      comment: 'Video multicast',
+    },
+  },
+  body: {
+    name: 'mcast-video',
+    type: 'multicastrange',
+    'start-ip': '239.1.1.10',
+    'end-ip': '239.1.1.20',
+    'associated-interface': 'port2',
+    comment: 'Video multicast',
+  },
+  livePrior: {
+    name: 'mcast-video',
+    type: 'multicastrange',
+    'start-ip': '239.1.1.10',
+    'end-ip': '239.1.1.99',
+    'associated-interface': 'port2',
+    comment: 'Video multicast',
+  },
+  priorSnapshot: {
+    name: 'mcast-video',
+    type: 'multicastrange',
+    'start-ip': '239.1.1.10',
+    'end-ip': '239.1.1.99',
+    'associated-interface': 'port2',
+    comment: 'Video multicast',
+  },
+  liveInSync: {
+    name: 'mcast-video',
+    type: 'multicastrange',
+    'start-ip': '239.1.1.10',
+    'end-ip': '239.1.1.20',
+    'associated-interface': 'port2',
+    comment: 'Video multicast',
+  },
+  driftField: 'mcast-video.end-ip',
+  deploySuccess: 'Deployed 1 firewall multicast address(es)',
+  deployFailurePrefix: 'Some multicast addresses failed',
+  rollbackPrefix: 'Rolled back firewall multicast addresses',
+}

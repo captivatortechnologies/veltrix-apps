@@ -1,0 +1,65 @@
+import type { ConfigFixture } from '../../../lib/__tests__/configFixture'
+
+/** The live profile has stopped logging all URLs — an audit trail that
+ *  disappeared without the canvas changing. */
+export const fixture: ConfigFixture = {
+  id: 'webfilter-profiles',
+  objectPath: '/obj/webfilter/profile',
+  checkName: 'fmg-webfilter-profile',
+  name: 'corp-webfilter',
+  item: {
+    id: 'item-1',
+    name: 'corp-webfilter',
+    fields: {
+      name: 'corp-webfilter',
+      comment: 'Corporate web filter',
+      httpsReplacemsg: true,
+      logAllUrl: true,
+      webContentLog: true,
+      extendedLog: false,
+      wisp: false,
+      bodyJson: '{"ftgd-wf":{"options":["error-allow"]}}',
+    },
+  },
+  body: {
+    name: 'corp-webfilter',
+    'https-replacemsg': 'enable',
+    'log-all-url': 'enable',
+    'web-content-log': 'enable',
+    'extended-log': 'disable',
+    wisp: 'disable',
+    comment: 'Corporate web filter',
+    'ftgd-wf': { options: ['error-allow'] },
+  },
+  livePrior: {
+    name: 'corp-webfilter',
+    comment: 'Corporate web filter',
+    'https-replacemsg': 'enable',
+    'log-all-url': 'disable',
+    'web-content-log': 'enable',
+    'extended-log': 'disable',
+    wisp: 'disable',
+  },
+  priorSnapshot: {
+    name: 'corp-webfilter',
+    comment: 'Corporate web filter',
+    'https-replacemsg': 'enable',
+    'log-all-url': 'disable',
+    'web-content-log': 'enable',
+    'extended-log': 'disable',
+    wisp: 'disable',
+  },
+  liveInSync: {
+    name: 'corp-webfilter',
+    comment: 'Corporate web filter',
+    'https-replacemsg': 'enable',
+    'log-all-url': 'enable',
+    'web-content-log': 'enable',
+    'extended-log': 'disable',
+    wisp: 'disable',
+  },
+  driftField: 'corp-webfilter.log-all-url',
+  deploySuccess: 'Deployed 1 web filter profile(s)',
+  deployFailurePrefix: 'Some web filter profiles failed',
+  rollbackPrefix: 'Rolled back web filter profiles',
+}

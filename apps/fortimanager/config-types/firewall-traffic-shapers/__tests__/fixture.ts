@@ -1,0 +1,62 @@
+import type { ConfigFixture } from '../../../lib/__tests__/configFixture'
+
+/** The live shaper caps at less than half the declared maximum bandwidth. */
+export const fixture: ConfigFixture = {
+  id: 'firewall-traffic-shapers',
+  objectPath: '/obj/firewall/shaper/traffic-shaper',
+  checkName: 'fmg-firewall-traffic-shaper',
+  name: 'branch-shaper',
+  item: {
+    id: 'item-1',
+    name: 'branch-shaper',
+    fields: {
+      name: 'branch-shaper',
+      guaranteedBandwidth: 1000,
+      maximumBandwidth: 5000,
+      bandwidthUnit: 'kbps',
+      priority: 'medium',
+      perPolicy: false,
+      diffserv: false,
+    },
+  },
+  body: {
+    name: 'branch-shaper',
+    'bandwidth-unit': 'kbps',
+    priority: 'medium',
+    'per-policy': 'disable',
+    diffserv: 'disable',
+    'guaranteed-bandwidth': 1000,
+    'maximum-bandwidth': 5000,
+  },
+  livePrior: {
+    name: 'branch-shaper',
+    'guaranteed-bandwidth': 1000,
+    'maximum-bandwidth': 2000,
+    'bandwidth-unit': 'kbps',
+    priority: 'medium',
+    'per-policy': 'disable',
+    diffserv: 'disable',
+  },
+  priorSnapshot: {
+    name: 'branch-shaper',
+    'guaranteed-bandwidth': 1000,
+    'maximum-bandwidth': 2000,
+    'bandwidth-unit': 'kbps',
+    priority: 'medium',
+    'per-policy': 'disable',
+    diffserv: 'disable',
+  },
+  liveInSync: {
+    name: 'branch-shaper',
+    'guaranteed-bandwidth': 1000,
+    'maximum-bandwidth': 5000,
+    'bandwidth-unit': 'kbps',
+    priority: 'medium',
+    'per-policy': 'disable',
+    diffserv: 'disable',
+  },
+  driftField: 'branch-shaper.maximum-bandwidth',
+  deploySuccess: 'Deployed 1 firewall traffic shaper(s)',
+  deployFailurePrefix: 'Some traffic shapers failed',
+  rollbackPrefix: 'Rolled back firewall traffic shapers',
+}

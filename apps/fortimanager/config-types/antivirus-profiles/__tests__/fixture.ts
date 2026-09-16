@@ -1,0 +1,65 @@
+import type { ConfigFixture } from '../../../lib/__tests__/configFixture'
+
+/** The live profile scans in QUICK mode where the canvas asks for FULL — a
+ *  quietly weakened scan that still reports as a deployed antivirus profile. */
+export const fixture: ConfigFixture = {
+  id: 'antivirus-profiles',
+  objectPath: '/obj/antivirus/profile',
+  checkName: 'fmg-antivirus-profile',
+  name: 'corp-av',
+  item: {
+    id: 'item-1',
+    name: 'corp-av',
+    fields: {
+      name: 'corp-av',
+      comment: 'Corporate antivirus',
+      inspectionMode: 'proxy',
+      featureSet: 'proxy',
+      analyticsDb: true,
+      mobileMalwareDb: true,
+      scanMode: 'full',
+      protocols: '{"http":{"av-scan":"block"}}',
+    },
+  },
+  body: {
+    http: { 'av-scan': 'block' },
+    name: 'corp-av',
+    'inspection-mode': 'proxy',
+    'feature-set': 'proxy',
+    'analytics-db': 'enable',
+    'mobile-malware-db': 'enable',
+    'scan-mode': 'full',
+    comment: 'Corporate antivirus',
+  },
+  livePrior: {
+    name: 'corp-av',
+    comment: 'Corporate antivirus',
+    'inspection-mode': 'proxy',
+    'feature-set': 'proxy',
+    'analytics-db': 'enable',
+    'mobile-malware-db': 'enable',
+    'scan-mode': 'quick',
+  },
+  priorSnapshot: {
+    name: 'corp-av',
+    comment: 'Corporate antivirus',
+    'inspection-mode': 'proxy',
+    'feature-set': 'proxy',
+    'analytics-db': 'enable',
+    'mobile-malware-db': 'enable',
+    'scan-mode': 'quick',
+  },
+  liveInSync: {
+    name: 'corp-av',
+    comment: 'Corporate antivirus',
+    'inspection-mode': 'proxy',
+    'feature-set': 'proxy',
+    'analytics-db': 'enable',
+    'mobile-malware-db': 'enable',
+    'scan-mode': 'full',
+  },
+  driftField: 'corp-av.scan-mode',
+  deploySuccess: 'Deployed 1 antivirus profile(s)',
+  deployFailurePrefix: 'Some antivirus profiles failed',
+  rollbackPrefix: 'Rolled back antivirus profiles',
+}
