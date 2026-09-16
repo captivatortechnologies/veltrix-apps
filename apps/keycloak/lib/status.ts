@@ -27,7 +27,7 @@ export async function resolveConfigStatus(ctx: PipelineContext): Promise<ConfigS
     // `== null`, not a falsy check: a deployment scored 0 is the unhealthiest
     // there is, and reporting it as `undefined` made it indistinguishable from
     // one that was never scored at all.
-    healthy: latest.healthScore == null ? undefined : latest.healthScore >= 80,
+    healthy: latest.healthScore != null ? latest.healthScore >= 80 : undefined,
     healthScore: latest.healthScore ?? undefined,
   }))
 

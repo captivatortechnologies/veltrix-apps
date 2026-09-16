@@ -313,7 +313,7 @@ export async function healthTable(ctx: HealthCheckContext, spec: TableConfigSpec
   }
 
   const passed = checks.filter((c) => c.passed).length
-  return { healthy: passed === checks.length, score: checks.length ? passed / checks.length : 0, checks }
+  return { healthy: passed === checks.length, score: checks.length ? Math.round((passed / checks.length) * 100) : 0, checks }
 }
 
 /** Status: deployment status for a config, from platform records (shared across table config types). */
@@ -332,7 +332,7 @@ export async function configStatus(ctx: PipelineContext, componentTypes: string[
     deployed: true,
     version: String(canvas.version),
     lastDeployedAt: latest.completedAt || '',
-    healthy: latest.healthScore ? latest.healthScore >= 80 : undefined,
+    healthy: latest.healthScore != null ? latest.healthScore >= 80 : undefined,
     healthScore: latest.healthScore ?? undefined,
   }))
 

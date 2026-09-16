@@ -48,6 +48,20 @@ export interface HealthCheck {
 
 export interface HealthCheckResult {
   healthy: boolean
+  /**
+   * Health as a PERCENTAGE, 0–100.
+   *
+   * The platform stores this on the deployment verbatim and the console renders
+   * it as `<score>%`, colour-banded at 80 and 50. A handler that returns a
+   * FRACTION — `passed / checks.length` — therefore reports a perfectly healthy
+   * deployment as "1%", in red. This field carried no contract for a long time
+   * and the catalog split roughly evenly between the two scales; 0–100 is the
+   * one the column, the console and the thresholds were always written for.
+   *
+   * ```ts
+   * score: checks.length ? Math.round((passed / checks.length) * 100) : 0
+   * ```
+   */
   score: number
   checks: HealthCheck[]
 }

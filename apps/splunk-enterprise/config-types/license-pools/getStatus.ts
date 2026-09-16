@@ -25,7 +25,7 @@ export default async function getStatus(ctx: PipelineContext): Promise<ConfigSta
     deployed: true,
     version: String(canvas.version),
     lastDeployedAt: latestDeployment.completedAt || '',
-    healthy: latestDeployment.healthScore ? latestDeployment.healthScore >= 80 : undefined,
+    healthy: latestDeployment.healthScore != null ? latestDeployment.healthScore >= 80 : undefined,
     healthScore: latestDeployment.healthScore ?? undefined,
   }))
 

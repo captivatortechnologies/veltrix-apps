@@ -179,7 +179,7 @@ export async function criblHealthCheck(ctx: HealthCheckContext): Promise<HealthC
   }
 
   const passed = checks.filter((c) => c.passed).length
-  return { healthy: passed === checks.length, score: checks.length ? passed / checks.length : 0, checks }
+  return { healthy: passed === checks.length, score: checks.length ? Math.round((passed / checks.length) * 100) : 0, checks }
 }
 
 /** Deployment status for a Cribl configuration, from platform records. */
@@ -198,7 +198,7 @@ export async function criblGetStatus(ctx: PipelineContext): Promise<ConfigStatus
     deployed: true,
     version: String(canvas.version),
     lastDeployedAt: latest.completedAt || '',
-    healthy: latest.healthScore ? latest.healthScore >= 80 : undefined,
+    healthy: latest.healthScore != null ? latest.healthScore >= 80 : undefined,
     healthScore: latest.healthScore ?? undefined,
   }))
 

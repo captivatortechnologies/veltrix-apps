@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.1 — 2026-09-16
+
+### `validate` rejects a health score written as a fraction
+
+`HealthCheckResult.score` is a percentage — the platform stores it verbatim on
+the deployment and the console renders it as `<score>%`, colour-banded at 80 and
+50. The type said only `score: number`, so nothing caught a handler returning
+`passed / checks.length`, and a perfectly healthy deployment showed as 1%, in
+red. Forty-five apps in this repository shipped that way.
+
+`veltrix validate` now fails a `score` assignment that divides by `checks.length`
+without scaling by 100, and names the expression to use. It reads a minified
+handler as well as source. All 96 apps validate clean.
+
 ## 0.9.0 — 2026-09-16
 
 A minor rather than a patch: `veltrix validate` is stricter, so a migration that

@@ -3,6 +3,23 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.21.3 — 2026-09-16
+
+### Fixed — health score is a percentage, and zero means unhealthy
+
+`healthCheck` returned its score as a FRACTION (`passed / checks.length`), so a
+perfectly healthy deployment reported `1`. The platform stores that value
+verbatim on the deployment and the console renders it as `<score>%`, colour-banded
+at 80 and 50 — so every healthy deployment of this app showed as **1%, in red**.
+The score is now `Math.round((passed / checks.length) * 100)`.
+
+`getStatus` also derived `healthy` with a falsy check (`healthScore ? … :
+undefined`), which reported a score of 0 — the unhealthiest there is — as
+"never scored", the one state nobody needs to act on. It now tests for null.
+
+The SDK's `HealthCheckResult.score` had no documented contract, which is how the
+catalog came to hold both scales; it now states 0–100 explicitly.
+
 ## 1.21.2 — 2026-08-05
 
 Client-only type-safety cleanup; no runtime or behavior change.

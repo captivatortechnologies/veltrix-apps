@@ -99,7 +99,7 @@ export function healthCheckSuite(configTypeId: string, healthCheck: HealthCheckH
         expect(calls[0].authId).toBe(API_KEY_ID)
         expect(calls[0].authorization).toBe(API_KEY)
         expect(result.healthy).toBe(true)
-        expect(result.score).toBe(1)
+        expect(result.score).toBe(100)
         expect(result.checks[0].name).toBe('cortex_reachable')
         expect(result.checks[0].passed).toBe(true)
         expect(result.checks[0].latencyMs).toBeDefined()

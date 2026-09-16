@@ -66,7 +66,7 @@ export function describeHealthCheckContract(label: string, healthCheck: HealthCh
       assert.equal(calls[1].authorization, `Bearer ${ADMIN_TOKEN}`)
 
       assert.equal(result.healthy, true)
-      assert.equal(result.score, 1)
+      assert.equal(result.score, 100)
       assert.equal(result.checks[0].name, 'keycloak_realm_reachable')
       assert.ok(typeof result.checks[0].latencyMs === 'number')
     } finally {

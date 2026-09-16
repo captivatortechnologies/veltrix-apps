@@ -12,7 +12,7 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
     const expected = extractSpecs(ctx.canvas)[0]?.mode
     const actual = await built.client.getOutboundNatMode()
     const passed = Boolean(expected && actual === expected)
-    return { healthy: passed, score: passed ? 1 : 0, checks: [{ name: 'outbound_nat_mode', passed, message: passed ? `Outbound NAT mode is ${actual}.` : `Expected ${expected || 'a declared mode'}, found ${actual}.` }] }
+    return { healthy: passed, score: passed ? 100 : 0, checks: [{ name: 'outbound_nat_mode', passed, message: passed ? `Outbound NAT mode is ${actual}.` : `Expected ${expected || 'a declared mode'}, found ${actual}.` }] }
   } catch (error) {
     return { healthy: false, score: 0, checks: [{ name: 'pfsense_api', passed: false, message: error instanceof Error ? error.message : 'pfSense request failed' }] }
   }

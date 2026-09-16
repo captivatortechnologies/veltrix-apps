@@ -82,6 +82,30 @@ const SDK_UI_MIN = [2, 1]
 // Navbar logos render at ~28px height — anything bigger than this is unoptimized
 const MAX_LOGO_BYTES = 128 * 1024
 
+// One `score` assignment, up to the comma/brace/semicolon that ends it. Written
+// to work on a minified handler (a whole file on one line) as well as source.
+const SCORE_ASSIGNMENT_RE = /\bscore\b\s*[:=]\s*([^;\n]{0,200}?)(?=\s*[,;}\n]|$)/g
+
+/**
+ * Health scores written as a fraction of the checks that passed.
+ *
+ * `HealthCheckResult.score` is a percentage: the platform stores it verbatim on
+ * the deployment and the console renders it as `<score>%`, colour-banded at 80
+ * and 50. `passed / checks.length` therefore showed a perfectly healthy
+ * deployment as 1%, in red — and the type said only `score: number`, so nothing
+ * caught it. Forty-five apps shipped that way before this rule existed.
+ */
+function fractionScoreExpressions(source) {
+  const found = []
+  for (const match of source.matchAll(SCORE_ASSIGNMENT_RE)) {
+    const expr = match[1]
+    if (!/\/\s*checks\.length/.test(expr)) continue
+    if (/\*\s*100/.test(expr)) continue
+    found.push(expr)
+  }
+  return found
+}
+
 export function validateApp(appDirArg) {
   const errors = []
   const warnings = []
@@ -603,6 +627,14 @@ export function validateApp(appDirArg) {
     }
     if (/\bprocess\.exit\s*\(/.test(source) && !isProvisioning) {
       err(`security: ${relFile} calls process.exit() — apps run inside the platform server and must never terminate the process`)
+    }
+    for (const expr of fractionScoreExpressions(source)) {
+      err(
+        `${relFile} reports a health score as a fraction (${expr.trim()}) — ` +
+          'HealthCheckResult.score is a PERCENTAGE, 0-100. The platform stores it verbatim and ' +
+          'the console renders it as "<score>%", so a fraction shows a healthy deployment as 1%. ' +
+          'Use: checks.length ? Math.round((passed / checks.length) * 100) : 0',
+      )
     }
   }
 

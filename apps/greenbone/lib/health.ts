@@ -45,5 +45,5 @@ export async function checkGvmdReachable(ctx: HealthCheckContext): Promise<Healt
   }
 
   const passed = checks.filter((c) => c.passed).length
-  return { healthy: passed === checks.length, score: checks.length ? passed / checks.length : 0, checks }
+  return { healthy: passed === checks.length, score: checks.length ? Math.round((passed / checks.length) * 100) : 0, checks }
 }

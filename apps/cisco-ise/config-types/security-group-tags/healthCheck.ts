@@ -12,5 +12,5 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   } catch (error) {
     checks.push({ name: 'ers_reachable', passed: false, message: `ISE ERS unreachable or rejected the request: ${error instanceof Error ? error.message : 'error'}`, latencyMs: Date.now() - started })
   }
-  return { healthy: checks.every((check) => check.passed), score: checks.filter((check) => check.passed).length / checks.length, checks }
+  return { healthy: checks.every((check) => check.passed), score: checks.length ? Math.round((checks.filter((check) => check.passed).length / checks.length) * 100) : 0, checks }
 }

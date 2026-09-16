@@ -2,6 +2,23 @@
 
 ## 3.9.0 — 2026-09-16
 
+### `HealthCheckResult.score` — the scale is 0–100, and now says so
+
+`score` carried no contract at all: just `score: number`. The catalog split
+roughly in half between a percentage and a fraction, and the fraction half was
+wrong in a way nothing in the type could reveal. The platform stores the value
+verbatim on the deployment and the console renders it as `<score>%`,
+colour-banded at 80 and 50 — so an app returning `passed / checks.length`
+reported a perfectly healthy deployment as **1%, in red**.
+
+The field now documents 0–100 and carries the expression to use:
+
+```ts
+score: checks.length ? Math.round((passed / checks.length) * 100) : 0
+```
+
+Forty-five apps have been rescaled to match.
+
 ### `DriftResult.checked` — say "I could not look"
 
 `DriftResult` was `{ hasDrift, diffs }` and nothing else, so a handler whose

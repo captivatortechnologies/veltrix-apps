@@ -30,5 +30,5 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   })
 
   const ok = checks.filter((c) => c.passed).length
-  return { healthy: ok === checks.length, score: checks.length ? ok / checks.length : 0, checks }
+  return { healthy: ok === checks.length, score: checks.length ? Math.round((ok / checks.length) * 100) : 0, checks }
 }

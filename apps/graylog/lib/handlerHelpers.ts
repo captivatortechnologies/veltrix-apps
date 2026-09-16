@@ -53,7 +53,7 @@ export async function graylogSystemHealthCheck(ctx: HealthCheckContext): Promise
   }
 
   const passed = checks.filter((c) => c.passed).length
-  return { healthy: passed === checks.length, score: checks.length ? passed / checks.length : 0, checks }
+  return { healthy: passed === checks.length, score: checks.length ? Math.round((passed / checks.length) * 100) : 0, checks }
 }
 
 /** Deployment status for a Graylog configuration, from platform records. */
@@ -72,7 +72,7 @@ export async function graylogConfigStatus(ctx: PipelineContext): Promise<ConfigS
     deployed: true,
     version: String(canvas.version),
     lastDeployedAt: latest.completedAt || '',
-    healthy: latest.healthScore ? latest.healthScore >= 80 : undefined,
+    healthy: latest.healthScore != null ? latest.healthScore >= 80 : undefined,
     healthScore: latest.healthScore ?? undefined,
   }))
 
