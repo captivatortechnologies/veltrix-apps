@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-09-16T21:37:23.008Z",
+  "generatedAt": "2026-09-16T21:38:22.516Z",
   "apps": [
     {
       "appId": "akamai",
@@ -199,9 +199,9 @@
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/carbon-black",
       "available": true,
       "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/carbon-black-v0.6.1/carbon-black.zip",
-      "sha256": "0acf98599abc90f3dca3819ed52d3aa663f5c717c8657dbf24245960e2da0aa4",
+      "sha256": "ce82d94322e5ac3f897b5d2ea84154cbd638e59fe47460b26e265e0e6dcca186",
       "sizeBytes": 262780,
-      "publishedAt": "2026-08-06T02:31:35.510Z",
+      "publishedAt": "2026-09-16T21:38:22.428Z",
       "releaseNotes": "## 0.6.1 — 2026-08-05\n\nGrouped all configuration types in the Configurations sidebar. Organization-only —\nno change to any deploy/rollback/drift behavior.\n\n- **Config sidebar groups** — Enterprise EDR (threat feeds / reports / watchlists /\n  watchlist reports), Endpoint Prevention (policies / prevention rules / reputation\n  overrides), Device Control (USB approvals / blocks), Data & Assets (data forwarders /\n  asset groups), and Access & Identity (access grants). Previously only Access Grants\n  was grouped; the other eleven types rendered as a flat list.",
       "releasedAt": "2026-08-05T00:00:00.000Z"
     },
