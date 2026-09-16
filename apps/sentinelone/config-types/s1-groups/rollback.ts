@@ -35,7 +35,16 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
         }
       } else if (entry.id != null && entry.prior) {
         const res = await client.request('PUT', `/groups/${entry.id}`, {
-          body: { data: { name: entry.prior.name ?? entry.name, inherits: entry.prior.inherits ?? true } },
+          // Restore the description too. Deploy now writes it, so a rollback
+          // that omitted it would leave the group holding the NEW description
+          // while claiming to have reverted.
+          body: {
+            data: {
+              name: entry.prior.name ?? entry.name,
+              inherits: entry.prior.inherits ?? true,
+              description: entry.prior.description ?? '',
+            },
+          },
         })
         if (!res.ok) {
           throw new Error(`Failed to restore group "${entry.name}": ${s1ErrorMessage(res)}`)

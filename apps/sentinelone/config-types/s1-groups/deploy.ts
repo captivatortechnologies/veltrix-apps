@@ -12,7 +12,7 @@ export interface GroupRollbackEntry {
   name: string
   existed: boolean
   id?: string
-  prior?: { name?: string; inherits?: boolean }
+  prior?: { name?: string; inherits?: boolean; description?: string }
 }
 
 /**
@@ -53,20 +53,37 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         throw new Error(`Group "${spec.name}" is the site's protected Default Group and cannot be modified`)
       }
 
+      // `description` is sent only when the author supplied one, so a canvas
+      // that leaves it blank produces a byte-identical body to before.
+      //
+      // It was collected by validate and diffed by driftDetect but never
+      // written, so anyone who filled Description in got permanent drift no
+      // deploy could converge: every run reported `<group>.description expected
+      // "<text>" actual "not set"`. This is the only configuration type in the
+      // app with that write/drift asymmetry.
+      const description = spec.description ? { description: spec.description } : {}
+
       if (live && live.id != null) {
         rollbackState.push({
           name: spec.name,
           existed: true,
           id: live.id,
-          prior: { name: live.name, inherits: live.inherits ?? true },
+          prior: {
+            name: live.name,
+            inherits: live.inherits ?? true,
+            // Normalised to a string, never left undefined: rollback has to be
+            // able to tell "the group had no description" from "we did not
+            // record one", or it cannot clear a description this deploy added.
+            description: live.description ?? '',
+          },
         })
         const res = await client.request('PUT', `/groups/${live.id}`, {
-          body: { data: { name: spec.name, inherits: spec.inherits } },
+          body: { data: { name: spec.name, inherits: spec.inherits, ...description } },
         })
         if (!res.ok) throw new Error(`Failed to update group "${spec.name}": ${s1ErrorMessage(res)}`)
       } else {
         const res = await client.request('POST', '/groups', {
-          body: { data: { name: spec.name, siteId, inherits: spec.inherits } },
+          body: { data: { name: spec.name, siteId, inherits: spec.inherits, ...description } },
         })
         if (!res.ok) throw new Error(`Failed to create group "${spec.name}": ${s1ErrorMessage(res)}`)
         const created = firstResult(s1Result<LiveGroup | LiveGroup[]>(res))
