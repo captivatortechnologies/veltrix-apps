@@ -76,6 +76,12 @@ a handler for the platform — and hands the result to `node:test`.
 
 ## What to test
 
+The three failures worth targeting first are in
+[HANDLER-CORRECTNESS.md](HANDLER-CORRECTNESS.md) — guards that fail open,
+rollback state recorded too late, and drift claiming a conclusion it did not
+reach. Those are where the catalog's real defects have been.
+
+
 Assert the things that actually break in production rather than restating the
 happy path:
 

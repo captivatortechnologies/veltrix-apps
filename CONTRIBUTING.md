@@ -97,6 +97,13 @@ handler end to end with no module mocking and no new dependency. See
 [docs/TESTING-HANDLERS.md](docs/TESTING-HANDLERS.md) for the pattern, the worked
 example, and what to assert.
 
+Before writing a handler, read
+[docs/HANDLER-CORRECTNESS.md](docs/HANDLER-CORRECTNESS.md). Testing the first
+five apps found seventeen defects, and they were three mistakes repeated: guards
+that fail open, rollback state recorded after the risky call instead of before
+it, and drift reporting a conclusion it never reached. That page is short and it
+is where reviewers will look.
+
 ```
 node scripts/test-apps.mjs <app-id>        # run an app's tests
 node scripts/handler-coverage.mjs <app-id> # see which handlers are covered
