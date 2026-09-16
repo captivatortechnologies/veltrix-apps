@@ -118,6 +118,38 @@ export function healthCheckSuite(configTypeId: string, healthCheck: HealthCheckH
       })
     })
 
+    it('reports unhealthy when the tenant rejects the API key', async () => {
+      // The probe used to pass anything under 500, so an expired or de-scoped
+      // key showed the connection green while every deploy against it failed.
+      // Each healthCheck's own doc comment already said 401/403 mean the key
+      // is bad; the condition did not.
+      for (const status of [401, 403]) {
+        await withFetch([cortexError('forbidden', status)], async () => {
+          const result = await healthCheck(ctx())
+
+          expect(result.healthy).toBe(false)
+          expect(result.score).toBe(0)
+          expect(result.checks[0].name).toBe('cortex_reachable')
+          expect(result.checks[0].passed).toBe(false)
+          expect(result.checks[0].message).toMatch(new RegExp(`HTTP ${status}`))
+          expect(result.checks[0].message).toMatch(/API key/)
+          // The remedy has to be nameable without leaking the key itself.
+          expect(mentionsApiKey(result.checks[0].message)).toBe(false)
+        })
+      }
+    })
+
+    it('still counts a 4xx that is not an auth rejection as reachable', async () => {
+      // 404 on the probe path means the tenant answered and authenticated us;
+      // narrowing must not turn every 4xx into an outage.
+      await withFetch([cortexError('not found', 404)], async () => {
+        const result = await healthCheck(ctx())
+
+        expect(result.checks[0].passed).toBe(true)
+        expect(result.healthy).toBe(true)
+      })
+    })
+
     it('reports unhealthy rather than throwing when the tenant is unreachable', async () => {
       await withFailingFetch('ECONNREFUSED', async () => {
         const result = await healthCheck(ctx())

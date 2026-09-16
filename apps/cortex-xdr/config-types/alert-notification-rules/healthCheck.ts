@@ -28,13 +28,20 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   const started = Date.now()
   try {
     const res = await client.health()
-    const passed = res.status > 0 && res.status < 500
+    // 401/403 are NOT healthy: the tenant answered, but the API key is
+    // expired or de-scoped, so every deploy will fail while the connection
+    // shows green. This file's own doc comment already said so ("401/403 mean
+    // the key is bad") — the condition did not.
+    const authRejected = res.status === 401 || res.status === 403
+    const passed = res.status > 0 && res.status < 500 && !authRejected
     checks.push({
       name: 'cortex_reachable',
       passed,
       message: passed
         ? `Cortex XDR reachable (HTTP ${res.status}).`
-        : `Cortex XDR returned HTTP ${res.status}.`,
+        : authRejected
+          ? `Cortex XDR rejected the API key (HTTP ${res.status}) — check the key id, key and tenant scope.`
+          : `Cortex XDR returned HTTP ${res.status}.`,
       latencyMs: Date.now() - started,
     })
   } catch (error) {

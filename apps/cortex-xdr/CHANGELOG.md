@@ -3,6 +3,21 @@
 All notable changes to the Cortex XDR app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.3.1 — 2026-09-16
+
+### Fixed — a rejected API key no longer reports the tenant healthy
+
+`healthCheck` passed any response under HTTP 500, so a key that had expired or
+lost a role came back green: the connection showed healthy on the dashboard
+while every deploy, drift check and rollback against it failed. All twelve
+configuration types carried the same probe, and each one's own doc comment
+already stated the intended rule — *"A response below 500 counts as reachable;
+401/403 mean the key is bad"* — which the condition never implemented.
+
+401 and 403 now fail the check, with a message naming the remedy (key id, key,
+tenant scope) rather than a bare status code. Other 4xx responses still count as
+reachable: they mean the tenant answered and accepted the credential.
+
 ## 0.3.0 — 2026-08-04
 
 ### Added — re-verified the full Cortex XDR public API and closed the gap
