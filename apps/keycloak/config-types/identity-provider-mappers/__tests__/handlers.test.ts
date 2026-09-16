@@ -84,6 +84,38 @@ test('identity-provider-mappers deploy checks the identity provider exists befor
   }
 })
 
+test('identity-provider-mappers deploy refuses to create when it could not read what already exists', async () => {
+  const { calls, restore } = recordKeycloak([TOKEN, IDP_EXISTS, kcError(503, 'Service Unavailable')])
+  try {
+    const result = await deploy(deployContext([item('groups', GROUPS_MAPPER)]))
+
+    // Mapper names are not unique per provider, so treating a failed listing as
+    // an empty one adds a second groups-import next to the first — two mappers
+    // writing the same user attribute — and reports success.
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /503/)
+    assert.equal(writeCalls(calls).length, 0)
+  } finally {
+    restore()
+  }
+})
+
+test('identity-provider-mappers deploy still records a created mapper when the id re-read fails', async () => {
+  const { restore } = recordKeycloak([TOKEN, IDP_EXISTS, ok([]), created(), kcError(503, 'Service Unavailable')])
+  try {
+    const result = await deploy(deployContext([item('groups', GROUPS_MAPPER)]))
+
+    // The mapper exists now; an entry with an unknown id still says so, whereas
+    // aborting would leave it with no rollback record at all.
+    assert.equal(result.success, true)
+    assert.deepEqual((result.rollbackData as { previous: unknown[] }).previous, [
+      { alias: 'okta', name: 'groups-import', id: null, mapper: null },
+    ])
+  } finally {
+    restore()
+  }
+})
+
 test('identity-provider-mappers deploy creates a mapper and re-reads it to capture the id', async () => {
   const { calls, restore } = recordKeycloak([
     TOKEN,

@@ -39,9 +39,18 @@ async function fetchRealmId(admin: ReturnType<typeof buildAdminClient>): Promise
   return parseJson<{ id?: string }>(res.body)?.id ?? null
 }
 
+/**
+ * The providers already in the realm. THROWS on a failed read rather than
+ * returning an empty list: this listing is what decides create-vs-update, and
+ * Keycloak does not enforce unique component names — so a 503 read as "no
+ * providers exist" creates a second `corp-ldap` alongside the first and reports
+ * success. An empty list has to mean the realm is empty.
+ */
 async function listComponents(admin: ReturnType<typeof buildAdminClient>, realmId: string): Promise<KeycloakComponentRep[]> {
   const res = await admin.get(`/components?parentId=${encodeURIComponent(realmId)}&type=${encodeURIComponent(USER_STORAGE_PROVIDER_TYPE)}`)
-  if (!res.ok) return []
+  if (!res.ok) {
+    throw new Error(`list user federation providers → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+  }
   return parseJson<KeycloakComponentRep[]>(res.body) ?? []
 }
 
@@ -83,8 +92,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         if (!res.ok) throw new Error(`create ${name} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
         // Keycloak's 201 returns the new id only in the Location header; re-list
         // and match by name to capture it for rollback (same pattern as groups).
-        existingList = await listComponents(admin, realmId)
-        const created = findComponentByName(existingList, name)
+        // A failure here is tolerated: the provider already exists, so aborting
+        // without recording it would orphan the very thing rollback must remove.
+        let created: KeycloakComponentRep | undefined
+        try {
+          existingList = await listComponents(admin, realmId)
+          created = findComponentByName(existingList, name)
+        } catch {
+          created = undefined
+        }
         previous.push({ name, id: created?.id ?? null, component: null })
       }
       applied.push(name)

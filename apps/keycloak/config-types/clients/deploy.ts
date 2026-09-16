@@ -1,6 +1,11 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import { buildAdminClient, parseJson, MISSING_CREDENTIAL_MESSAGE, resolveGrant } from '../../lib/keycloakApi'
-import { buildClientRep, findClientByClientId, type KeycloakClientRep } from './_shared'
+import {
+  buildClientRep,
+  findClientByClientId,
+  stripSecretsFromClient,
+  type KeycloakClientRep,
+} from './_shared'
 
 /**
  * Deploy Keycloak clients over the Admin REST API:
@@ -55,7 +60,11 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         const rep = buildClientRep(item.fields, existing)
         const res = await admin.put(`/clients/${encodeURIComponent(existing.id)}`, rep)
         if (!res.ok) throw new Error(`update ${clientId} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
-        previous.push({ clientId, id: existing.id, client: existing })
+        // The PUT above sends the live rep including its secret, which is what
+        // stops an update rotating it. What gets RECORDED must not: rollbackData
+        // is persisted by the platform, and GET /clients returns a confidential
+        // client's secret in full rather than masked.
+        previous.push({ clientId, id: existing.id, client: stripSecretsFromClient(existing) })
       } else {
         const rep = buildClientRep(item.fields)
         const res = await admin.post('/clients', rep)

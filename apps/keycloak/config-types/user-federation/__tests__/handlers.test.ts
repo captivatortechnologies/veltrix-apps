@@ -156,6 +156,40 @@ test('user-federation deploy resolves the realm id and scopes the listing to use
   }
 })
 
+test('user-federation deploy refuses to create when it could not read what already exists', async () => {
+  const { calls, restore } = recordKeycloak([TOKEN, REALM, kcError(503, 'Service Unavailable')])
+  try {
+    const result = await deploy(deployContext([item('ldap', CORP_LDAP)]))
+
+    // Keycloak does not enforce unique component names, so treating a failed
+    // listing as an empty one adds a SECOND corp-ldap next to the first and
+    // reports success. The realm then has two providers over the same directory
+    // and nothing in the result says so.
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /503/)
+    assert.equal(writeCalls(calls).length, 0)
+  } finally {
+    restore()
+  }
+})
+
+test('user-federation deploy still records a created provider when the id re-read fails', async () => {
+  const { restore } = recordKeycloak([TOKEN, REALM, ok([]), created(), kcError(503, 'Service Unavailable')])
+  try {
+    const result = await deploy(deployContext([item('ldap', CORP_LDAP)]))
+
+    // The provider exists now. Aborting here would leave it in the realm with
+    // no rollback entry at all, which is worse than an entry recording the id
+    // as unknown.
+    assert.equal(result.success, true)
+    assert.deepEqual((result.rollbackData as { previous: unknown[] }).previous, [
+      { name: 'corp-ldap', id: null, component: null },
+    ])
+  } finally {
+    restore()
+  }
+})
+
 test('user-federation deploy creates a provider and re-lists to capture its id', async () => {
   const { calls, restore } = recordKeycloak([TOKEN, REALM, ok([]), created(), ok([liveComponent()])])
   try {

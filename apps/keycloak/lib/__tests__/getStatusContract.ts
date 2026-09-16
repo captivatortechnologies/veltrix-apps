@@ -173,6 +173,19 @@ export function describeGetStatusContract(label: string, getStatus: GetStatusHan
     assert.equal(result.componentStatuses[0].healthScore, undefined)
   })
 
+  test(`${label} getStatus reports a score of zero as unhealthy, not as unknown`, async () => {
+    const rec = recordPlatform(deploymentSummary({ healthScore: 0 }), [
+      realmComponent('comp-1', 'kc-a.example.com'),
+    ])
+
+    const result = await getStatus(ctxWith(rec.platform, entityType))
+
+    // A falsy check here reported the worst possible score as "never scored",
+    // which is the one state an operator does not need to act on.
+    assert.equal(result.componentStatuses[0].healthy, false)
+    assert.equal(result.componentStatuses[0].healthScore, 0)
+  })
+
   test(`${label} getStatus reports deployed with no component statuses when the customer has none`, async () => {
     const rec = recordPlatform(deploymentSummary(), [])
 

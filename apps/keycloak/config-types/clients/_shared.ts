@@ -8,6 +8,16 @@
 /** Valid Keycloak client protocols. */
 export const PROTOCOLS = new Set(['openid-connect', 'saml'])
 
+/**
+ * ClientRepresentation keys that carry a live credential.
+ *
+ * Unlike an identity provider's config or a component's config, which Keycloak
+ * masks on read as `**********`, GET /clients returns a confidential client's
+ * `secret` IN FULL — and `registrationAccessToken` is a live bearer token for
+ * that client. Neither may be recorded; see {@link stripSecretsFromClient}.
+ */
+const SECRET_KEYS = ['secret', 'credentials', 'registrationAccessToken'] as const
+
 /** A Keycloak client as returned by GET /admin/realms/{realm}/clients. */
 export interface KeycloakClientRep {
   /** Internal UUID — the {id} path segment for GET/PUT/DELETE .../clients/{id}. */
@@ -80,6 +90,28 @@ export function buildClientRep(fields: Record<string, unknown>, base?: KeycloakC
   if (name) rep.name = name
   else if (base && 'name' in base) rep.name = base.name
   return rep
+}
+
+/**
+ * A live client with its credential keys removed, for RECORDING only.
+ *
+ * rollbackData is persisted by the platform, so anything captured into it is
+ * stored well beyond this run. A confidential client's secret would otherwise
+ * be copied there on every deploy that updates an existing client — the rule
+ * this app already states for the realm representation
+ * (`config-types/realm-settings/_shared.ts`) and for component config
+ * (`config-types/user-federation/_shared.ts`, `stripSecretsFromComponent`).
+ *
+ * The PUT body is NOT stripped: sending the live `secret` back is what keeps an
+ * update from rotating it. Rollback's restore omits the key instead, which
+ * leaves the live secret alone — the same assumption, and the same conservative
+ * direction, as the user-federation rule: never write a value back that this
+ * app cannot read correctly.
+ */
+export function stripSecretsFromClient(client: KeycloakClientRep): KeycloakClientRep {
+  const out: KeycloakClientRep = { ...client }
+  for (const key of SECRET_KEYS) delete out[key]
+  return out
 }
 
 /** The fields this config type declares, projected off a live client for drift. */

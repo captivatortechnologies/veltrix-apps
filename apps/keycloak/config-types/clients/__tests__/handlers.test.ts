@@ -183,6 +183,55 @@ test('clients deploy records the LIVE prior state for rollback, not the desired 
   }
 })
 
+test('clients deploy sends the live secret back but never records it', async () => {
+  const LIVE_SECRET = 'LIVE-CLIENT-SECRET-abc123'
+  const live = liveClient({
+    secret: LIVE_SECRET,
+    registrationAccessToken: 'LIVE-REGISTRATION-TOKEN-xyz789',
+    credentials: [{ type: 'secret', value: LIVE_SECRET }],
+  })
+  const { calls, restore } = recordKeycloak([TOKEN, ok([live]), noContent()])
+  try {
+    const result = await deploy(deployContext([item('web', WEB_APP)]))
+
+    // Sending it back is what stops the update rotating the client's secret.
+    const body = bodyOf(vendorCalls(calls)[1]) as Record<string, unknown>
+    assert.equal(body.secret, LIVE_SECRET)
+
+    // Recording it is different: the platform persists rollbackData, and unlike
+    // IdP config or component config — which Keycloak masks on read — GET
+    // /clients returns a confidential client's secret in full.
+    const serialized = JSON.stringify(result.rollbackData)
+    assert.equal(serialized.includes(LIVE_SECRET), false, 'a client secret must not reach the rollback-data store')
+    assert.equal(serialized.includes('LIVE-REGISTRATION-TOKEN-xyz789'), false)
+    const previous = (result.rollbackData as { previous: Array<{ client: Record<string, unknown> }> }).previous
+    assert.equal('secret' in previous[0].client, false)
+    assert.equal('credentials' in previous[0].client, false)
+    // Everything else it needs to restore is still there.
+    assert.equal(previous[0].client.clientId, 'web-app')
+    assert.deepEqual(previous[0].client.redirectUris, ['https://app.example.com/*', 'https://app.example.com/cb'])
+  } finally {
+    restore()
+  }
+})
+
+test('clients rollback restores without writing a secret it never captured', async () => {
+  const { calls, restore } = recordKeycloak([TOKEN, noContent()])
+  try {
+    // The restore omits the key rather than sending a placeholder, which leaves
+    // the live secret alone — the same direction user-federation takes for a
+    // masked bind credential.
+    const prior = { id: 'uuid-web-app', clientId: 'web-app', enabled: true }
+    await rollback(rollbackContext({ previous: [{ clientId: 'web-app', id: 'uuid-web-app', client: prior }] }))
+
+    const body = bodyOf(writeCalls(calls)[0]) as Record<string, unknown>
+    assert.equal('secret' in body, false)
+    assert.equal(body.clientId, 'web-app')
+  } finally {
+    restore()
+  }
+})
+
 test('clients deploy reports failure rather than throwing when Keycloak rejects the write', async () => {
   const { restore } = recordKeycloak([TOKEN, ok([]), kcError(409, 'Client web-app already exists')])
   try {

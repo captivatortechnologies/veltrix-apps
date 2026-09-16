@@ -2,6 +2,35 @@
 
 All notable changes to the Keycloak app are documented here.
 
+## 0.4.1 — 2026-09-16
+
+### Fixed — three defects the new handler tests surfaced
+
+- **A confidential client's secret is no longer recorded into rollbackData.**
+  `GET /clients` returns `secret` in full for a confidential client (unlike IdP
+  and component config, which Keycloak masks), so every deploy of an existing
+  client copied that secret — and its `registrationAccessToken` — into the
+  platform's rollback-data store. The update body still carries the live secret,
+  which is what stops an update rotating it; only the recorded copy is stripped.
+  This is the rule the app already states for the realm representation and for
+  component config, now applied to clients.
+
+- **A failed listing no longer creates a duplicate provider.** `user-federation`
+  and `identity-provider-mappers` treated any non-2xx on their list call as "no
+  match", so a 503 during the read produced a second `corp-ldap` next to the
+  first — Keycloak enforces no uniqueness on component or mapper names — and
+  the deploy reported success. The listing that chooses create-vs-update now
+  fails the deploy instead. The re-read that only recovers a new object's id
+  still tolerates a failure, because the object exists by then and aborting
+  would leave it with no rollback entry at all.
+
+- **A health score of zero reads as unhealthy, not unknown.** `latest.healthScore
+  ? … : undefined` reported the worst possible score as never-scored — the one
+  state an operator does not need to act on.
+
+`clients` also stops carrying its own copies of the shared `getStatus` and
+`healthCheck` bodies, which is how its score check diverged in the first place.
+
 ## 0.4.0 — 2026-08-04
 
 Exhausts the declarative surface of the Keycloak Admin REST API — twelve new

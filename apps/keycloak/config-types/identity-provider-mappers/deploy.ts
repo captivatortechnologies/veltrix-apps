@@ -24,14 +24,27 @@ interface PreviousEntry {
   mapper: KeycloakIdpMapperRep | null
 }
 
-/** Fetch the live mapper list for an alias and match by name (or null), best-effort. */
+/**
+ * Fetch the live mapper list for an alias and match by name.
+ *
+ * `strict` decides what a FAILED read means. When this lookup chooses
+ * create-vs-update it must throw: mapper names are not unique per provider, so
+ * a 503 read as "no such mapper" adds a second copy alongside the first and
+ * reports success. When it is only recovering the id of something just created,
+ * null is right — the mapper exists either way, and aborting there would leave
+ * it with no rollback record at all.
+ */
 async function fetchByName(
   admin: ReturnType<typeof buildAdminClient>,
   alias: string,
   name: string,
+  strict = false,
 ): Promise<KeycloakIdpMapperRep | null> {
   const res = await admin.get(`/identity-provider/instances/${encodeURIComponent(alias)}/mappers`)
-  if (!res.ok) return null
+  if (!res.ok) {
+    if (strict) throw new Error(`list mappers for "${alias}" → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return null
+  }
   const list = parseJson<KeycloakIdpMapperRep[]>(res.body) ?? []
   return findMapperByName(list, name)
 }
@@ -63,7 +76,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       }
 
       const base = `/identity-provider/instances/${encodeURIComponent(alias)}/mappers`
-      const existing = await fetchByName(admin, alias, name)
+      const existing = await fetchByName(admin, alias, name, true)
 
       if (existing?.id) {
         const rep = buildMapperRep(item.fields, alias, existing)
