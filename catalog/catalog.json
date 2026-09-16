@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-09-16T20:54:00.726Z",
+  "generatedAt": "2026-09-16T20:59:55.033Z",
   "apps": [
     {
       "appId": "akamai",
@@ -1537,9 +1537,9 @@
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-soar",
       "available": true,
       "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-soar-v1.2.0/splunk-soar.zip",
-      "sha256": "e27ca066e364632b87bdaf413392945b262a635b16550686a6e5506da798fc1c",
-      "sizeBytes": 233122,
-      "publishedAt": "2026-08-06T02:31:35.599Z",
+      "sha256": "25ec0bef26083e3781f2aca12b96041c3511ca1a971286efd37642e14f95aeaa",
+      "sizeBytes": 235477,
+      "publishedAt": "2026-09-16T20:59:55.022Z",
       "releaseNotes": "## 1.2.0 — 2026-08-05\n\nConfig-as-code surface exhaustion — researched the full Splunk SOAR REST API\nand added eight configuration types, taking coverage from 1 (`connection`) to 9:\n\n- **Severities** (`severities`) — name, color, default flag, full add/edit/delete.\n- **Container Statuses** (`container-statuses`) — custom status labels (name,\n  category, default flag), full add/edit/delete.\n- **Container Labels** (`container-labels`) — ensures declared labels exist\n  (add-only — SOAR's API has no rename).\n- **Custom Fields** (`custom-fields`) — CEF field definitions (name + data\n  types), full add/edit/delete.\n- **Custom Lists** (`custom-lists`) — named lookup/allow/block lists, full\n  content replace.\n- **Roles** (`roles`) — roles and their permission flags across all 9\n  documented SOAR permission categories, full add/edit/delete.\n- **Automation Accounts** (`automation-accounts`) — service accounts\n  (`type: automation` only), full add/edit/delete; never manages a password.\n- **Assets** (`assets`) — asset instances of installed SOAR apps; non-secret\n  fields (identity, ownership, tags, tenants, polling) are fully managed,\n  free-form per-app `configuration` is write-only (sent, never read back or\n  diffed — mirrors `apps/cribl`'s Secrets type).\n\nCross-cutting finding: Splunk SOAR restricts `DELETE` to a user-authenticated\ncredential — an automation API token cannot delete records (Custom Lists is\nthe one documented exception). Every new type's rollback documents this and\nsurfaces a clear failure rather than silently no-op'ing when it applies.\n\nDropped after research (see README Coverage): Playbooks/Custom Functions/\nAutomation Broker scripts (versioned code in SOAR's own Source Control, not\ncanvas configuration), Workbook Templates (create-only REST surface — no\nlist-by-name, update, or delete, so not idempotently round-trippable),\nTenants/Multi-tenancy (`GET`-only, no write path found), System Settings\n(whole-section replace mixing unrelated feature flags with IdP secrets), and\none-shot actions / read-only case data (unchanged reasoning from prior\nreleases).",
       "releasedAt": "2026-08-05T00:00:00.000Z"
     },
