@@ -143,6 +143,16 @@ jobs:
           ln -sfn "$PWD/sdk" node_modules/@veltrixsecops/app-sdk
           npm test
 
+      # Ratchet, not a gate on new work: the floor is the CURRENT catalog-wide
+      # number, so this cannot fail a PR that adds tests, only one that removes
+      # them. Every configuration type already has a __tests__ folder, which
+      # reads as covered and is not — only `validate` is tested, while deploy,
+      # rollback, healthCheck and driftDetect (the handlers that reach a vendor
+      # and change things) sit near zero. Raise the floor as coverage climbs.
+      - name: Handler test coverage must not regress
+        if: steps.detect.outputs.apps != '' || steps.detect.outputs.template_changed == 'true'
+        run: node scripts/handler-coverage.mjs --min 19
+
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-latest
