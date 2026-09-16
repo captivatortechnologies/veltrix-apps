@@ -74,6 +74,24 @@ if (selected.length === 0) {
   process.exit(1)
 }
 
+/**
+ * What to hand node:test. Normally the bundled files, one path each — the set is
+ * explicit and every supported Node reads it the same way.
+ *
+ * An app with a few hundred test files overflows the Windows command line
+ * (spawn ENAMETOOLONG, ~32k), which made the largest apps unrunnable locally.
+ * Past that point, name the whole output directory instead: only the selected
+ * files were built into it, so the set is identical either way. Node 22 turned
+ * positional arguments into glob patterns, where a bare directory matches the
+ * directory itself and nothing in it — so which spelling means "this tree"
+ * depends on the runtime.
+ */
+function testArgs(dir, files) {
+  const budget = 30000
+  if (files.reduce((n, f) => n + f.length + 3, 0) < budget) return files
+  return Number(process.versions.node.split('.')[0]) >= 22 ? [join(dir, '**', '*.test.mjs')] : [dir]
+}
+
 const outDir = await mkdtemp(join(tmpdir(), 'veltrix-app-tests-'))
 
 const built = []
@@ -111,7 +129,7 @@ try {
   }
 
   console.log(`Running ${selected.length} app test file(s)\n`)
-  const child = spawn(process.execPath, ['--test', ...built], { stdio: 'inherit' })
+  const child = spawn(process.execPath, ['--test', ...testArgs(outDir, built)], { stdio: 'inherit' })
   const code = await new Promise((resolve) => child.on('exit', resolve))
   process.exitCode = code ?? 1
 } finally {
