@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-09-16T21:42:09.798Z",
+  "generatedAt": "2026-09-16T21:57:17.353Z",
   "apps": [
     {
       "appId": "akamai",
@@ -1027,9 +1027,9 @@
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity",
       "available": true,
       "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.12.0/okta-identity.zip",
-      "sha256": "a6ec961fb256590e7c7598c416ca16b847ba8fe0c2913c9fd150c444f352a7fe",
-      "sizeBytes": 895788,
-      "publishedAt": "2026-08-06T02:31:35.573Z",
+      "sha256": "06b87ad5a883e661660d748ab1d5f9c989343b289c9656300df07b42eb816688",
+      "sizeBytes": 896179,
+      "publishedAt": "2026-09-16T21:57:17.325Z",
       "releaseNotes": "## 1.12.0 — 2026-08-05\n\n### Added\n- **Custom Domains config type.** Verification pass over the app's 33 existing\n  config types against the Okta Management API found one genuine, high-value\n  gap: **Custom Domains** (`/api/v1/domains`) — the org's custom login-URL\n  domain (e.g. `login.acme.com`, what the browser shows during sign-in),\n  distinct from the already-covered Email Domains type (the mail-*sending*\n  domain, a different API). New `custom-domains` config type, grouped under\n  Branding & Notifications alongside Brands / Email Domains / SMS Templates:\n  - **Domain** is immutable (no rename endpoint — delete and recreate to\n    change it), matching this app's established \"no upsert\" model (list +\n    match by domain, then create or update).\n  - **Certificate source** is `OKTA_MANAGED` (Okta obtains/renews the cert\n    automatically after verification) or `MANUAL` (a PEM certificate + chain +\n    private key you supply). Switching to `MANUAL` has no revert path back to\n    `OKTA_MANAGED` — that is a hard error surfacing delete-and-recreate\n    guidance. `privateKey` is a WRITE-ONLY secret (Okta never returns it, so\n    it is re-sent on every deploy and never drift-checked); `certificate` /\n    `certificateChain` are public PEM material.\n  - **Brand IS rebindable** at any time via Okta's dedicated replace-brand\n    endpoint — unlike Email Domains, a custom domain's brand binding is not\n    immutable, so redeploying with a different Brand rebinds it in place.\n  - New domains are created UNVERIFIED — the operator adds the DNS records\n    Okta returns and verifies out of band; this app never auto-verifies\n    (`POST /domains/{id}/verify`), matching Email Domains' established\n    principle.\n  - Reuses the existing `brands` live-picker source (`config-types/lib/oktaOptions.ts`)\n    for the Brand field — no changes needed to the shared options provider.\n- **README Coverage section.** Documents every managed config type (grouped,\n  matching the sidebar) and every surface this app deliberately does NOT\n  manage as declarative config (Org Settings, Brand Email Template\n  Customizations, System Log, API Tokens, Devices, YubiKey hardware tokens,\n  Realms, Identity Governance, org privacy/support actions, per-user\n  factor/session actions) with a one-line sourced reason for each exclusion —\n  verified against the official `okta/okta-management-openapi-spec` GitHub\n  repository.",
       "releasedAt": "2026-08-05T00:00:00.000Z"
     },
