@@ -1,3 +1,21 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import {
+  NO_CONTENT,
+  TOKEN,
+  assertAuthenticatedFirst,
+  bodyOf,
+  collection,
+  created,
+  deployContext,
+  graphError,
+  item,
+  leaksSecret,
+  ok,
+  recordFetch,
+  writeCalls,
+} from '../../../lib/__tests__/fakeGraph'
+import deploy from '../deploy'
 import {
   isGuid,
   resolveGroups,
@@ -286,4 +304,247 @@ describe('buildPolicyBody', () => {
     const populated = buildPolicyBody(base, { ...emptyResolved, termsOfUse: ['tou-1', 'tou-2'] })
     expect((populated.grantControls as Record<string, unknown>).termsOfUse).toEqual(['tou-1', 'tou-2'])
   })
+})
+
+// ============================================================================
+// deploy, end to end against a fake Microsoft Graph.
+//
+// Everything above tests the exported resolvers in isolation. What follows
+// drives the DEFAULT export — the handler that actually writes Conditional
+// Access policies into a customer's directory. A silent failure here locks an
+// organisation out or waves an attacker through, so the assertions are about
+// the bytes on the wire: which requests, in which order, carrying what `state`.
+// ============================================================================
+
+/**
+ * The six display-name -> id listings deploy/driftDetect build once per run, in
+ * the order the handler requests them: groups, users, roleDefinitions,
+ * namedLocations, authenticationStrengthPolicies, termsOfUse agreements.
+ */
+function nameMaps(over: Record<number, unknown[]> = {}) {
+  return [0, 1, 2, 3, 4, 5].map((i) => collection(over[i] ?? []))
+}
+
+const POLICIES = '/identity/conditionalAccess/policies'
+
+/** A live policy matching the "MFA for everyone, report-only" canvas item below. */
+const LIVE_MATCHING = {
+  id: 'p-1',
+  displayName: 'Require MFA',
+  state: 'enabledForReportingButNotEnforced',
+  conditions: {
+    users: {
+      includeUsers: ['All'],
+      excludeUsers: [],
+      includeGroups: [],
+      excludeGroups: [],
+      includeRoles: [],
+      excludeRoles: [],
+    },
+    applications: { includeApplications: ['All'] },
+  },
+  grantControls: { operator: 'OR', builtInControls: ['mfa'] },
+}
+
+function mfaItem(fields: Record<string, unknown> = {}) {
+  return item('Require MFA', {
+    name: 'Require MFA',
+    includeAllUsers: true,
+    includeAllApps: true,
+    builtInControls: ['mfa'],
+    ...fields,
+  })
+}
+
+test('deploy refuses without a credential instead of calling Graph', async () => {
+  const { calls, restore } = recordFetch([])
+  try {
+    const result = await deploy(deployContext([mfaItem()], { credential: null }))
+
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /credential/i)
+    assert.equal(calls.length, 0, 'must not reach Graph without a credential')
+  } finally {
+    restore()
+  }
+})
+
+test('deploy refuses when the tenant id setting is missing', async () => {
+  // Client-credentials has no token endpoint without the directory (tenant) id,
+  // so this must fail closed BEFORE any network call, not half way through.
+  const { calls, restore } = recordFetch([])
+  try {
+    const result = await deploy(deployContext([mfaItem()], { settings: {} }))
+
+    assert.equal(result.success, false)
+    assert.equal(calls.length, 0)
+  } finally {
+    restore()
+  }
+})
+
+test('a failed policy listing stops the deploy before it writes anything', async () => {
+  const { calls, restore } = recordFetch([
+    TOKEN,
+    graphError(403, 'Insufficient privileges to complete the operation.'),
+  ])
+  try {
+    const result = await deploy(deployContext([mfaItem()]))
+
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /Failed to list Conditional Access policies/)
+    assert.match(String(result.message), /Insufficient privileges/)
+    assert.equal(
+      writeCalls(calls).length,
+      0,
+      'a deploy that cannot see live policies must not create or patch any',
+    )
+  } finally {
+    restore()
+  }
+})
+
+test('deploy acquires a token first and creates a new policy REPORT-ONLY, never enabled', async () => {
+  const { calls, restore } = recordFetch([TOKEN, collection([]), ...nameMaps(), created({ id: 'p-new' })])
+  try {
+    const result = await deploy(deployContext([mfaItem()]))
+
+    const graphCalls = assertAuthenticatedFirst(assert, calls)
+    const write = graphCalls.find((c) => c.method === 'POST')
+    assert.ok(write, 'expected a POST creating the policy')
+    assert.ok(write.url.includes(POLICIES))
+
+    const body = bodyOf(write)
+    assert.ok(body)
+    // The canvas said "report-only" (the default). A policy created `enabled`
+    // by accident starts blocking sign-ins the moment it lands.
+    assert.equal(body.state, 'enabledForReportingButNotEnforced')
+    assert.notEqual(body.state, 'enabled')
+    assert.equal(result.success, true)
+
+    const entries = (result.rollbackData as { entries: Array<Record<string, unknown>> }).entries
+    assert.deepEqual(entries, [{ itemId: undefined, name: 'Require MFA', existed: false, id: 'p-new' }])
+    assert.equal(leaksSecret(result), false, 'the access token must not reach the result or rollbackData')
+  } finally {
+    restore()
+  }
+})
+
+test('deploy sends state "enabled" only when the canvas explicitly asks for it', async () => {
+  const { calls, restore } = recordFetch([TOKEN, collection([]), ...nameMaps(), created({ id: 'p-new' })])
+  try {
+    await deploy(deployContext([mfaItem({ state: 'enabled' })]))
+
+    const body = bodyOf(writeCalls(calls)[0])
+    assert.ok(body)
+    assert.equal(body.state, 'enabled')
+  } finally {
+    restore()
+  }
+})
+
+test('an unrecognised canvas state falls back to report-only rather than enforcing', async () => {
+  const { calls, restore } = recordFetch([TOKEN, collection([]), ...nameMaps(), created({ id: 'p-new' })])
+  try {
+    await deploy(deployContext([mfaItem({ state: 'Enforced' })]))
+
+    const body = bodyOf(writeCalls(calls)[0])
+    assert.ok(body)
+    assert.equal(body.state, 'enabledForReportingButNotEnforced')
+  } finally {
+    restore()
+  }
+})
+
+test('deploy updates a policy that already exists and records its LIVE prior state', async () => {
+  const livePrior = {
+    ...LIVE_MATCHING,
+    state: 'enabled',
+    grantControls: { operator: 'AND', builtInControls: ['block'] },
+  }
+  const { calls, restore } = recordFetch([TOKEN, collection([livePrior]), ...nameMaps(), ok({})])
+  try {
+    const result = await deploy(deployContext([mfaItem()]))
+
+    const writes = writeCalls(calls)
+    assert.equal(writes.length, 1)
+    assert.equal(writes[0].method, 'PATCH', 'an existing policy is updated, not duplicated')
+    assert.ok(writes[0].url.includes(`${POLICIES}/p-1`))
+
+    const entries = (result.rollbackData as { entries: Array<Record<string, unknown>> }).entries
+    assert.equal(entries.length, 1)
+    assert.equal(entries[0].existed, true)
+    // Rollback has to restore what the tenant HAD, not what the canvas wanted.
+    assert.deepEqual(entries[0].prior, {
+      displayName: 'Require MFA',
+      state: 'enabled',
+      conditions: livePrior.conditions,
+      grantControls: { operator: 'AND', builtInControls: ['block'] },
+    })
+    const sent = bodyOf(writes[0])
+    assert.ok(sent)
+    assert.notEqual(sent.state, (entries[0].prior as { state: string }).state)
+  } finally {
+    restore()
+  }
+})
+
+test('an unresolvable target name fails the item without writing a partial policy', async () => {
+  const { calls, restore } = recordFetch([TOKEN, collection([]), ...nameMaps()])
+  try {
+    const result = await deploy(
+      deployContext([mfaItem({ includeAllUsers: false, includeGroups: ['Ghost Group'] })]),
+    )
+
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /unknown target\(s\) Ghost Group/)
+    assert.equal(
+      writeCalls(calls).length,
+      0,
+      'a policy whose audience cannot be resolved must not be written at all',
+    )
+  } finally {
+    restore()
+  }
+})
+
+test('deploy reports a rejected write rather than throwing', async () => {
+  const { restore } = recordFetch([
+    TOKEN,
+    collection([]),
+    ...nameMaps(),
+    graphError(400, 'The maximum number of policies has been reached.', 'BadRequest'),
+  ])
+  try {
+    const result = await deploy(deployContext([mfaItem()]))
+
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /maximum number of policies/)
+    assert.equal(leaksSecret(result), false)
+  } finally {
+    restore()
+  }
+})
+
+test('deploy deletes a policy it created earlier and the canvas no longer declares', async () => {
+  const { calls, restore } = recordFetch([TOKEN, collection([]), ...nameMaps(), NO_CONTENT])
+  try {
+    const result = await deploy(
+      deployContext([], {
+        priorRollbackData: {
+          entries: [
+            { name: 'Retired Policy', existed: false, id: 'p-old' },
+            { name: 'Pre-existing Policy', existed: true, id: 'p-keep', prior: {} },
+          ],
+        },
+      }),
+    )
+
+    const deletes = writeCalls(calls).filter((c) => c.method === 'DELETE')
+    assert.equal(deletes.length, 1, 'only the policy this app created may be deleted')
+    assert.ok(deletes[0].url.includes(`${POLICIES}/p-old`))
+    assert.equal(result.success, true)
+  } finally {
+    restore()
+  }
 })
