@@ -236,6 +236,40 @@ test('records an empty string for a field the tenant had not set', async () => {
   }
 })
 
+test('stops before writing when the prior branding could not be read', async () => {
+  const { calls, restore } = recordFetch([TOKEN, ORG, graphError(403, 'Insufficient privileges.')])
+  try {
+    const result = await deploy(deployContext([brandingItem()]))
+
+    // A failed read used to be substituted with `{}`, which recorded every
+    // managed field's prior value as ''. Rollback PATCHes the prior back, so
+    // the undo for this deploy would have BLANKED the tenant's sign-in page
+    // rather than restoring what was there.
+    assert.equal(result.success, false)
+    assert.match(result.message, /Failed to read/)
+    assert.equal(writeCalls(calls).length, 0)
+    assert.deepEqual(entriesOf(result), [])
+  } finally {
+    restore()
+  }
+})
+
+test('a tenant with no branding yet is a known prior, not an unknown one', async () => {
+  const { calls, restore } = recordFetch([TOKEN, ORG, notFound(), notFound(), resource({})])
+  try {
+    const result = await deploy(deployContext([brandingItem()]))
+
+    // 404 means there is genuinely nothing there, so '' per field is the truth
+    // and rollback clearing what this deploy added is the correct undo. Only an
+    // unreadable prior is a reason to stop.
+    assert.equal(result.success, true)
+    assert.deepEqual(entriesOf(result)[0].prior, { signInPageText: '', backgroundColor: '' })
+    assert.equal(writeCalls(calls).length, 2)
+  } finally {
+    restore()
+  }
+})
+
 test('neither the token nor the client secret reaches the result', async () => {
   const { restore } = recordFetch([TOKEN, ORG, resource({}), resource({})])
   try {

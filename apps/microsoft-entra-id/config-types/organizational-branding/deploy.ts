@@ -61,6 +61,14 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const getResp = await client.request('GET', `${path}?$select=${BRANDING_FIELDS.join(',')}`, undefined, {
     headers: DEFAULT_LOCALE_HEADERS,
   })
+  // A 404 is a known answer: the tenant has no default branding yet, so an empty
+  // prior IS the prior, and a rollback clearing what this deploy added is the
+  // correct undo. Any OTHER failure means the prior is unknown — recording it as
+  // empty would make the rollback blank the tenant's sign-in page instead of
+  // restoring it, so stop here rather than write with nothing to undo it by.
+  if (!getResp.ok && getResp.status !== 404) {
+    return { success: false, message: `Failed to read organizational branding: ${graphErrorMessage(getResp)}` }
+  }
   const live = getResp.ok ? parseJson<Record<string, unknown>>(getResp.body) ?? {} : {}
 
   // Update the default branding via PATCH (Accept-Language: 0). If no default

@@ -44,7 +44,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     // Method configurations are fixed singletons — read current state for
     // rollback, then PATCH the managed state. No create/delete.
     const getResp = await client.get(`${BASE}/${spec.method}?$select=id,state`)
-    const live = getResp.ok ? parseJson<LiveAuthMethodConfig>(getResp.body) : null
+    // A failed read used to fall through to 'disabled', which rollback would
+    // then PATCH back — turning an undo into "switch this authentication method
+    // off for the tenant". These configurations always exist, so an unreadable
+    // one means the prior state is unknown, and this method is left alone.
+    if (!getResp.ok) {
+      failures.push(`${spec.method}: could not read the current state (${graphErrorMessage(getResp)})`)
+      continue
+    }
+    const live = parseJson<LiveAuthMethodConfig>(getResp.body)
     const priorState = live?.state ?? 'disabled'
 
     const resp = await client.patch(`${BASE}/${spec.method}`, buildBody(spec))

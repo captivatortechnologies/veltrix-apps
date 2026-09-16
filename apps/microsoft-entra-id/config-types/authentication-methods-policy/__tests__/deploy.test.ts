@@ -166,6 +166,46 @@ test('deploy records the LIVE prior state, not the state it is about to send', a
   }
 })
 
+test('a method whose current state could not be read is left alone, not written', async () => {
+  const { calls, restore } = recordFetch([TOKEN, graphError(403, 'Insufficient privileges.')])
+  try {
+    const result = await deploy(deployContext([methodItem('fido2', 'enabled')]))
+
+    // A failed read used to fall through to a prior of 'disabled'. Rollback
+    // PATCHes the prior back, so undoing this deploy would have switched FIDO2
+    // off for the whole tenant — a change, not an undo.
+    assert.equal(result.success, false)
+    assert.match(result.message, /could not read/)
+    assert.equal(writeCalls(calls).length, 0)
+    assert.deepEqual((result.rollbackData as { entries: unknown[] }).entries, [])
+  } finally {
+    restore()
+  }
+})
+
+test('one unreadable method does not stop the others', async () => {
+  const { calls, restore } = recordFetch([
+    TOKEN,
+    graphError(403, 'Insufficient privileges.'),
+    liveMethod('voice', 'enabled'),
+    NO_CONTENT,
+  ])
+  try {
+    const result = await deploy(deployContext([methodItem('fido2', 'enabled'), methodItem('voice', 'disabled')]))
+
+    assert.equal(result.success, false, 'the run is not clean while one method was skipped')
+    assert.equal(writeCalls(calls).length, 1)
+    const entries = (result.rollbackData as { entries: Array<Record<string, unknown>> }).entries
+    assert.deepEqual(
+      entries.map((e) => e.method),
+      ['voice'],
+      'rollback data covers exactly what was written',
+    )
+  } finally {
+    restore()
+  }
+})
+
 test('a method Graph does not know about is dropped before any call is made', async () => {
   // The canvas can only be deployed against the fixed set of method ids; an
   // unknown one has no @odata.type, so a PATCH for it would be malformed.

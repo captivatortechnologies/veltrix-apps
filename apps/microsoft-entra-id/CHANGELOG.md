@@ -8,6 +8,28 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.8.6 — 2026-09-16
+
+### Fixed — two deploys recorded a prior state they had not read
+
+Both handlers substituted an empty value for a failed read, which rollback then
+wrote back as if it were the tenant's previous state. In each case the undo was
+a change of its own, in the direction that loosens or erases.
+
+- **organizational-branding** — an unreadable branding read became `{}`, so
+  every managed field's prior was recorded as `''`. Rolling that deploy back
+  would have BLANKED the tenant's sign-in page (legal notice, colours, custom
+  privacy and terms links) rather than restoring it. A 404 is different and is
+  still treated as an empty prior: it means the tenant genuinely has no default
+  branding yet, so clearing what the deploy added is the correct undo.
+
+- **authentication-methods-policy** — an unreadable method configuration fell
+  through to a prior of `'disabled'`, so rolling back a deploy that enabled
+  FIDO2 (or Temporary Access Pass, or Authenticator) would have switched that
+  method off for the whole tenant. Those configurations always exist, so an
+  unreadable one means the prior is unknown and the method is now left alone;
+  the other methods in the same run still deploy.
+
 ## 0.8.5 — 2026-08-04
 
 Live pickers Phase 2 (batch 4, FINAL) — Groups, External Identities & tenant
