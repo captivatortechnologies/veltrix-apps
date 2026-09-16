@@ -86,6 +86,24 @@ apps/my-security-tool/
 
 Adding a configuration type = one new `config-types/<id>/` folder + one manifest entry. Manifest references use the conventional paths, extensionless for code (e.g. `config-types/indexes/deploy`, `config-types/indexes/canvas.yaml`, `hooks/onInstall`).
 
+## Testing your handlers
+
+`validate` runs locally. `deploy`, `rollback`, `healthCheck` and `driftDetect`
+reach the vendor and change a customer's configuration — those are the ones worth
+testing, and historically the ones that were not.
+
+Handlers reach their vendor through global `fetch`, so stubbing it drives a real
+handler end to end with no module mocking and no new dependency. See
+[docs/TESTING-HANDLERS.md](docs/TESTING-HANDLERS.md) for the pattern, the worked
+example, and what to assert.
+
+```
+node scripts/test-apps.mjs <app-id>        # run an app's tests
+node scripts/handler-coverage.mjs <app-id> # see which handlers are covered
+```
+
+CI enforces that catalog-wide handler coverage does not regress.
+
 ## Submission & review
 
 1. Open a **pull request** targeting `main` with a description of what your app does, which security tools it integrates with, and testing instructions.
