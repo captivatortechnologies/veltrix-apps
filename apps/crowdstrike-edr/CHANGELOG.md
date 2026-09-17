@@ -3,6 +3,28 @@
 All notable changes to the CrowdStrike Falcon app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.13.4 — 2026-09-16
+
+### Fixed — a created object no longer reports itself as never created
+
+Every `create` helper threw the moment the response carried no id — AFTER the
+POST had succeeded, and before the caller's `rollbackState.push`. So a 2xx create
+with an id-less body made the deploy report "deployment failed, nothing to undo"
+about an object that exists in the customer's tenant: an invited Falcon user
+account, a live sensor-enrolment secret, a privileged RTR script, an
+Identity Protection rule that may already be refusing logins.
+
+The create SUCCEEDED, so the object can be found. All three shared adapters
+(`entityAdapter`, `exclusionAdapter`, `filevantageAdapter`) and the two
+module-local copies with their own lookup now re-resolve by the identity they
+just sent, which recovers the id in the ordinary case and lets the caller record
+the object exactly as it would have. This reaches 28 configuration types through
+the shared adapters alone.
+
+Where the re-resolve also comes back empty there is genuinely nothing to record,
+and the error now says the object EXISTS in the tenant rather than implying
+nothing was written — the operator is the only one who can clean it up.
+
 ## 1.13.3 — 2026-09-16
 
 ### Fixed — a destroyed put-file is now named, instead of reported as nothing

@@ -116,8 +116,27 @@ export async function createEntity(
   // (resources: ["<id>"]) or as an object (resources: [{ id }]) — tolerate both.
   const created = parseEnvelope<LiveEntity | string>(res.body)?.resources?.[0]
   const id = typeof created === 'string' ? created : created?.id
-  if (!id) throw new Error('Object created but the API returned no id')
-  return id
+  if (id) return id
+
+  // The POST SUCCEEDED, so the object exists in the customer's tenant — the
+  // response merely did not carry its id. Throwing straight from here made the
+  // caller report "deployment failed, nothing to undo" about a live object
+  // nobody had recorded: an invited user account, a sensor-enrolment secret, an
+  // authentication rule already refusing logins.
+  //
+  // Re-resolve by the identity that was just sent. Only if THAT also comes back
+  // empty is there genuinely nothing to record, and the error then says the
+  // object exists rather than implying it does not.
+  const field = endpoints.identityField ?? 'name'
+  const identity = body[field]
+  if (typeof identity === 'string' && identity) {
+    const found = await findEntityByIdentity(client, endpoints, identity)
+    if (found?.id) return found.id
+  }
+  throw new Error(
+    'Object was created but the API returned no id and it could not be found by ' +
+      `${field} — it EXISTS in the tenant and is not recorded for rollback`,
+  )
 }
 
 /** Update an object (body must include its id). */

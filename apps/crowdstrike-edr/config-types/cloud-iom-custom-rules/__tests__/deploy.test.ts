@@ -318,11 +318,34 @@ test('cloud-iom-custom-rules deploy: never puts the token or the client secret i
   }
 })
 
-test('cloud-iom-custom-rules deploy: a create that returns no id is not reported as a success', async () => {
-  // DEFECT (reported, not blessed): `createEntity` throws here AFTER the POST
-  // succeeded, and `rollbackState.push` only runs on the line below it — so the
-  // rule now exists in the tenant with nothing recorded to delete it. What is
-  // asserted is only the half that is certainly right: no claim of success.
+test('cloud-iom-custom-rules deploy: recovers the id of a create whose response carried none', async () => {
+  // The POST succeeded, so the rule exists in the tenant. `createEntity` used to
+  // throw straight from the missing-id check, and the caller's
+  // `rollbackState.push` is the line AFTER it — so the deploy reported "failed,
+  // nothing to undo" about a live rule. It now re-resolves by the identity it
+  // just sent, which recovers the id in the ordinary case.
+  const { calls, restore } = routeFetch([
+    // The name query answers twice: empty before the create, then finding it.
+    { url: QUERIES, respond: [EMPTY, idsPage(['rule-recovered'])] },
+    { url: ENTITY, method: 'POST', respond: CREATED_WITHOUT_ID },
+    { url: ENTITY, method: 'GET', respond: entityPage([{ id: 'rule-recovered', name: 'block-public-s3' }]) },
+  ])
+  try {
+    const result = await deploy(deployContext([RULE]))
+
+    assert.equal(result.success, true)
+    assert.equal(callsOfMethod(calls, 'POST').length, 1, 'the rule was created exactly once')
+    const state = (result.rollbackData as { previousState: Array<Record<string, unknown>> }).previousState
+    assert.deepEqual(state, [{ name: 'block-public-s3', existed: false, id: 'rule-recovered' }])
+  } finally {
+    restore()
+  }
+})
+
+test('cloud-iom-custom-rules deploy: a create it cannot find afterwards says the rule EXISTS', async () => {
+  // The residual case: created, no id, and the re-resolve comes back empty too.
+  // Nothing can record it — but the message must not imply nothing was written,
+  // because something was, and only the operator can clean it up.
   const { calls, restore } = routeFetch([
     { url: QUERIES, respond: EMPTY },
     { url: ENTITY, method: 'POST', respond: CREATED_WITHOUT_ID },
@@ -332,6 +355,7 @@ test('cloud-iom-custom-rules deploy: a create that returns no id is not reported
 
     assert.equal(result.success, false)
     assert.match(String(result.message), /returned no id/i)
+    assert.match(String(result.message), /EXISTS in the tenant/)
     assert.equal(callsOfMethod(calls, 'POST').length, 1, 'the rule was in fact created')
   } finally {
     restore()

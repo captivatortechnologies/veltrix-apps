@@ -162,10 +162,17 @@ export async function createPutFile(client: FalconClient, spec: PutFileSpec): Pr
   }
   const created = parseEnvelope<LiveRtrPutFile | string>(res.body)?.resources?.[0]
   const id = typeof created === 'string' ? created : created?.id
-  if (!id) {
-    throw new Error(`RTR put-file "${spec.name}" was created but the API returned no id`)
-  }
-  return id
+  if (id) return id
+
+  // The upload SUCCEEDED, so the put-file exists and is stageable by any RTR
+  // operator. Re-resolve by name rather than reporting a failure that implies
+  // nothing was written.
+  const found = await findPutFile(client, spec.name)
+  if (found?.id) return found.id
+  throw new Error(
+    `RTR put-file "${spec.name}" was created but the API returned no id and it could not be ` +
+      'found by name — it EXISTS in the tenant and is not recorded for rollback',
+  )
 }
 
 /** Delete a put-file by id, tolerating 404 (already gone is the desired state). */

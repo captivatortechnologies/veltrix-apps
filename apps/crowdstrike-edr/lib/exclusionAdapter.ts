@@ -113,8 +113,21 @@ export async function createExclusion(
   const failure = falconFailure(res)
   if (failure) throw new Error(`Failed to create exclusion: ${failure}`)
   const id = parseEnvelope<LiveExclusion>(res.body)?.resources?.[0]?.id
-  if (!id) throw new Error('Exclusion created but the API returned no id')
-  return id
+  if (id) return id
+
+  // The POST SUCCEEDED, so the exclusion is live — it is already suppressing
+  // detections. Throwing from here made the caller report "nothing to undo"
+  // about a blind spot nobody recorded. Re-resolve by the identity just sent.
+  const identity = body[endpoints.identityField]
+  if (typeof identity === 'string' && identity) {
+    const found = await findExclusion(client, endpoints, identity)
+    if (found?.id) return found.id
+  }
+  throw new Error(
+    'Exclusion was created but the API returned no id and it could not be found by ' +
+      `${endpoints.identityField} — it EXISTS in the tenant, is suppressing detections, ` +
+      'and is not recorded for rollback',
+  )
 }
 
 /** Update an exclusion (body must include its id). */

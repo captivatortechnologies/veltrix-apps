@@ -108,8 +108,21 @@ export async function createFileVantage(
   const failure = falconFailure(res)
   if (failure) throw new Error(`Failed to create FileVantage object: ${failure}`)
   const id = parseEnvelope<LiveFileVantageEntity>(res.body)?.resources?.[0]?.id
-  if (!id) throw new Error('FileVantage object created but the API returned no id')
-  return id
+  if (id) return id
+
+  // The POST SUCCEEDED, so the object exists in the customer's tenant — a
+  // scheduled exclusion created here is already a window in which FileVantage
+  // stops reporting file changes. Throwing from here made the caller report
+  // "nothing to undo" about it. Re-resolve by the name just sent.
+  const name = body.name
+  if (typeof name === 'string' && name) {
+    const found = await findFileVantageByName(client, endpoints, name)
+    if (found?.id) return found.id
+  }
+  throw new Error(
+    'FileVantage object was created but the API returned no id and it could not be ' +
+      'found by name — it EXISTS in the tenant and is not recorded for rollback',
+  )
 }
 
 /** Update a FileVantage object (body must include its id). */

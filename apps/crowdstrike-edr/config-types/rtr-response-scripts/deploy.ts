@@ -128,10 +128,17 @@ export async function createScript(client: FalconClient, spec: ScriptSpec): Prom
   // Create returns the new id as a bare string or an object — tolerate both.
   const created = parseEnvelope<LiveRtrScript | string>(res.body)?.resources?.[0]
   const id = typeof created === 'string' ? created : created?.id
-  if (!id) {
-    throw new Error(`RTR script "${spec.name}" was created but the API returned no id`)
-  }
-  return id
+  if (id) return id
+
+  // The create SUCCEEDED, so the script exists and is runnable at sensor
+  // privilege by any RTR operator. Re-resolve by name rather than reporting a
+  // failure that implies nothing was written.
+  const found = await findScript(client, spec.name)
+  if (found?.id) return found.id
+  throw new Error(
+    `RTR script "${spec.name}" was created but the API returned no id and it could not be ` +
+      'found by name — it EXISTS in the tenant, is runnable, and is not recorded for rollback',
+  )
 }
 
 /** Update an existing script in place. */
