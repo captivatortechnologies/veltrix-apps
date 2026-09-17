@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-09-17T13:35:53.747Z",
+  "generatedAt": "2026-09-17T22:06:00.800Z",
   "apps": [
     {
       "appId": "akamai",
@@ -415,7 +415,7 @@
     {
       "appId": "crowdstrike-edr",
       "name": "CrowdStrike Falcon",
-      "version": "1.13.5",
+      "version": "1.13.6",
       "vendor": "Veltrix",
       "description": "Manage CrowdStrike Falcon configurations as code through the Falcon APIs. Covers Endpoint Policies (prevention, sensor update, response, USB device control, content update, custom IOA rule groups), Exclusions (ML, IOA, sensor visibility), host groups, and custom IOCs — with validation, drift detection, and rollback handled by the Security-as-Code pipeline. Configuration types are grouped by Falcon API family in the sidebar.",
       "category": "EDR",
@@ -425,12 +425,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.13.5/crowdstrike-edr.zip",
-      "sha256": "060f3786ae5d43086e7b971d6b8750b3a90cd60c32ab4de7cdeaba2a97d04f4d",
-      "sizeBytes": 1111657,
-      "publishedAt": "2026-09-17T03:19:06.239Z",
-      "releaseNotes": "## 1.13.5 — 2026-09-16\n\n### Fixed — a rollback that made no call no longer counts the entry as reverted\n\nFifteen rollbacks pushed each entry onto `reverted` at the end of the loop\nwhether or not any branch had fired. An entry carrying no recorded id matches\nneither the delete nor the restore branch, so the handler returned\n`\"Rolled back 1 …\"` and `success: true` having issued zero calls.\n\nMaking no call is right — inventing a delete would remove an object this\ndeployment never created — but claiming a clean revert is not. It is the second\nhalf of the orphan problem: it turns \"a stale object\" into \"a stale object\nnobody will ever look for\". The skipped entries are now named in the message and\nthe result stops reporting success.\n\n`idp-policy-rules` has the same shape but a bespoke entry (separate ids for the\nprior and the created rule, plus a `deleted` flag) and a second, related defect\naround leaving two conflicting rules live; it is left for its own change rather\nthan bent into this one.",
-      "releasedAt": "2026-09-16T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.13.6/crowdstrike-edr.zip",
+      "sha256": "01d7762e1c840ee2833f09d2b414581bf9e66c4df098e88cadefc708964e762b",
+      "sizeBytes": 1113773,
+      "publishedAt": "2026-09-17T22:06:00.737Z",
+      "releaseNotes": "## 1.13.6 — 2026-09-17\n\n### Fixed — an Identity Protection rule is no longer deleted just because a name matched\n\n`idp-policy-rules` converges a changed rule by delete-then-recreate, and there\nwas NO guard on it: any live rule whose name matched a canvas item was deleted\nand replaced — including one CrowdStrike ships. `toCreateBody` keeps only the\nmanaged scalars plus five condition keys, so even the rollback path would put\nback a stripped-down copy of a built-in.\n\nThe converge now refuses when the rule cannot be faithfully put back, for either\nreason:\n\n- it carries a built-in marker (`system`, `isDefault`, `predefined`, `readOnly`\n  and the usual variants). Identity Protection does not document one today, so\n  this fires only when a flag is actually present and true — it costs nothing\n  now and starts working the day the API surfaces one;\n- it carries any field this app cannot recreate, which deleting would discard\n  permanently. The message names the fields.\n\nThe asymmetry decides the default: refusing leaves a rule the operator can\nrename or remove by hand, and says which one. Proceeding destroys an\nauthentication rule and cannot be undone from here. Server-assigned and\naudit-only keys are still dropped on purpose and do not trigger the refusal.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "cyberark",
@@ -753,7 +753,7 @@
     {
       "appId": "ibm-qradar",
       "name": "IBM QRadar",
-      "version": "0.6.3",
+      "version": "0.6.4",
       "vendor": "Veltrix",
       "description": "Manage IBM QRadar configuration as code through the QRadar REST API — Reference Sets, Reference Maps, Map of Sets, Reference Tables, Domains, Log Sources, Log Source Groups, Custom Log Source Types, Event & Flow Custom Properties (regex + calculated), Remote Networks, Remote Services, Network Hierarchy, Tenants, Resource Restrictions, Offense Closing Reasons, Bandwidth Manager, QID Records, Ariel Lookups, Tagged Field Categories, Tagged Fields, Flow VLANs and Disaster-Recovery Ariel Copy Profiles — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "SIEM",
@@ -762,12 +762,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/ibm-qradar",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/ibm-qradar-v0.6.3/ibm-qradar.zip",
-      "sha256": "b1f4271d850839d1af11289aec57717754bb5a9c7fd26c37c9ce7825f717b9f7",
-      "sizeBytes": 451433,
-      "publishedAt": "2026-09-17T02:46:17.307Z",
-      "releaseNotes": "## 0.6.3 — 2026-09-16\n\n### Fixed — the documented alternative credential field was dead code\n\nThe resolver read `credential.password ?? credential.username`. `CredentialRef.password` is a\nnon-optional `string` and the platform supplies it as `''` rather than null, so\n`??` never fell through: the alternative field this app's own\n`MISSING_CREDENTIAL_MESSAGE` tells the operator they may use was never read.\n\nA tenant that stored its secret where the documentation said got a silent, total\nrefusal from every handler — and because `driftDetect` reports `checked: false`\nwithout a usable credential, nothing ever alarmed about it either. The operator\nsees a connection that simply does not work, with no indication why.\n\n`||` is the right operator here: an empty credential field means \"not set\".",
-      "releasedAt": "2026-09-16T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/ibm-qradar-v0.6.4/ibm-qradar.zip",
+      "sha256": "315e9efff720bab7956258b15adca5d2eaa9d5a80b4c1e22fdb18b1bc3a01435",
+      "sizeBytes": 459062,
+      "publishedAt": "2026-09-17T22:06:00.753Z",
+      "releaseNotes": "## 0.6.4 — 2026-09-17\n\n### Fixed — a refused listing is no longer read as an empty console\n\nFourteen configuration types listed their objects with `if (!res.ok) return []`,\nso any non-2xx read as \"the console holds none of these\". That one line produced\ntwo wrong outcomes:\n\n- **deploy took the CREATE branch for objects that already exist.** For the\n  append-only types — which have no delete endpoint — those duplicates are\n  permanent.\n- **drift reported every declared object `severity: 'critical', actual:\n  'absent'`.** Somebody is paged for deletions that never happened, and the\n  obvious remedy is to redeploy things that were never gone.\n\nEach listing now returns null when it could not read. Deploy refuses before\nwriting anything and says why; drift reports `checked: false` rather than\ninventing deletions. The same fix is applied to `qid-records`' nested event\nmappings, where an unreadable read used to add a duplicate mapping.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "illumio",
