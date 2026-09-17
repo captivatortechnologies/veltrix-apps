@@ -1,15 +1,20 @@
 // =============================================================================
 // The `rollback` contract every Panorama configuration type must satisfy.
 //
-// Rollback reads the state deploy recorded — a list of `{ name, existed }` plus
-// the REST resource path — and DELETEs, in reverse order, only the objects this
-// deploy created. Objects that already existed were updated in place and are
-// deliberately left alone.
+// Rollback reads the state deploy recorded — a list of `{ name, existed, prior }`
+// plus the REST resource path — and, in reverse order, DELETEs the objects this
+// deploy created and PUTs back the prior state of the ones it overwrote.
 //
 // That makes the shape of the recorded state the whole contract:
 //
-//   * An entry marked pre-existing must produce NO call. Deleting an object a
+//   * An entry marked pre-existing must never be DELETED. Removing an object a
 //     customer had before Veltrix touched it is not a rollback, it is an outage.
+//     It is restored from its recorded prior instead — leaving it alone, which
+//     is what this used to do, left it carrying the deployed values while the
+//     operator was told the rollback had succeeded.
+//
+//   * An entry with no recorded prior must produce NO call, and must not be
+//     reported as rolled back. Inventing a body would overwrite live config.
 //
 //   * No recorded resource path means nothing can be addressed safely, so the
 //     handler must refuse rather than guess a collection to delete from.
@@ -41,12 +46,15 @@ import {
   withUnreachablePanorama,
   xmlCalls,
 } from './fakePanorama'
-import type { ConfigFixture } from './configFixture'
+import { livePriorEntry, type ConfigFixture } from './configFixture'
 
 type RollbackHandler = (ctx: RollbackContext) => Promise<RollbackResult>
 
 /** The rollbackData a deploy of this fixture's two objects would have recorded. */
-function recordedState(fx: ConfigFixture, rollback: Array<{ name: string; existed: boolean }>): unknown {
+function recordedState(
+  fx: ConfigFixture,
+  rollback: Array<{ name: string; existed: boolean; prior?: Record<string, unknown> }>,
+): unknown {
   return { rollback, resourcePath: fx.resourcePath }
 }
 
@@ -121,27 +129,49 @@ export function describeRollbackContract(fx: ConfigFixture, rollback: RollbackHa
     })
   })
 
-  test(`${label} leaves an object that already existed untouched`, async () => {
+  test(`${label} restores an object the deploy overwrote, rather than deleting it`, async () => {
+    // Deploy updated an object the customer already had. Deleting it would
+    // destroy their configuration; leaving it — which is what this used to do —
+    // left it carrying the deployed values while reporting a clean rollback.
+    await withPanorama([WRITE_OK], async (calls) => {
+      const result = await rollback(
+        rollbackContext(
+          recordedState(fx, [{ name: fx.name, existed: true, prior: livePriorEntry(fx) }]),
+        ),
+      )
+
+      const writes = restCalls(calls)
+      assert.equal(writes.filter((c) => c.method === 'DELETE').length, 0, 'never delete what it did not create')
+      const put = writes.find((c) => c.method === 'PUT')
+      assert.ok(put, `expected a restoring PUT, got ${writes.map((c) => c.method).join(', ') || 'no calls'}`)
+      assert.equal(put.name, fx.name)
+      assert.equal(result.success, true)
+      assert.match(result.message, /Rolled back 0 created and 1 overwritten/)
+    })
+  })
+
+  test(`${label} names an overwritten object it has no prior state for`, async () => {
+    // Recorded by a deploy from before prior state was captured. Nothing can be
+    // put back — but the operator must not be told the rollback was clean.
     await withPanorama([], async (calls) => {
       const result = await rollback(rollbackContext(recordedState(fx, [{ name: fx.name, existed: true }])))
 
-      assert.equal(
-        calls.length,
-        0,
-        'deploy updated an object the customer already had; deleting it would destroy their configuration',
+      assert.equal(restCalls(calls).length, 0, 'inventing a body would overwrite live configuration')
+      assert.equal(result.success, false)
+      assert.match(result.message, /Not restored/)
+      assert.ok(
+        String(result.message).includes(fx.name),
+        `the message must name the object it could not restore, got: ${String(result.message)}`,
       )
-      assert.equal(result.success, true)
-      assert.match(result.message, /Rolled back 0 created/)
-      assert.match(result.message, /Left 1 pre-existing/)
     })
   })
 
   test(`${label} deletes only what it created when the deploy did both`, async () => {
-    await withPanorama([WRITE_OK], async (calls) => {
+    await withPanorama([WRITE_OK, WRITE_OK], async (calls) => {
       const result = await rollback(
         rollbackContext(
           recordedState(fx, [
-            { name: fx.name, existed: true },
+            { name: fx.name, existed: true, prior: livePriorEntry(fx) },
             { name: fx.secondName, existed: false },
           ]),
         ),
@@ -151,10 +181,16 @@ export function describeRollbackContract(fx: ConfigFixture, rollback: RollbackHa
       assert.deepEqual(
         deletes.map((c) => c.name),
         [fx.secondName],
+        'only the object this deploy created is deleted',
+      )
+      const puts = restCalls(calls).filter((c) => c.method === 'PUT')
+      assert.deepEqual(
+        puts.map((c) => c.name),
+        [fx.name],
+        'the object it overwrote is restored, not deleted and not left as deployed',
       )
       assert.equal(result.success, true)
-      assert.match(result.message, /Rolled back 1 created/)
-      assert.match(result.message, /Left 1 pre-existing/)
+      assert.match(result.message, /Rolled back 1 created and 1 overwritten/)
     })
   })
 

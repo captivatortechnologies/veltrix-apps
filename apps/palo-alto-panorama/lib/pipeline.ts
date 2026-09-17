@@ -7,11 +7,13 @@
 // entry fields) and its declared-name list, then calls these runners. This keeps
 // every handler file thin while the write + commit + rollback logic lives once.
 //
-// Deploy model: write objects to the candidate config via REST, tracking each
-// created object for rollback; then commit to Panorama (XML) when auto_commit is
-// on and poll the job. Rollback: DELETE only the objects this deploy CREATED
-// (tolerating 404), then commit — never touches objects it did not create, and
-// never attempts a candidate-revert (too fragile / too broad).
+// Deploy model: write objects to the candidate config via REST, recording for
+// each whether it already existed and — when it did — the live object as it was
+// before the write; then commit to Panorama (XML) when auto_commit is on and
+// poll the job. Rollback: DELETE what this deploy CREATED (tolerating 404) and
+// PUT back the prior state of what it OVERWROTE, then commit. It never deletes
+// an object it did not create, and never attempts a candidate-revert (too
+// fragile / too broad).
 // =============================================================================
 
 import type {
@@ -31,6 +33,7 @@ import type {
 import {
   buildPanoramaClient,
   commitIfEnabled,
+  entryFields,
   locationLabel,
   panoramaErrorMessage,
   upsertObjects,
@@ -94,9 +97,13 @@ export async function runDeploy(
 }
 
 /**
- * Roll back by deleting only the objects this deploy created, then committing
- * when auto_commit is on. Objects that pre-existed (updated in place) are left
- * as-is — rollback is deliberately non-destructive to anything it did not create.
+ * Roll back by deleting the objects this deploy created and restoring the prior
+ * state of the ones it overwrote, then committing when auto_commit is on.
+ *
+ * An object the customer already had is never DELETED — that would be an outage,
+ * not a rollback — but leaving it alone is not an undo either: it keeps the
+ * deployed values while the operator is told the rollback succeeded. Deploy
+ * captures the live object before it writes, so it can be put back.
  */
 export async function runRollback(ctx: RollbackContext, typeLabel: string): Promise<RollbackResult> {
   const built = buildPanoramaClient(ctx.component.hostname, ctx.credential, ctx.settings)
@@ -113,8 +120,13 @@ export async function runRollback(ctx: RollbackContext, typeLabel: string): Prom
   }
 
   const created = rollback.filter((r) => !r.existed)
-  const preExisting = rollback.filter((r) => r.existed)
+  const overwritten = rollback.filter((r) => r.existed && r.prior)
+  // An update recorded before deploy captured prior state — nothing can be put
+  // back. Named rather than counted as "left unchanged", which read as a
+  // deliberate choice when it was a gap.
+  const unrestorable = rollback.filter((r) => r.existed && !r.prior)
   const deleted: string[] = []
+  const restored: string[] = []
 
   try {
     for (const entry of [...created].reverse()) {
@@ -124,19 +136,33 @@ export async function runRollback(ctx: RollbackContext, typeLabel: string): Prom
       }
       deleted.push(entry.name)
     }
+
+    // Put back what this deploy overwrote. Undoing only the creates left a
+    // customer's existing rule carrying the deployed configuration while the
+    // operator was told the rollback had succeeded.
+    for (const entry of [...overwritten].reverse()) {
+      const res = await client.updateObject(resourcePath, entry.name, entryFields(entry.prior as PanoramaEntry))
+      if (!res.ok) {
+        throw new Error(`Failed to restore "${entry.name}": ${panoramaErrorMessage(res)}`)
+      }
+      restored.push(entry.name)
+    }
+
     const commit = await commitIfEnabled(client, settings)
 
-    const kept = preExisting.length
-      ? ` Left ${preExisting.length} pre-existing ${typeLabel} unchanged.`
+    const note = unrestorable.length
+      ? ` Not restored (no prior state was recorded for them): ${unrestorable.map((r) => r.name).join(', ')}.`
       : ''
     return {
-      success: true,
-      message: `Rolled back ${deleted.length} created ${typeLabel}.${kept} ${commit.message}`,
+      success: unrestorable.length === 0,
+      message:
+        `Rolled back ${deleted.length} created and ${restored.length} overwritten ` +
+        `${typeLabel}.${note} ${commit.message}`,
     }
   } catch (error) {
     return {
       success: false,
-      message: `Rollback failed after deleting ${deleted.length} of ${created.length} created ${typeLabel}: ${
+      message: `Rollback failed after deleting ${deleted.length} of ${created.length} created and restoring ${restored.length} of ${overwritten.length} overwritten ${typeLabel}: ${
         error instanceof Error ? error.message : 'Unknown error'
       }`,
     }

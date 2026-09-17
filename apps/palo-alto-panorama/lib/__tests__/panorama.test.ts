@@ -11,6 +11,8 @@ import {
   memberList,
   splitList,
   sameSet,
+  restOutcome,
+  entryFields,
 } from '../panorama'
 import type { CredentialRef } from '@veltrixsecops/app-sdk'
 
@@ -124,5 +126,55 @@ describe('panorama lib — helpers', () => {
   it('compares sets order-insensitively', () => {
     expect(sameSet(['a', 'b'], ['b', 'a'])).toBe(true)
     expect(sameSet(['a'], ['a', 'b'])).toBe(false)
+  })
+})
+
+describe('panorama lib - restOutcome', () => {
+  const res = (status: number, body: string) => ({ status, ok: status >= 200 && status < 300, body })
+
+  it('leaves a genuine success alone', () => {
+    expect(restOutcome(res(200, JSON.stringify({ result: { entry: [] } }))).ok).toBe(true)
+  })
+
+  it('treats an XML error envelope inside a 200 as a failure', () => {
+    // PAN-OS answers REST calls with the same <response status="error"> envelope
+    // it uses on the XML API. Judging the outcome on the HTTP status alone
+    // reported a rule that was never written as deployed.
+    const body = '<response status="error" code="12"><msg><line>Rule name already in use</line></msg></response>'
+    expect(restOutcome(res(200, body)).ok).toBe(false)
+  })
+
+  it('treats a JSON error status inside a 200 as a failure', () => {
+    expect(restOutcome(res(200, JSON.stringify({ '@status': 'error', message: 'bad' }))).ok).toBe(false)
+  })
+
+  it('does not second-guess a response that never claimed success', () => {
+    const out = restOutcome(res(403, 'forbidden'))
+    expect(out.ok).toBe(false)
+    expect(out.status).toBe(403)
+  })
+
+  it('leaves a body it cannot classify as the transport reported it', () => {
+    expect(restOutcome(res(200, 'not json, not xml')).ok).toBe(true)
+  })
+})
+
+describe('panorama lib - entryFields', () => {
+  it('drops PAN-OS metadata so a captured entry can be written back', () => {
+    // entryBody re-adds @name / @location / @device-group from the client's own
+    // location, and the rest (@uuid, @loc) is read-only.
+    const fields = entryFields({
+      '@name': 'block-tor',
+      '@location': 'device-group',
+      '@device-group': 'DG-Edge',
+      '@uuid': 'abc-123',
+      action: 'deny',
+      to: { member: ['any'] },
+    })
+    expect(fields).toEqual({ action: 'deny', to: { member: ['any'] } })
+  })
+
+  it('returns an empty object for an entry that is only metadata', () => {
+    expect(entryFields({ '@name': 'x' })).toEqual({})
   })
 })

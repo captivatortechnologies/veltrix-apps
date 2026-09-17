@@ -159,7 +159,12 @@ export function describeDeployContract(fx: ConfigFixture, deploy: DeployHandler)
 
       assert.equal(result.success, true)
       const data = rollbackOf(result)
-      assert.deepEqual(data.rollback, [{ name: fx.name, existed: true }])
+      // The LIVE object is captured, not just the fact that one existed. It is
+      // the only thing rollback can put back after this PUT overwrote it, and
+      // the listing that decided create-vs-update already had it in hand.
+      assert.deepEqual(data.rollback, [
+        { name: fx.name, existed: true, prior: livePriorEntry(fx) },
+      ])
     })
   })
 
@@ -286,6 +291,37 @@ export function describeDeployContract(fx: ConfigFixture, deploy: DeployHandler)
       assert.match(result.message, /Permission denied/)
       assert.equal(calls.length, 1, 'nothing is written once the read failed')
       assert.equal(leaksSecret(result), false)
+    })
+  })
+
+  test(`${label} refuses to treat an unreadable 200 as an empty device group`, async () => {
+    // PAN-OS returns XML errors on the REST endpoint, and an SSO or
+    // captive-portal interception returns HTML. Reading either as "no objects
+    // exist" made ONE failed read produce four wrong answers: deploy created a
+    // duplicate of a rule that exists and recorded it as `existed: false`, so a
+    // later rollback would DELETE a production rule Veltrix never created.
+    const xmlError = {
+      status: 200,
+      body: '<response status="error" code="403"><msg><line>Permission denied</line></msg></response>',
+    }
+    await withPanorama([xmlError], async (calls) => {
+      const result = await deploy(deployContext([fx.item]))
+
+      assert.equal(result.success, false)
+      assert.match(result.message, /Failed to list existing objects/)
+      assert.equal(restCalls(calls).length, 1, 'nothing is written once the read could not be understood')
+      const data = rollbackOf(result)
+      assert.deepEqual(data.rollback, [], 'nothing was created, so nothing is recorded as created')
+    })
+  })
+
+  test(`${label} refuses to treat an HTML interception as an empty device group`, async () => {
+    const html = { status: 200, body: '<!doctype html><html><body>Sign in to continue</body></html>' }
+    await withPanorama([html], async (calls) => {
+      const result = await deploy(deployContext([fx.item]))
+
+      assert.equal(result.success, false)
+      assert.equal(restCalls(calls).length, 1)
     })
   })
 

@@ -3,6 +3,35 @@
 All notable changes to the Palo Alto Panorama app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.3.2 — 2026-09-17
+
+### Fixed — three ways a REST call was believed when it should not have been
+
+- **An unreadable HTTP 200 is no longer an empty device group.** `list()` dropped
+  the parse error and returned `entries: []`, so any 200 whose body is not the
+  JSON envelope — PAN-OS returns XML errors on the REST endpoint, and an SSO or
+  captive-portal interception returns HTML — read as "this device group holds
+  none of these". ONE failed read then produced four wrong answers: deploy
+  created a duplicate of a rule that exists and recorded it as `existed: false`
+  (so a later rollback would DELETE a production rule Veltrix never created),
+  drift reported the rule deleted, and health reported the tenant reachable AND
+  the rule missing in the same result.
+
+- **A REST outcome is judged on the payload, not the HTTP status alone.** PAN-OS
+  can answer 200 with the same `<response status="error">` envelope it uses on
+  the XML API, or a JSON body whose `@status` says error. A create rejected that
+  way reported "Deployed 1 security rule(s)". The commit path already read this
+  envelope; the REST path now does too.
+
+- **An overwritten object can be rolled back.** The update branch recorded only
+  `{ name, existed: true }` and discarded the live object it had read moments
+  earlier, and rollback skipped pre-existing entries entirely — so a deploy that
+  overwrote a customer's security rule, NAT rule or profile could never be
+  undone. The listing that decides create-vs-update already carries that object,
+  so capturing it costs no extra call; rollback now restores it, and an entry
+  recorded before this change is named as un-restorable rather than counted as
+  "left unchanged".
+
 ## 1.3.1 — 2026-08-05
 
 Grouped all configuration types in the Configurations sidebar. Organization-only —

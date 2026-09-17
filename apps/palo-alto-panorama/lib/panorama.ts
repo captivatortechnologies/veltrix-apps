@@ -193,10 +193,11 @@ export class PanoramaClient {
     for (const [key, value] of Object.entries(opts.query ?? {})) {
       if (value !== undefined) url.searchParams.set(key, value)
     }
-    return this.send(method, url.toString(), {
+    const res = await this.send(method, url.toString(), {
       headers: { 'X-PAN-KEY': this.apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
       body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
     })
+    return restOutcome(res)
   }
 
   /** GET every object of a resource type at the configured location. */
@@ -204,6 +205,16 @@ export class PanoramaClient {
     const res = await this.rest('GET', resourcePath, { query: this.locationQuery() })
     if (!res.ok) return { ok: false, entries: [], status: res.status, body: res.body }
     const parsed = parseEntries(res.body)
+    // A 200 whose body is not the JSON envelope is NOT an empty collection. This
+    // file's own panoramaErrorMessage notes that PAN-OS returns XML errors on the
+    // REST endpoint, and an SSO or captive-portal interception returns HTML.
+    // Dropping the parse error and reporting `entries: []` made ONE failed read
+    // produce four wrong answers at once: deploy created a duplicate of a rule
+    // that exists and recorded it as `existed: false` (so a later rollback would
+    // DELETE a production rule Veltrix never created), drift reported the rule
+    // deleted, and health reported the tenant reachable AND the rule missing in
+    // the same result.
+    if (parsed.error) return { ok: false, entries: [], status: res.status, body: res.body }
     return { ok: true, entries: parsed.value ?? [], status: res.status, body: res.body }
   }
 
@@ -378,6 +389,31 @@ export interface UpsertSpec {
 export interface DeployedObject {
   name: string
   existed: boolean
+  /**
+   * The live object as it was BEFORE this deploy overwrote it, for updates only.
+   *
+   * Without it, overwriting a customer's existing security rule, NAT rule or
+   * profile could never be undone: rollback could delete what it created, and
+   * had nothing at all to put back for what it changed. The listing that decides
+   * create-vs-update already carries this object, so capturing it costs no
+   * extra call.
+   */
+  prior?: PanoramaEntry
+}
+
+/**
+ * A live entry as writable fields: PAN-OS's own `@`-prefixed metadata removed.
+ *
+ * `entryBody` re-adds `@name`, `@location` and `@device-group` from the client's
+ * configured location, and the rest (`@uuid`, `@loc`, …) is read-only — PAN-OS
+ * rejects or ignores it on a write.
+ */
+export function entryFields(entry: PanoramaEntry): Record<string, unknown> {
+  const fields: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(entry)) {
+    if (!key.startsWith('@')) fields[key] = value
+  }
+  return fields
 }
 
 export interface UpsertOutcome {
@@ -402,16 +438,21 @@ export async function upsertObjects(
   if (!listed.ok) {
     throw new Error(`Failed to list existing objects at ${resourcePath}: ${panoramaErrorMessage({ status: listed.status, ok: false, body: listed.body })}`)
   }
-  const existingNames = new Set(
-    listed.entries.map((e) => (typeof e['@name'] === 'string' ? (e['@name'] as string).toLowerCase() : '')).filter(Boolean),
-  )
+  // Keyed by name, not just a set of names: the entry IS the prior state, and
+  // rollback has nothing to restore an overwritten object with unless it is
+  // captured here. This listing is already in hand, so it costs no extra call.
+  const existingByName = new Map<string, PanoramaEntry>()
+  for (const entry of listed.entries) {
+    const name = typeof entry['@name'] === 'string' ? (entry['@name'] as string).toLowerCase() : ''
+    if (name) existingByName.set(name, entry)
+  }
 
   for (const spec of specs) {
-    const exists = existingNames.has(spec.name.toLowerCase())
-    if (exists) {
+    const live = existingByName.get(spec.name.toLowerCase())
+    if (live) {
       const res = await client.updateObject(resourcePath, spec.name, spec.fields)
       if (!res.ok) throw new Error(`Failed to update "${spec.name}": ${panoramaErrorMessage(res)}`)
-      rollback.push({ name: spec.name, existed: true })
+      rollback.push({ name: spec.name, existed: true, prior: live })
     } else {
       const res = await client.createObject(resourcePath, spec.name, spec.fields)
       if (!res.ok) throw new Error(`Failed to create "${spec.name}": ${panoramaErrorMessage(res)}`)
@@ -529,6 +570,30 @@ export function extractXmlTag(xml: string, tag: string, attrStatus = false): str
 }
 
 /** Human-readable message from a PAN-OS REST error response. */
+/**
+ * Judge a REST outcome on the PAYLOAD, not the HTTP status alone.
+ *
+ * PAN-OS can answer a REST call with HTTP 200 carrying an error: the same
+ * `<response status="error">` envelope it uses on the XML API, or a JSON body
+ * whose `@status` says error. `ok: status >= 200 && status < 300` therefore
+ * reported a rule that was never written as "Deployed 1 security rule(s)".
+ *
+ * The commit path already read this envelope — the author knew the shape. The
+ * REST path did not.
+ */
+export function restOutcome(res: PanoramaResponse): PanoramaResponse {
+  if (!res.ok) return res
+
+  const xmlStatus = extractXmlTag(res.body, 'response', true)
+  if (xmlStatus && /error/i.test(xmlStatus)) return { ...res, ok: false }
+
+  const parsed = parseJson<Record<string, unknown>>(res.body).value
+  const jsonStatus = parsed && typeof parsed === 'object' ? parsed['@status'] : undefined
+  if (typeof jsonStatus === 'string' && /error/i.test(jsonStatus)) return { ...res, ok: false }
+
+  return res
+}
+
 export function panoramaErrorMessage(res: PanoramaResponse): string {
   const parsed = parseJson<{
     message?: string | string[]
