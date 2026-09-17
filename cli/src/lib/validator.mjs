@@ -106,8 +106,19 @@ function fractionScoreExpressions(source) {
   return found
 }
 
-// An early return of a bare in-sync drift result, and the guard that reached it.
-const BARE_IN_SYNC_RE = /if \(([^()]{1,90}?)\) return \{ hasDrift: false, diffs: \[\] \}/g
+/**
+ * An early return of a bare in-sync drift result, and the guard that reached it.
+ *
+ * Both spellings, because they mean the same thing and the braced one is just as
+ * common — a sweep that matched only the one-liner left 186 instances behind:
+ *
+ *   if (x) return { hasDrift: false, diffs: [] }
+ *   if (x) {
+ *     return { hasDrift: false, diffs: [] }
+ *   }
+ */
+const BARE_IN_SYNC_RE =
+  /if \(([^()]{1,90}?)\)\s*(?:\{\s*)?return \{ hasDrift: false, diffs: \[\] \}/g
 
 /**
  * Guards that mean "I could not look", as opposed to "there is nothing to

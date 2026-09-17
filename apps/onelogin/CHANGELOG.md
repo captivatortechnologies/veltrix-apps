@@ -3,6 +3,22 @@
 All notable changes to the OneLogin app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 0.1.1 — 2026-09-17
+
+### Fixed — drift stops claiming "in sync" from a run that could not look
+
+`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client
+could not be built — no usable credential, no tenant host. That is not "I checked
+and it matches": the platform treats `hasDrift: false` as a positive assurance
+and resolves the component's outstanding drift record with `drift_cleared`, so a
+rotated or revoked credential silently wiped real drift on the next scheduled
+run.
+
+Those paths now return `checked: false`, on which the platform records nothing
+and clears nothing. An earlier catalog-wide pass fixed the single-line spelling
+of this guard; this is the braced form it did not match, and `veltrix validate`
+now rejects both.
+
 ## 0.1.0 — 2026-08-05
 
 ### Added — initial release

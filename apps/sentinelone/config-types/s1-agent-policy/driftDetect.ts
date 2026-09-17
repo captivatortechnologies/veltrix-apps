@@ -14,7 +14,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   const built = buildS1Client(ctx.component.hostname, ctx.credential, ctx.settings)
   if ('error' in built) {
-    return { hasDrift: false, diffs: [] }
+    return { hasDrift: false, diffs: [], checked: false }
   }
   const { client } = built
 

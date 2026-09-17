@@ -177,7 +177,7 @@ export async function runDriftDetect<T extends { name: string }>(
 
   const built = buildFmcClient(ctx.component.hostname, ctx.credential, ctx.settings)
   if ('error' in built) {
-    return { hasDrift: false, diffs: [] }
+    return { hasDrift: false, diffs: [], checked: false }
   }
   const { client } = built
 

@@ -2,7 +2,7 @@
 
 > How a request is routed through the system — from the moment you act to when it reaches completion. **Auto-generated** from `manifest.yaml` (regenerate via `scripts/dataflow/generate.mjs`).
 
-**App:** `elastic-security` · **Category:** SIEM · **Version:** 1.3.0  
+**App:** `elastic-security` · **Category:** SIEM · **Version:** 1.3.1  
 **Operations:** Deploy a configuration · Detect drift · Roll back · Test connection  
 Talks to **Elastic Security API** · credentials via the Credential Vault (`ctx.resolveConnection`).
 

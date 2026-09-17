@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.2 — 2026-09-17
+
+### `validate` catches the braced form of the drift guard too
+
+The rule added in 0.9.1 matched only `if (x) return { hasDrift: false, diffs: [] }`
+on one line. The braced spelling means exactly the same thing and is just as
+common — 186 instances across 20 apps survived the sweep that rule was written to
+enforce. Both forms are now rejected.
+
 ## 0.9.1 — 2026-09-16
 
 ### `validate` rejects drift that reports a conclusion it did not reach
