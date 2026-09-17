@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-09-17T02:46:17.372Z",
+  "generatedAt": "2026-09-17T03:19:06.305Z",
   "apps": [
     {
       "appId": "akamai",
@@ -415,7 +415,7 @@
     {
       "appId": "crowdstrike-edr",
       "name": "CrowdStrike Falcon",
-      "version": "1.13.3",
+      "version": "1.13.5",
       "vendor": "Veltrix",
       "description": "Manage CrowdStrike Falcon configurations as code through the Falcon APIs. Covers Endpoint Policies (prevention, sensor update, response, USB device control, content update, custom IOA rule groups), Exclusions (ML, IOA, sensor visibility), host groups, and custom IOCs — with validation, drift detection, and rollback handled by the Security-as-Code pipeline. Configuration types are grouped by Falcon API family in the sidebar.",
       "category": "EDR",
@@ -425,11 +425,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.13.3/crowdstrike-edr.zip",
-      "sha256": "be4eb05d1f02e9640b4de6daca6dc9de40b6cd3d8b43e0e7c86623c1fe57101a",
-      "sizeBytes": 1104420,
-      "publishedAt": "2026-09-17T02:46:17.278Z",
-      "releaseNotes": "## 1.13.3 — 2026-09-16\n\n### Fixed — a destroyed put-file is now named, instead of reported as nothing\n\n`rtr-put-files` converges a changed file by delete-then-recreate, because the\nresource is immutable. The rollback entry was pushed only after the replacement\nuploaded, so a rejected upload left the customer's staged file deleted and\nNOTHING recorded about it — the result said \"failed after 0 of 1 put-file(s)\"\nand named no file at all.\n\nPut-file bytes are never readable from the API, so nothing can restore the\noriginal; no code change can make this recoverable. What it can do is tell the\ntruth. The entry is now recorded the moment the delete lands, marked\n`replacementMissing` until the upload succeeds, and the failure message names\nthe file and says it must be re-uploaded by hand.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.13.5/crowdstrike-edr.zip",
+      "sha256": "060f3786ae5d43086e7b971d6b8750b3a90cd60c32ab4de7cdeaba2a97d04f4d",
+      "sizeBytes": 1111657,
+      "publishedAt": "2026-09-17T03:19:06.239Z",
+      "releaseNotes": "## 1.13.5 — 2026-09-16\n\n### Fixed — a rollback that made no call no longer counts the entry as reverted\n\nFifteen rollbacks pushed each entry onto `reverted` at the end of the loop\nwhether or not any branch had fired. An entry carrying no recorded id matches\nneither the delete nor the restore branch, so the handler returned\n`\"Rolled back 1 …\"` and `success: true` having issued zero calls.\n\nMaking no call is right — inventing a delete would remove an object this\ndeployment never created — but claiming a clean revert is not. It is the second\nhalf of the orphan problem: it turns \"a stale object\" into \"a stale object\nnobody will ever look for\". The skipped entries are now named in the message and\nthe result stops reporting success.\n\n`idp-policy-rules` has the same shape but a bespoke entry (separate ids for the\nprior and the created rule, plus a `deleted` flag) and a second, related defect\naround leaving two conflicting rules live; it is left for its own change rather\nthan bent into this one.",
       "releasedAt": "2026-09-16T00:00:00.000Z"
     },
     {
@@ -1788,7 +1788,7 @@
     {
       "appId": "zscaler",
       "name": "Zscaler",
-      "version": "1.4.2",
+      "version": "1.4.3",
       "vendor": "Veltrix",
       "description": "Manage Zscaler Internet Access (ZIA) and Zscaler Private Access (ZPA) configuration as code through the Zscaler OneAPI. Covers URL filtering, cloud firewall, DLP, SSL inspection, forwarding control, locations and admin config on ZIA, and application segments, server/segment groups, connectors and access policy on ZPA - with validation, drift detection and rollback handled by the Security-as-Code pipeline. ZIA changes are staged and activated as a batch; ZPA changes apply immediately.",
       "category": "NETWORK",
@@ -1798,11 +1798,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/zscaler",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/zscaler-v1.4.2/zscaler.zip",
-      "sha256": "ef18f05608040331faeba01cb52ba481656489f9ea2f52fb19cb672e471521c1",
-      "sizeBytes": 755343,
-      "publishedAt": "2026-09-17T02:46:17.365Z",
-      "releaseNotes": "## 1.4.2 — 2026-09-16\n\n### Fixed — a created object with no rollback record, and a health check that crashed\n\n**`deploy` now records what it created before anything else can throw.** The\nPOST was checked for `res.ok` first, so by the time the id check ran the object\nexisted in the tenant — and that check threw BEFORE the rollback entry was\npushed. The deploy reported \"failed, nothing to undo\" about a live firewall,\nDLP or access rule it had just created. Worse, the next deploy's name match\nfound that object and took the update path, recording the half-made object as\nthe \"prior state\", which put the real pre-deploy state permanently out of reach.\nEvery rollback entry type already had an optional id, so an entry without one is\nrecorded immediately and the id filled in once it is known. 33 configuration\ntypes.\n\n**`healthCheck` reports an unreadable listing instead of throwing it.** Only the\nreachability probe was wrapped; the presence listing after it sat in no\ntry/catch and every `listX` throws on a non-OK response. So the most likely real\nfailure — a OneAPI client granted the tenant status role but not the resource\nrole — surfaced as an opaque pipeline crash rather than `healthy: false` with a\nmessage naming the missing scope, and the reachability check that HAD passed was\nlost with it. 32 configuration types; `zpa-policy-rules` already did this\ncorrectly and was the template.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/zscaler-v1.4.3/zscaler.zip",
+      "sha256": "8c1da1ba477b6913f7aa4f95b57765e990a604a6eccf264fa372412847194af4",
+      "sizeBytes": 757546,
+      "publishedAt": "2026-09-17T03:19:06.298Z",
+      "releaseNotes": "## 1.4.3 — 2026-09-16\n\n### Fixed — drift now compares the three fields that decide what a rule DOES\n\nThree drift handlers compared presence, order and state, and stopped there — so\nthe setting each config type exists to manage could be changed in the console and\nevery scheduled run still reported the estate in sync:\n\n- **`zia-sandbox-rules`** did not compare `ba_rule_action`. A rule flipped from\n  BLOCK to ALLOW stops quarantining malware.\n- **`zia-ssl-inspection-rules`** did not compare the action type. A rule switched\n  from DECRYPT to DO_NOT_DECRYPT silently stops inspecting TLS for everything it\n  matches.\n- **`zia-admin-users`** did not compare the role, though deploy writes it and\n  rollback restores it. A managed analyst account escalated to Super Admin read\n  as healthy.\n\nEach is now compared, at `critical` severity, and only where the canvas actually\ndeclares the value — a rule left on the tenant default is not managed here and\ncannot drift. A value the tenant no longer reports reads as `not set` rather than\nbeing skipped, because \"I could not read it\" is not \"it matches\".\n\nThe surrounding rule_json body is still deliberately not deep-diffed: ZIA\nnormalises references and echoes defaults, so comparing it produces phantom\ndrift. These are single un-normalised scalars, which is what makes them the\nexception.",
       "releasedAt": "2026-09-16T00:00:00.000Z"
     }
   ]
