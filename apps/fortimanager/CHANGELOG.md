@@ -8,6 +8,26 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.2 — 2026-09-16
+
+### Fixed — an ADOM could be left locked against every other administrator
+
+`finishWorkspace` was the last statement of the `try`, so any throw between
+taking the ADOM lock and reaching it skipped the unlock entirely. A
+workspace-mode ADOM left locked blocks every other FortiManager administrator
+from making any change until someone clears it by hand — and the deploy that
+caused it read green in the console. The unlock's own result was discarded too,
+so a release the vendor refused was invisible.
+
+The release now runs from the `finally`, so it happens whether or not the work
+above completed, and a refused unlock is reported with what it costs. On the
+aborted path the ADOM is unlocked WITHOUT committing, which is what discards the
+partially-written changes — a run that threw must never commit what it managed
+to stage.
+
+Applies to all 32 configuration types, deploy and rollback alike, which share
+this one helper.
+
 ## 0.6.1 — 2026-09-16
 
 ### Fixed — drift no longer claims "in sync" from a run that could not look

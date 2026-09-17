@@ -68,6 +68,9 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     }
   }
 
+  // Cleared to true only when the work above ran to the end, so the
+  // finally below can tell a completed run from an aborted one.
+  let completed = false
   try {
     const listed = await client.get(url)
     if (!listed.ok) {
@@ -104,10 +107,19 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       }
     }
 
-    if (settings.workspaceMode) {
-      await finishWorkspace(client, settings.adom, failures)
-    }
+    completed = true
   } finally {
+    // Release the ADOM lock even if the work above threw. A workspace-mode
+    // ADOM left locked blocks every other FortiManager administrator until
+    // someone clears it by hand, and the deploy that caused it reads green.
+    //
+    // `commit` is false on the throw path: the ADOM then holds partially
+    // written changes, and unlocking without committing is what discards them.
+    if (settings.workspaceMode) {
+      await finishWorkspace(client, settings.adom, failures, {
+        commit: completed && failures.length === 0,
+      })
+    }
     await client.logout()
   }
 
@@ -117,13 +129,34 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   return { success: true, message: `Deployed ${entries.length} firewall address(es)`, rollbackData: { entries } }
 }
 
-/** Commit staged changes (or discard on failure) and release the ADOM lock. */
-export async function finishWorkspace(client: FmgClient, adom: string, failures: string[]): Promise<void> {
-  if (failures.length) {
-    await client.unlock(adom)
-    return
+/**
+ * Commit staged changes (or discard them) and ALWAYS release the ADOM lock.
+ *
+ * `commit` defaults to "there were no failures", but callers pass it explicitly
+ * from their `finally` so an ABORTED run discards rather than commits —
+ * unlocking without committing is what throws partially-written changes away.
+ *
+ * The unlock result is inspected rather than discarded. A lock that did not
+ * release leaves a workspace-mode ADOM blocked for every other FortiManager
+ * administrator until someone clears it by hand, so it belongs in the result
+ * instead of being dropped while the deploy reports success.
+ */
+export async function finishWorkspace(
+  client: FmgClient,
+  adom: string,
+  failures: string[],
+  opts: { commit?: boolean } = {},
+): Promise<void> {
+  const shouldCommit = opts.commit ?? failures.length === 0
+  if (shouldCommit) {
+    const commit = await client.commit(adom)
+    if (!commit.ok) failures.push(`commit: ${fmgErrorMessage(commit)}`)
   }
-  const commit = await client.commit(adom)
-  await client.unlock(adom)
-  if (!commit.ok) failures.push(`commit: ${fmgErrorMessage(commit)}`)
+  const released = await client.unlock(adom)
+  if (!released.ok) {
+    failures.push(
+      `unlock ${adom}: ${fmgErrorMessage(released)} — the ADOM may still be locked, ` +
+        'which blocks every other FortiManager administrator until it is released',
+    )
+  }
 }

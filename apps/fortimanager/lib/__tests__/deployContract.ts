@@ -325,6 +325,21 @@ export function describeDeployContract(fx: ConfigFixture, deploy: DeployHandler)
     })
   })
 
+  test(`${label} reports a lock that would not release, instead of dropping it`, async () => {
+    // The unlock's own result used to be discarded, so a refused release was
+    // invisible: the deploy reported success while the ADOM stayed locked
+    // against every other FortiManager administrator until someone cleared it
+    // by hand.
+    const responses = [LOGIN_OK, rpcOk(), rpcOk([]), rpcOk(), rpcOk(), rpcError('unlock refused'), LOGOUT_OK]
+    await withFmg(responses, async () => {
+      const result = await deploy(deployContext([fx.item], { workspaceMode: true }))
+
+      assert.equal(result.success, false, 'an ADOM left locked is not a clean deploy')
+      assert.match(result.message, /unlock/)
+      assert.match(result.message, /blocks every other FortiManager administrator/)
+    })
+  })
+
   test(`${label} writes nothing when the ADOM workspace lock cannot be taken`, async () => {
     await withFmg([LOGIN_OK, rpcError('workspace is locked by another administrator', -20)], async (calls) => {
       const result = await deploy(deployContext([fx.item], { workspaceMode: true }))

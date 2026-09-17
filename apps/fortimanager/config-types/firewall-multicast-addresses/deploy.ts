@@ -70,6 +70,9 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     }
   }
 
+  // Cleared to true only when the work above ran to the end, so the
+  // finally below can tell a completed run from an aborted one.
+  let completed = false
   try {
     const listed = await client.get(url)
     if (!listed.ok) {
@@ -100,8 +103,19 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       }
     }
 
-    if (settings.workspaceMode) await finishWorkspace(client, settings.adom, failures)
+    completed = true
   } finally {
+    // Release the ADOM lock even if the work above threw. A workspace-mode
+    // ADOM left locked blocks every other FortiManager administrator until
+    // someone clears it by hand, and the deploy that caused it reads green.
+    //
+    // `commit` is false on the throw path: the ADOM then holds partially
+    // written changes, and unlocking without committing is what discards them.
+    if (settings.workspaceMode) {
+      await finishWorkspace(client, settings.adom, failures, {
+        commit: completed && failures.length === 0,
+      })
+    }
     await client.logout()
   }
 
