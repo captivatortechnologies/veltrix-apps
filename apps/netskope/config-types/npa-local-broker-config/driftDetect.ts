@@ -7,12 +7,12 @@ const BASE = '/infrastructure/lbrokers/brokerconfig'
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readNetskopeSettings(ctx.settings)
   const cred = resolveNetskopeCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildNetskopeClient(cred, settings)
 
   const spec = extractLocalBrokerConfigSpec(ctx.deployedConfig)
   const resp = await client.get(BASE)
-  if (!resp.ok) return { hasDrift: false, diffs: [] }
+  if (!resp.ok) return { hasDrift: false, diffs: [], checked: false }
   const live = extractNpaObject<LiveLocalBrokerConfig>(resp.body)?.hostname ?? ''
 
   const diffs: DriftResult['diffs'] = []

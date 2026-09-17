@@ -11,12 +11,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const settings = readMimecastSettings(ctx.settings)
   const cred = resolveMimecastCredential(ctx.credential, settings)
   // Without a usable credential we can't read live state — assert no drift.
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildMimecastClient(cred, settings)
 
   const specs = extractManagedUrlSpecs(ctx.deployedConfig).filter((s) => s.url)
   const listed = await client.request(GET_ALL, {})
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByKey = new Map<string, LiveManagedUrl>()
   for (const e of listed.data as LiveManagedUrl[]) liveByKey.set(liveIdentity(e), e)
 

@@ -36,7 +36,7 @@ test('driftDetect makes no Graph call at all without a credential', async () => 
   try {
     const result = await driftDetect(driftContext([flowsItem({ selfServiceSignUpEnabled: true })], { credential: null }))
 
-    assert.deepEqual(result, { hasDrift: false, diffs: [] })
+    assert.deepEqual(result, { hasDrift: false, diffs: [], checked: false })
     assert.equal(calls.length, 0)
   } finally {
     restore()
@@ -48,7 +48,7 @@ test('driftDetect makes no Graph call when the directory (tenant) id setting is 
   try {
     const result = await driftDetect(driftContext([flowsItem({ selfServiceSignUpEnabled: true })], { settings: {} }))
 
-    assert.deepEqual(result, { hasDrift: false, diffs: [] })
+    assert.deepEqual(result, { hasDrift: false, diffs: [], checked: false })
     assert.equal(calls.length, 0)
   } finally {
     restore()

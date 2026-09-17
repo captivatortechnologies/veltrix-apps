@@ -19,12 +19,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const cred = resolveGraphCredential(ctx.credential, settings)
   // Without a usable credential we can't read live state — assert no drift
   // rather than a false positive.
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractNamedLocationSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listed = await client.getAll<LiveNamedLocation>(BASE)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByName = new Map(
     listed.items.filter((l) => l.displayName).map((l) => [l.displayName!.toLowerCase(), l])
   )

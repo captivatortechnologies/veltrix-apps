@@ -8,12 +8,12 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readSecOpsSettings(ctx.settings)
   const cred = resolveSecOpsCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildSecOpsClient(cred, settings)
   const parent = client.parent()
 
   const listed = await listWatchlists(client, parent)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const byDisplayName = new Map(listed.watchlists.map((w) => [w.displayName ?? '', w]))
 
   const specs = extractWatchlistSpecs(ctx.deployedConfig).filter((s) => s.displayName)

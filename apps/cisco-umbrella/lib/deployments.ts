@@ -289,7 +289,7 @@ export async function driftResources<Spec extends { itemId?: string }>(
   desc: DeployableResource<Spec>,
 ): Promise<DriftResult> {
   const listed = await listDeployment(client, desc.collectionPath)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByKey = new Map(listed.items.map((l) => [desc.keyOfLive(l), l]))
 
   const diffs: DriftResult['diffs'] = []

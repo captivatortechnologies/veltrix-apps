@@ -10,12 +10,12 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
   const cred = resolveGraphCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractConnectedOrgSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listed = await client.getAll<LiveConnectedOrg>(`${BASE}${SELECT}`)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByName = new Map(listed.items.filter((o) => o.displayName).map((o) => [o.displayName!.toLowerCase(), o]))
 
   const diffs: Diffs = []

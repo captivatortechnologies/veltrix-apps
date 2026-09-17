@@ -37,8 +37,12 @@ untouched. Omit the field when you did check: absent means checked, so every
 existing handler keeps its current meaning.
 
 If your handler's comment says it "always reports no drift to avoid false
-positives", it wants this field. Five handlers in the catalog were in exactly
-that position and have been updated.
+positives", it wants this field.
+
+Adopted across the catalog: 358 handlers in 36 apps returned a bare
+`hasDrift: false` when they had no credential, when the client could not be
+built, or when the vendor refused the read. Those now say `checked: false`, and
+`veltrix validate` rejects the bare form so it cannot come back.
 
 ## 3.8.0 — 2026-09-16
 

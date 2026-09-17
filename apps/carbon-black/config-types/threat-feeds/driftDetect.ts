@@ -16,18 +16,22 @@ function sortedJson(v: string[]): string {
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readCbSettings(ctx.settings)
   const cred = resolveCbCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildCbClient(cred, settings)
   const feedsPath = `/threathunter/feedmgr/v2/orgs/${cred.orgKey}/feeds`
 
   const specs = extractFeedSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listRes = await client.get(feedsPath)
-  if (!listRes.ok) return { hasDrift: false, diffs: [] }
+  if (!listRes.ok) return { hasDrift: false, diffs: [], checked: false }
   const parsed = parseJson<{ results?: LiveFeed[] } | LiveFeed[]>(listRes.body)
   const feeds = Array.isArray(parsed) ? parsed : parsed?.results ?? []
   const liveByName = new Map(feeds.filter((f) => f.name).map((f) => [f.name!.toLowerCase(), f]))
 
   const diffs: Diffs = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
   for (const spec of specs) {
     const live = liveByName.get(spec.name.toLowerCase())
     if (!live?.id) {
@@ -35,7 +39,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       continue
     }
     const detailRes = await client.get(`${feedsPath}/${live.id}`)
-    if (!detailRes.ok) continue
+    if (!detailRes.ok) {
+      checkedAll = false
+      continue
+    }
     const detail = parseJson<FeedDetail>(detailRes.body)
     if ((detail?.feedinfo?.summary ?? '') !== spec.summary) {
       diffs.push({ field: `${spec.name}.summary`, expected: spec.summary, actual: detail?.feedinfo?.summary ?? '', severity: 'warning' })
@@ -46,5 +53,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

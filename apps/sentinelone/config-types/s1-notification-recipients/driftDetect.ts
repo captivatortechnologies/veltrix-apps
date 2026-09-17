@@ -17,7 +17,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     return { hasDrift: false, diffs: [] }
   }
   const { client } = built
-  if (!client.hasScope || client.currentScope === 'group') return { hasDrift: false, diffs: [] }
+  if (!client.hasScope || client.currentScope === 'group') return { hasDrift: false, diffs: [], checked: false }
 
   const specs = extractRecipientSpecs(ctx.deployedConfig).filter((s) => s.email)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }

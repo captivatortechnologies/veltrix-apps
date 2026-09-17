@@ -7,7 +7,7 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readCbSettings(ctx.settings)
   const cred = resolveCbCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildCbClient(cred, settings)
   const grantsBase = client.grantsPath()
 
@@ -15,13 +15,17 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
   const usersRes = await client.get(client.usersPath())
-  if (!usersRes.ok) return { hasDrift: false, diffs: [] }
+  if (!usersRes.ok) return { hasDrift: false, diffs: [], checked: false }
   const usersParsed = parseJson<{ users?: LiveUser[] } | LiveUser[]>(usersRes.body)
   const users = Array.isArray(usersParsed) ? usersParsed : usersParsed?.users ?? []
   const loginIdByEmail = new Map<string, string>()
   for (const u of users) if (u.email && u.login_id !== undefined && u.login_id !== null) loginIdByEmail.set(u.email.toLowerCase(), String(u.login_id))
 
   const diffs: Diffs = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
   for (const spec of specs) {
     const loginId = loginIdByEmail.get(spec.principalEmail)
     if (!loginId) {
@@ -34,7 +38,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       diffs.push({ field: spec.principalEmail, expected: 'present', actual: 'absent', severity: 'critical' })
       continue
     }
-    if (!res.ok) continue
+    if (!res.ok) {
+      checkedAll = false
+      continue
+    }
     const grant = parseJson<LiveGrant>(res.body)
     if (grant?.profiles) {
       diffs.push({ field: `${spec.principalEmail}.roles`, expected: 'roles-based grant', actual: 'profiles-based grant (unmanaged)', severity: 'warning' })
@@ -48,5 +55,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

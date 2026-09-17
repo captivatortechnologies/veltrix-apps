@@ -9,12 +9,12 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
   const cred = resolveGraphCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractCrossTenantPartnerSpecs(ctx.deployedConfig).filter((s) => s.tenantId)
   const listed = await client.getAll<LiveCrossTenantPartner>(BASE)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByTenant = new Map(
     listed.items.filter((p) => p.tenantId).map((p) => [p.tenantId!.toLowerCase(), p]),
   )

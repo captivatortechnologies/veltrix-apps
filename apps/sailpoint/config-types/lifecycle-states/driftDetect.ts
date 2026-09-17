@@ -10,12 +10,12 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readIscSettings(ctx.settings)
   const cred = resolveIscCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildIscClient(cred, settings)
 
   const specs = extractLifecycleStateSpecs(ctx.deployedConfig).filter((s) => s.name && s.profileName && s.technicalName)
   const profilesRes = await client.getAll<LiveIdentityProfile>(PROFILES)
-  if (!profilesRes.ok) return { hasDrift: false, diffs: [] }
+  if (!profilesRes.ok) return { hasDrift: false, diffs: [], checked: false }
   const profileByName = new Map(profilesRes.items.filter((p) => p.name && p.id).map((p) => [p.name!.toLowerCase(), p]))
 
   const childCache = new Map<string, Map<string, LiveLifecycleState>>()

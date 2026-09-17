@@ -6,7 +6,7 @@ import { INTERNAL_DOMAIN_RESOURCE, extractInternalDomainSpecs } from './_shared'
 /** Drift for internal domains: absent declared domain = critical; field mismatch = warning. */
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const built = buildUmbrellaClient(ctx.credential, ctx.settings)
-  if ('error' in built) return { hasDrift: false, diffs: [] }
+  if ('error' in built) return { hasDrift: false, diffs: [], checked: false }
 
   const specs = extractInternalDomainSpecs(ctx.deployedConfig).filter((s) => s.domain)
   return driftResources(ctx, built.client, specs, INTERNAL_DOMAIN_RESOURCE)

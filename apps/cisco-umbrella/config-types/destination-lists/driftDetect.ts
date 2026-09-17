@@ -18,15 +18,19 @@ type Diffs = DriftResult['diffs']
  */
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const built = buildUmbrellaClient(ctx.credential, ctx.settings)
-  if ('error' in built) return { hasDrift: false, diffs: [] }
+  if ('error' in built) return { hasDrift: false, diffs: [], checked: false }
   const { client } = built
 
   const specs = extractDestinationListSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listed = await client.getAll<LiveDestinationList>(LIST_PATH)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByName = new Map(listed.items.filter((l) => l.name).map((l) => [l.name!.toLowerCase(), l]))
 
   const diffs: Diffs = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
   for (const spec of specs) {
     const live = liveByName.get(spec.name.toLowerCase())
     if (!live) {
@@ -42,7 +46,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
 
     const current = await listDestinations(client, live.id)
-    if (!current.ok) continue
+    if (!current.ok) {
+      checkedAll = false
+      continue
+    }
     const liveKeys = new Set(current.items.map((d) => destinationKey(d.destination ?? '')).filter(Boolean))
     const declaredKeys = new Set(spec.destinations.map(destinationKey))
 
@@ -58,5 +65,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

@@ -27,18 +27,22 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const settings = readGraphSettings(ctx.settings)
   const cred = resolveGraphCredential(ctx.credential, settings)
   // Without a usable credential we can't read live state — assert no drift.
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractApplicationSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listed = await client.getAll<LiveApplication>(`${BASE}${SELECT}`)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByUnique = new Map(
     listed.items.filter((a) => a.uniqueName).map((a) => [a.uniqueName!.toLowerCase(), a]),
   )
   const ownerMaps = await buildOwnerPrincipalNameMaps(client)
 
   const diffs: Diffs = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
   for (const spec of specs) {
     // Match only by our immutable uniqueName — never by (non-unique) displayName,
     // so drift never compares against an unrelated same-named registration.
@@ -134,7 +138,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       continue
     }
     const liveOwners = await listRefIds(client, `${BASE}/${live.id}`, 'owners')
-    if (!liveOwners.ok) continue
+    if (!liveOwners.ok) {
+      checkedAll = false
+      continue
+    }
     // A declared owner missing from the live set is what matters here — an
     // EXTRA live owner (pre-existing, or added out-of-band) is expected and
     // not itself drift, matching the deploy-time "never touch what we didn't add" rule.
@@ -158,5 +165,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     })
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

@@ -48,7 +48,7 @@ test('driftDetect makes no Graph call at all without a credential', async () => 
   try {
     const result = await driftDetect(driftContext([partnerItem()], { credential: null }))
 
-    assert.deepEqual(result, { hasDrift: false, diffs: [] })
+    assert.deepEqual(result, { hasDrift: false, diffs: [], checked: false })
     assert.equal(calls.length, 0)
   } finally {
     restore()
@@ -60,7 +60,7 @@ test('driftDetect reports nothing when the tenant id setting is missing', async 
   try {
     const result = await driftDetect(driftContext([partnerItem()], { settings: {} }))
 
-    assert.deepEqual(result, { hasDrift: false, diffs: [] })
+    assert.deepEqual(result, { hasDrift: false, diffs: [], checked: false })
     assert.equal(calls.length, 0)
   } finally {
     restore()

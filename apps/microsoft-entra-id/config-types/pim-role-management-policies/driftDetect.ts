@@ -15,13 +15,17 @@ function sortedRules(rules: string[] | undefined): string {
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
   const cred = resolveGraphCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractPimPolicySpecs(ctx.deployedConfig).filter((s) => s.roleDefinitionId)
   const roleNameToId = await buildRoleNameToId(client)
 
   const diffs: Diffs = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
   for (const spec of specs) {
     const role = resolveRef(spec.roleDefinitionId, roleNameToId)
     if (role.missing) {
@@ -40,7 +44,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       continue
     }
     const rulesRes = await client.getAll<LivePimRule>(`${POLICIES}/${policyId}/rules`)
-    if (!rulesRes.ok) continue
+    if (!rulesRes.ok) {
+      checkedAll = false
+      continue
+    }
     const rulesById = new Map<string, LivePimRule>()
     for (const r of rulesRes.items) if (r.id) rulesById.set(r.id, r)
 
@@ -79,5 +86,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

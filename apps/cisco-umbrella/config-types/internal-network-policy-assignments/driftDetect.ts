@@ -18,7 +18,7 @@ import {
  */
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const built = buildUmbrellaClient(ctx.credential, ctx.settings)
-  if ('error' in built) return { hasDrift: false, diffs: [] }
+  if ('error' in built) return { hasDrift: false, diffs: [], checked: false }
   const { client } = built
 
   const specs = extractPolicyAssignmentSpecs(ctx.deployedConfig).filter((s) => s.identityName && s.policyName)

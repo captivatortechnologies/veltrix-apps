@@ -16,14 +16,14 @@ function idSet(ids: string[]): string {
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readIscSettings(ctx.settings)
   const cred = resolveIscCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildIscClient(cred, settings)
 
   const specs = extractEntitlementSpecs(ctx.deployedConfig).filter((s) => s.sourceName && s.name)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
   const sourcesRes = await client.getAll<LiveSource>(SOURCES)
-  if (!sourcesRes.ok) return { hasDrift: false, diffs: [] }
+  if (!sourcesRes.ok) return { hasDrift: false, diffs: [], checked: false }
   const sourceByName = new Map(sourcesRes.items.filter((s) => s.name && s.id).map((s) => [s.name!.toLowerCase(), s]))
 
   const diffs: Diffs = []

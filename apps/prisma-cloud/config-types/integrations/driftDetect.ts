@@ -14,12 +14,12 @@ function stable(v: Record<string, unknown>): string {
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readPcSettings(ctx.settings)
   const cred = resolvePcCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildPcClient(cred, settings)
 
   const specs = extractIntegrationSpecs(ctx.deployedConfig).filter((s) => s.name && s.integrationType)
   const res = await client.get(BASE)
-  if (!res.ok) return { hasDrift: false, diffs: [] }
+  if (!res.ok) return { hasDrift: false, diffs: [], checked: false }
   const live = parseJson<LiveIntegration[]>(res.body) ?? []
   const liveByName = new Map(live.filter((i) => i.name).map((i) => [i.name!.toLowerCase(), i]))
 

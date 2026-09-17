@@ -10,12 +10,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const settings = readIscSettings(ctx.settings)
   const cred = resolveIscCredential(ctx.credential, settings)
   // Without a usable credential we can't read live state — assert no drift.
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildIscClient(cred, settings)
 
   const specs = extractSegmentSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listed = await client.getAll<LiveSegment>(BASE)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByName = new Map(listed.items.filter((s) => s.name).map((s) => [s.name!.toLowerCase(), s]))
 
   const diffs: Diffs = []

@@ -8,7 +8,7 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readFmgSettings(ctx.settings)
   const cred = resolveFmgCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildFmgClient(cred, settings)
   const url = webfilterProfileUrl(settings.adom)
 
@@ -16,7 +16,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const diffs: Diffs = []
   try {
     const listed = await client.get(url)
-    if (!listed.ok) return { hasDrift: false, diffs: [] }
+    if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
     const live = Array.isArray(listed.data) ? (listed.data as LiveWebFilterProfile[]) : []
     const liveByName = new Map(live.filter((p) => p.name).map((p) => [p.name!.toLowerCase(), p]))
 

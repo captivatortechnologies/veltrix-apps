@@ -8,13 +8,13 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readCbSettings(ctx.settings)
   const cred = resolveCbCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildCbClient(cred, settings)
   const base = client.deviceControlPath('approvals')
 
   const specs = extractApprovalSpecs(ctx.deployedConfig).filter((s) => s.approvalName && (s.vendorId || s.productId || s.serialNumber))
   const listed = await client.searchAllAt<LiveApproval>(base, {})
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByKey = new Map<string, LiveApproval>()
   for (const a of listed.items) liveByKey.set(liveNaturalKey(a), a)
 

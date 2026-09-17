@@ -12,7 +12,7 @@ function sortedJson(v: string[]): string {
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readCbSettings(ctx.settings)
   const cred = resolveCbCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildCbClient(cred, settings)
   const base = client.watchlistReportsPath()
 
@@ -37,6 +37,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   }
 
   const diffs: Diffs = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
   for (const spec of specs) {
     const reportId = (spec.itemId && idByItem.get(spec.itemId)) || idByTitle.get(spec.title.toLowerCase())
     if (!reportId) continue
@@ -46,7 +50,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       diffs.push({ field: spec.title, expected: 'present', actual: 'absent', severity: 'critical' })
       continue
     }
-    if (!res.ok) continue
+    if (!res.ok) {
+      checkedAll = false
+      continue
+    }
     const live = parseJson<LiveReport>(res.body)
     if (!live) continue
 
@@ -62,5 +69,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

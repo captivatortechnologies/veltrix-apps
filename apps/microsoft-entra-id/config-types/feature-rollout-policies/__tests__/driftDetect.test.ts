@@ -51,7 +51,7 @@ test('driftDetect makes no Graph call at all without a credential', async () => 
   try {
     const result = await driftDetect(driftContext([rolloutItem()], { credential: null }))
 
-    assert.deepEqual(result, { hasDrift: false, diffs: [] })
+    assert.deepEqual(result, { hasDrift: false, diffs: [], checked: false })
     assert.equal(calls.length, 0)
   } finally {
     restore()

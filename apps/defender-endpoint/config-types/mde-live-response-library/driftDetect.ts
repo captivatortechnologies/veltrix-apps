@@ -30,7 +30,7 @@ export function contentSha256(content: string): string {
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const diffs: DriftDiff[] = []
   const built = buildMdeClient(ctx.component.hostname, ctx.credential, ctx.settings)
-  if ('error' in built) return { hasDrift: false, diffs: [] }
+  if ('error' in built) return { hasDrift: false, diffs: [], checked: false }
   const { client } = built
 
   const specs = extractLibraryFileSpecs(ctx.deployedConfig).filter((s) => s.fileName && s.content)

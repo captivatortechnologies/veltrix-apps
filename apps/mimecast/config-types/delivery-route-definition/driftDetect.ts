@@ -10,12 +10,12 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readMimecastSettings(ctx.settings)
   const cred = resolveMimecastCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildMimecastClient(cred, settings)
 
   const specs = extractDeliveryRouteDefinitionSpecs(ctx.deployedConfig).filter((s) => s.description && s.hostname)
   const listed = await client.requestV1('GET', LIST, { query: { pageSize: 100 } })
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByDesc = new Map<string, LiveDeliveryRouteDefinition>()
   for (const d of extractV1List<LiveDeliveryRouteDefinition>(listed.body)) {
     if (d.description) liveByDesc.set(d.description.toLowerCase(), d)

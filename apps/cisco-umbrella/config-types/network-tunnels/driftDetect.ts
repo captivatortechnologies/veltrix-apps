@@ -11,12 +11,12 @@ import { extractTunnelSpecs, liveDeviceType, type LiveTunnel } from './_shared'
  */
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const built = buildUmbrellaClient(ctx.credential, ctx.settings)
-  if ('error' in built) return { hasDrift: false, diffs: [] }
+  if ('error' in built) return { hasDrift: false, diffs: [], checked: false }
   const { client } = built
 
   const specs = extractTunnelSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listed = await listDeployment<LiveTunnel>(client, DEPLOYMENTS_TUNNELS_PATH)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByKey = new Map(
     listed.items.filter((l) => typeof l.name === 'string' && l.name).map((l) => [l.name!.toLowerCase(), l]),
   )

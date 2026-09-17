@@ -20,6 +20,10 @@ import {
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const items = ctx.canvas.items ?? ctx.canvas.sections ?? []
   const diffs: DriftDiff[] = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
 
   const built = buildAkamaiClient(ctx.component.hostname, ctx.credential, ctx.settings)
   if ('error' in built) return { hasDrift: false, diffs }
@@ -43,7 +47,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
     try {
       const res = await client.request('GET', activationsPath(edgeWorker.edgeWorkerId))
-      if (!res.ok) continue
+      if (!res.ok) {
+        checkedAll = false
+        continue
+      }
       const activations = activationsFromResponse(parseJson<unknown>(res.body))
       const effective = effectiveVersion(activations, fields.network)
       if (effective !== fields.version) {
@@ -54,5 +61,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

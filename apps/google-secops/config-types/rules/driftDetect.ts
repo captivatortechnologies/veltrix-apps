@@ -9,12 +9,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const settings = readSecOpsSettings(ctx.settings)
   const cred = resolveSecOpsCredential(ctx.credential, settings)
   // Without a usable credential we can't read live state — assert no drift.
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildSecOpsClient(cred, settings)
   const parent = client.parent()
 
   const listed = await listRules(client, parent)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const byDisplayName = new Map(listed.rules.map((r) => [r.displayName ?? '', r]))
 
   const specs = extractRuleSpecs(ctx.deployedConfig).filter((s) => s.ruleName)

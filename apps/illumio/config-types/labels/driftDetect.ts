@@ -12,7 +12,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const base = buildIllumioBaseUrl(settings)
   const cred = resolveIllumioCredential(ctx.credential)
   // Without a host/credential we can't read live state — assert no drift rather than false-alarm.
-  if (!base || !cred) return { hasDrift: false, diffs: [] }
+  if (!base || !cred) return { hasDrift: false, diffs: [], checked: false }
 
   const headers = basicAuthHeader(cred)
   const opts = { timeoutMs: settings.timeoutMs, verifyTls: settings.verifyTls }

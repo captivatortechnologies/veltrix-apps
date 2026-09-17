@@ -2,7 +2,7 @@
 
 > How a request is routed through the system — from the moment you act to when it reaches completion. **Auto-generated** from `manifest.yaml` (regenerate via `scripts/dataflow/generate.mjs`).
 
-**App:** `semgrep` · **Category:** COMPLIANCE · **Version:** 0.3.1  
+**App:** `semgrep` · **Category:** COMPLIANCE · **Version:** 0.3.2  
 **Operations:** Deploy a configuration · Detect drift · Roll back · Test connection  
 Talks to **Semgrep API** · credentials via the Credential Vault (`ctx.resolveConnection`).
 

@@ -16,12 +16,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const settings = readDuoSettings(ctx.settings)
   const cred = resolveDuoCredential(ctx.credential, settings)
   // Without a usable credential we can't read live state — assert no drift.
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildDuoClient(cred, settings)
 
   const specs = extractSharedDeviceAuthSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listed = await client.getAllV5<LiveSharedDeviceAuth>(BASE)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByName = new Map(listed.items.filter((c) => c.name).map((c) => [c.name!.toLowerCase(), c]))
 
   const diffs: Diffs = []

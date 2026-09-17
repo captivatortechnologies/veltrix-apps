@@ -7,13 +7,13 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readCbSettings(ctx.settings)
   const cred = resolveCbCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildCbClient(cred, settings)
   const watchlistsPath = `/threathunter/watchlistmgr/v3/orgs/${cred.orgKey}/watchlists`
 
   const specs = extractWatchlistSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listRes = await client.get(watchlistsPath)
-  if (!listRes.ok) return { hasDrift: false, diffs: [] }
+  if (!listRes.ok) return { hasDrift: false, diffs: [], checked: false }
   const parsed = parseJson<{ results?: LiveWatchlist[] } | LiveWatchlist[]>(listRes.body)
   const watchlists = Array.isArray(parsed) ? parsed : parsed?.results ?? []
   const liveByName = new Map(watchlists.filter((w) => w.name).map((w) => [w.name!.toLowerCase(), w]))

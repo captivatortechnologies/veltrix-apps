@@ -82,7 +82,7 @@ export async function rollbackSingleton<T>(ctx: RollbackContext, transport: Sing
 
 export async function driftSingleton<T>(ctx: DriftContext, transport: SingletonTransport<T>): Promise<DriftResult> {
   const built = buildMerakiClient(ctx.credential, ctx.settings)
-  if ('error' in built) return { hasDrift: false, diffs: [] }
+  if ('error' in built) return { hasDrift: false, diffs: [], checked: false }
   const diffs: DriftResult['diffs'] = []
   for (const spec of extractSingletonSpecs(ctx.deployedConfig).filter((s) => s.networkId)) {
     const parsed = parseSettings<T>(spec.settingsRaw)

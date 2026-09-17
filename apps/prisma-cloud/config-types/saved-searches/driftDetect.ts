@@ -35,12 +35,12 @@ function asSavedList(body: string): LiveSavedSearch[] {
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readPcSettings(ctx.settings)
   const cred = resolvePcCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildPcClient(cred, settings)
 
   const specs = extractSavedSearchSpecs(ctx.deployedConfig).filter((s) => s.name && !s.timeRangeError)
   const res = await client.get(`${BASE}?filter=saved`)
-  if (!res.ok) return { hasDrift: false, diffs: [] }
+  if (!res.ok) return { hasDrift: false, diffs: [], checked: false }
   const live = asSavedList(res.body)
   const liveByName = new Map(live.filter((s) => s.name).map((s) => [s.name!.toLowerCase(), s]))
 

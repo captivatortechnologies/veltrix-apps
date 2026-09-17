@@ -7,13 +7,13 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readCbSettings(ctx.settings)
   const cred = resolveCbCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildCbClient(cred, settings)
   const base = client.assetGroupsPath()
 
   const specs = extractAssetGroupSpecs(ctx.deployedConfig).filter((s) => s.name)
   const res = await client.get(base)
-  if (!res.ok) return { hasDrift: false, diffs: [] }
+  if (!res.ok) return { hasDrift: false, diffs: [], checked: false }
   const parsed = parseJson<{ results?: LiveAssetGroup[]; groups?: LiveAssetGroup[] } | LiveAssetGroup[]>(res.body)
   const groups = Array.isArray(parsed) ? parsed : parsed?.results ?? parsed?.groups ?? []
   const liveByName = new Map(groups.filter((g) => g.name).map((g) => [g.name!.toLowerCase(), g]))

@@ -7,13 +7,13 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readCbSettings(ctx.settings)
   const cred = resolveCbCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildCbClient(cred, settings)
   const summaryPath = `/policyservice/v1/orgs/${cred.orgKey}/policies/summary`
 
   const specs = extractPolicySpecs(ctx.deployedConfig).filter((s) => s.name && s.policyBody)
   const listRes = await client.get(summaryPath)
-  if (!listRes.ok) return { hasDrift: false, diffs: [] }
+  if (!listRes.ok) return { hasDrift: false, diffs: [], checked: false }
   const parsed = parseJson<{ policies?: LivePolicySummary[] } | LivePolicySummary[]>(listRes.body)
   const policies = Array.isArray(parsed) ? parsed : parsed?.policies ?? []
   const liveByName = new Map(policies.filter((p) => p.name).map((p) => [p.name!.toLowerCase(), p]))

@@ -8,7 +8,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
   const built = buildFmcClient(ctx.component.hostname, ctx.credential, ctx.settings)
-  if ('error' in built) return { hasDrift: false, diffs: [] }
+  if ('error' in built) return { hasDrift: false, diffs: [], checked: false }
   const { client } = built
 
   const [listed, index] = await Promise.all([client.list(PORT_GROUPS_PATH), buildPortObjectIndex(client)])

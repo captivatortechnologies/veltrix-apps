@@ -19,7 +19,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { client } = built
 
   const pp = client.policyPath()
-  if (pp.error || !pp.path) return { hasDrift: false, diffs: [] }
+  if (pp.error || !pp.path) return { hasDrift: false, diffs: [], checked: false }
   const path = pp.path
 
   const specs = extractPolicySettingSpecs(ctx.deployedConfig).filter((s) => s.key && s.rawValue.trim() !== '')

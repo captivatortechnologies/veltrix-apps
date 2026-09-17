@@ -7,7 +7,7 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readSecOpsSettings(ctx.settings)
   const cred = resolveSecOpsCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildSecOpsClient(cred, settings)
   const parent = client.parent()
 
@@ -15,7 +15,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   if (!spec) return { hasDrift: false, diffs: [] }
 
   const getRes = await client.request('GET', `${parent}/bigQueryExport`)
-  if (!getRes.ok) return { hasDrift: false, diffs: [] }
+  if (!getRes.ok) return { hasDrift: false, diffs: [], checked: false }
   const live = parseJson<LiveBigQueryExport>(getRes.body) ?? {}
 
   const diffs: Diffs = []

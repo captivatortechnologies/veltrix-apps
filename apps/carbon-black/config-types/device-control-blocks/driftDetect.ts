@@ -9,21 +9,21 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readCbSettings(ctx.settings)
   const cred = resolveCbCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildCbClient(cred, settings)
   const base = client.deviceControlPath('blocks')
 
   const specs = extractBlockSpecs(ctx.deployedConfig).filter((s) => s.policyName)
 
   const policyRes = await client.get(`${client.policiesPath()}/summary`)
-  if (!policyRes.ok) return { hasDrift: false, diffs: [] }
+  if (!policyRes.ok) return { hasDrift: false, diffs: [], checked: false }
   const policyParsed = parseJson<{ policies?: LivePolicySummary[] } | LivePolicySummary[]>(policyRes.body)
   const policies = Array.isArray(policyParsed) ? policyParsed : policyParsed?.policies ?? []
   const policyIdByName = new Map<string, string>()
   for (const p of policies) if (p.name && p.id !== undefined && p.id !== null) policyIdByName.set(p.name.toLowerCase(), String(p.id))
 
   const blocksRes = await client.get(base)
-  if (!blocksRes.ok) return { hasDrift: false, diffs: [] }
+  if (!blocksRes.ok) return { hasDrift: false, diffs: [], checked: false }
   const blocksParsed = parseJson<{ results?: LiveBlock[] } | LiveBlock[]>(blocksRes.body)
   const blocks = Array.isArray(blocksParsed) ? blocksParsed : blocksParsed?.results ?? []
   const liveByPolicy = new Map<string, LiveBlock>()

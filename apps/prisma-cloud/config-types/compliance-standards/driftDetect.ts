@@ -10,12 +10,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const settings = readPcSettings(ctx.settings)
   const cred = resolvePcCredential(ctx.credential, settings)
   // Without a usable credential we can't read live state — assert no drift.
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildPcClient(cred, settings)
 
   const specs = extractComplianceSpecs(ctx.deployedConfig).filter((s) => s.name)
   const res = await client.get(BASE)
-  if (!res.ok) return { hasDrift: false, diffs: [] }
+  if (!res.ok) return { hasDrift: false, diffs: [], checked: false }
   const items = parseJson<LiveStandard[]>(res.body) ?? []
   const liveByName = new Map(items.filter((s) => s.name).map((s) => [s.name!.toLowerCase(), s]))
 

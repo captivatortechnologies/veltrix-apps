@@ -9,12 +9,12 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readNetskopeSettings(ctx.settings)
   const cred = resolveNetskopeCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildNetskopeClient(cred, settings)
 
   const specs = extractMcpServerSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listed = await client.getAll<LiveMcpServer>(BASE)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByName = new Map(listed.items.filter((s) => s.name).map((s) => [s.name!.toLowerCase(), s]))
 
   // certificate is write-only and is not diffed.

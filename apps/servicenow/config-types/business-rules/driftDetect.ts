@@ -23,6 +23,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { component, credential, canvas, settings } = ctx
   const items = canvas.items ?? canvas.sections ?? []
   const diffs: DriftDiff[] = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
 
   const built = buildServiceNowClient(component?.hostname, credential, settings)
   if ('error' in built) return { hasDrift: false, diffs }
@@ -40,7 +44,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         fields: ['sys_id', ...MANAGED_COLUMNS],
         limit: 1,
       })
-      if (!res.ok) continue
+      if (!res.ok) {
+        checkedAll = false
+        continue
+      }
       live = findRecord(resultList(res) as SysScriptRecord[], name, collection)
     } catch {
       continue // best-effort
@@ -75,5 +82,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

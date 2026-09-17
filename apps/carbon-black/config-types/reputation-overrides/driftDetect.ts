@@ -9,12 +9,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const settings = readCbSettings(ctx.settings)
   const cred = resolveCbCredential(ctx.credential, settings)
   // Without a usable credential we can't read live state — assert no drift.
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildCbClient(cred, settings)
 
   const specs = extractOverrideSpecs(ctx.deployedConfig).filter((s) => s.label)
   const listed = await client.searchAll<LiveOverride>()
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByKey = new Map<string, LiveOverride>()
   for (const o of listed.items) liveByKey.set(liveNaturalKey(o), o)
 

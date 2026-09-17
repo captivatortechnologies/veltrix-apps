@@ -21,7 +21,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { client } = built
 
   const listed = await listRules(client)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const byName = new Map(listed.rules.filter((r) => r.name).map((r) => [r.name as string, r]))
 
   const specs = extractRuleSpecs(ctx.deployedConfig).filter((s) => s.name)

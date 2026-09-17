@@ -10,12 +10,12 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readIscSettings(ctx.settings)
   const cred = resolveIscCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildIscClient(cred, settings)
 
   const specs = extractDimensionSpecs(ctx.deployedConfig).filter((s) => s.name && s.roleName)
   const rolesRes = await client.getAll<LiveRole>(ROLES)
-  if (!rolesRes.ok) return { hasDrift: false, diffs: [] }
+  if (!rolesRes.ok) return { hasDrift: false, diffs: [], checked: false }
   const roleByName = new Map(rolesRes.items.filter((r) => r.name && r.id).map((r) => [r.name!.toLowerCase(), r]))
 
   const childCache = new Map<string, Map<string, LiveDimension>>()

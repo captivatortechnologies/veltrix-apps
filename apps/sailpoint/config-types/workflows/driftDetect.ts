@@ -9,12 +9,12 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readIscSettings(ctx.settings)
   const cred = resolveIscCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildIscClient(cred, settings)
 
   const specs = extractWorkflowSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listed = await client.getAll<LiveWorkflow>(BASE)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByName = new Map(listed.items.filter((w) => w.name).map((w) => [w.name!.toLowerCase(), w]))
 
   // The definition/trigger graph is normalized by ISC on save, so drift tracks

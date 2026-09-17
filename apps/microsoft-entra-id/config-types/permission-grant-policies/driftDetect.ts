@@ -15,7 +15,7 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
   const cred = resolveGraphCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractPermissionGrantPolicySpecs(ctx.deployedConfig).filter(
@@ -23,13 +23,20 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   )
 
   const diffs: Diffs = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
   for (const spec of specs) {
     const resp = await client.get(`${BASE}/${spec.id}?$select=id,displayName,description`)
     if (resp.status === 404) {
       diffs.push({ field: spec.id, expected: 'present', actual: 'absent', severity: 'critical' })
       continue
     }
-    if (!resp.ok) continue
+    if (!resp.ok) {
+      checkedAll = false
+      continue
+    }
     const live = JSON.parse(resp.body) as LivePermissionGrantPolicy
 
     if ((spec.displayName || '') !== (live.displayName ?? '')) {
@@ -52,7 +59,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     for (const kind of ['includes', 'excludes'] as const) {
       const desired = parseArray(spec[kind]) ?? []
       const current = await client.getAll<Record<string, unknown>>(`${BASE}/${spec.id}/${kind}`)
-      if (!current.ok) continue
+      if (!current.ok) {
+        checkedAll = false
+        continue
+      }
       const want = canonicalSetList(desired)
       const actual = canonicalSetList(current.items)
       if (want !== actual) {
@@ -61,5 +71,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

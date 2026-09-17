@@ -10,12 +10,12 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
   const cred = resolveGraphCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractOAuth2GrantSpecs(ctx.deployedConfig).filter((s) => s.clientId && s.resourceId)
   const listed = await client.getAll<LiveOAuth2Grant>(BASE)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByKey = new Map(listed.items.filter((g) => g.id).map((g) => [grantKey(g), g]))
 
   // Same id-aware resolution as deploy.ts — a hand-typed display name must

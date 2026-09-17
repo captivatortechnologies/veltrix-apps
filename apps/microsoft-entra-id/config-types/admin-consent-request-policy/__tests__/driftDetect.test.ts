@@ -54,7 +54,7 @@ test('makes no Graph call at all without a credential', async () => {
   try {
     const result = await driftDetect(driftContext([policyItem()], { credential: null }))
 
-    assert.deepEqual(result, { hasDrift: false, diffs: [] })
+    assert.deepEqual(result, { hasDrift: false, diffs: [], checked: false })
     assert.equal(calls.length, 0)
   } finally {
     restore()
@@ -191,14 +191,11 @@ test('a failed read writes nothing', async () => {
   try {
     const result = await driftDetect(driftContext([policyItem()]))
 
-    // NOTE: the handler reports `{ hasDrift: false, diffs: [] }` here, which the
-    // platform reads as a positive "checked and in sync" and uses to clear any
-    // outstanding drift record. `DriftResult.checked` exists for exactly this
-    // case; adopting it across the catalog is tracked separately, so this test
-    // pins only the property that is unambiguously right today — an unreadable
-    // target is never written to.
+    // "Could not look" is not "in sync": a bare `hasDrift: false` is a positive
+    // assurance the platform acts on, and it would clear an outstanding drift
+    // record for this component on every scheduled run.
+    assert.deepEqual(result, { hasDrift: false, diffs: [], checked: false })
     assert.equal(writeCalls(calls).length, 0)
-    assert.deepEqual(result.diffs, [])
   } finally {
     restore()
   }

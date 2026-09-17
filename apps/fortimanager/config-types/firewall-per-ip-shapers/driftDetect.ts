@@ -20,7 +20,7 @@ function pushNum(diffs: Diffs, field: string, want: number | undefined, live: un
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readFmgSettings(ctx.settings)
   const cred = resolveFmgCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildFmgClient(cred, settings)
   const url = perIpShaperUrl(settings.adom)
 
@@ -28,7 +28,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const diffs: Diffs = []
   try {
     const listed = await client.get(url)
-    if (!listed.ok) return { hasDrift: false, diffs: [] }
+    if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
     const live = Array.isArray(listed.data) ? (listed.data as LivePerIpShaper[]) : []
     const liveByName = new Map(live.filter((s) => s.name).map((s) => [s.name!.toLowerCase(), s]))
 

@@ -6,9 +6,9 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const expected = extractSpecs(ctx.deployedConfig)[0]?.mode
   if (!expected || !hasUsableCredential(ctx.credential)) return { hasDrift: false, diffs: [] }
   const built = buildPfsenseClient(ctx.component, ctx.connectivity, ctx.credential, readPfsenseSettings(ctx.settings), ctx.connectivityProvider)
-  if ('error' in built) return { hasDrift: false, diffs: [] }
+  if ('error' in built) return { hasDrift: false, diffs: [], checked: false }
   const auth = await built.client.authenticate()
-  if (auth.error) return { hasDrift: false, diffs: [] }
+  if (auth.error) return { hasDrift: false, diffs: [], checked: false }
   try {
     const actual = await built.client.getOutboundNatMode()
     const diffs = actual === expected ? [] : [{ field: 'mode', expected, actual, severity: 'critical' as const }]

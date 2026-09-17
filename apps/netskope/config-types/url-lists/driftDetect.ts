@@ -14,13 +14,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const settings = readNetskopeSettings(ctx.settings)
   const cred = resolveNetskopeCredential(ctx.credential, settings)
   // Without a usable credential we can't read live state — assert no drift.
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildNetskopeClient(cred, settings)
 
   const specs = extractUrlListSpecs(ctx.deployedConfig).filter((s) => s.name)
   // Compare against the applied (enforced) state, not pending edits.
   const listed = await client.getAll<LiveUrlList>(`${BASE}?pending=applied`)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByName = new Map(listed.items.filter((l) => l.name).map((l) => [l.name!.toLowerCase(), l]))
 
   const diffs: Diffs = []

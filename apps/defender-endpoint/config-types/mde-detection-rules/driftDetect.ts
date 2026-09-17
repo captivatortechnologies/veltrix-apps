@@ -2,8 +2,8 @@
 // Drift detection: compare the deployed detection rules against what is live.
 //
 // A declared rule that no longer exists is CRITICAL drift; a status or display
-// name that no longer matches is a WARNING. Returns a neutral (no-drift) result
-// when Graph is unavailable (gov clouds) so drift never false-alarms there.
+// name that no longer matches is a WARNING. Where Graph is unavailable (gov
+// clouds) the result is marked `checked: false` — unchecked, not in sync.
 // =============================================================================
 
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
@@ -15,10 +15,14 @@ import { extractDetectionRuleSpecs, ruleKey, type LiveRule } from './validate'
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const diffs: DriftDiff[] = []
   const built = buildMdeClient(ctx.component.hostname, ctx.credential, ctx.settings)
-  if ('error' in built) return { hasDrift: false, diffs: [] }
+  if ('error' in built) return { hasDrift: false, diffs: [], checked: false }
   const { client } = built
 
-  if (!client.graphAvailable) return { hasDrift: false, diffs: [] }
+  // Graph is unavailable in gov clouds, so the live rules cannot be read at
+  // all. `checked: false` says that; a bare `hasDrift: false` would tell the
+  // platform the estate was verified and clear real drift found elsewhere on
+  // every scheduled run.
+  if (!client.graphAvailable) return { hasDrift: false, diffs: [], checked: false }
 
   const specs = extractDetectionRuleSpecs(ctx.deployedConfig).filter((s) => s.ruleId)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }

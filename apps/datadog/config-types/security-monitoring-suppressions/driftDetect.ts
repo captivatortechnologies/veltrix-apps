@@ -11,7 +11,7 @@ import { extractSuppressionSpecs, findSuppressionByName, sameTagSet, type Suppre
  */
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const built = buildDatadogClient(ctx.component.hostname, ctx.credential, ctx.settings)
-  if ('error' in built) return { hasDrift: false, diffs: [] }
+  if ('error' in built) return { hasDrift: false, diffs: [], checked: false }
   const { client } = built
 
   const specs = extractSuppressionSpecs(ctx.deployedConfig).filter((s) => s.name && s.ruleQuery)

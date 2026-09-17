@@ -15,12 +15,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const settings = readGraphSettings(ctx.settings)
   const cred = resolveGraphCredential(ctx.credential, settings)
   // Without a usable credential we can't read live state — assert no drift.
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractRoleAssignmentSpecs(ctx.deployedConfig).filter((s) => s.roleDefinitionId && s.principalId)
   const listed = await client.getAll<LiveRoleAssignment>(BASE)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByKey = new Map(listed.items.filter((a) => a.id).map((a) => [assignmentKey(a), a]))
 
   const [role, principal, scope] = await Promise.all([

@@ -18,7 +18,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   }
   const { client } = built
   const excludeActorLogins = veltrixActorLogins(ctx.credential)
-  if (!client.hasCustomerId) return { hasDrift: false, diffs: [] }
+  if (!client.hasCustomerId) return { hasDrift: false, diffs: [], checked: false }
 
   const specs = extractServerSpecs(ctx.deployedConfig).filter((s) => s.name)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }

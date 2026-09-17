@@ -17,18 +17,22 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
   const cred = resolveGraphCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractTokenIssuanceSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listed = await client.getAll<LiveTokenIssuancePolicy>(`${BASE}${SELECT}`)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByName = new Map(
     listed.items.filter((p) => p.displayName).map((p) => [p.displayName!.toLowerCase(), p]),
   )
   const targetMaps = await buildPolicyTargetMaps(client)
 
   const diffs: Diffs = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
   for (const spec of specs) {
     const live = liveByName.get(spec.name.toLowerCase())
     if (!live) {
@@ -58,7 +62,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       continue
     }
     const liveAppliesTo = await listPolicyAppliesTo(client, POLICY_TYPE_NAME, live.id)
-    if (!liveAppliesTo.ok) continue
+    if (!liveAppliesTo.ok) {
+      checkedAll = false
+      continue
+    }
     const liveIds = new Set(liveAppliesTo.targets.map((t) => t.id))
     const declaredIds = targetResolution.targets.map((t) => t.id)
     const missingLive = declaredIds.filter((id) => !liveIds.has(id))
@@ -72,5 +79,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

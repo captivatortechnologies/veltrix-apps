@@ -9,12 +9,12 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readPcSettings(ctx.settings)
   const cred = resolvePcCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildPcClient(cred, settings)
 
   const specs = extractPolicySpecs(ctx.deployedConfig).filter((s) => s.name)
   const res = await client.get(LIST)
-  if (!res.ok) return { hasDrift: false, diffs: [] }
+  if (!res.ok) return { hasDrift: false, diffs: [], checked: false }
   const live = parseJson<LivePolicy[]>(res.body) ?? []
   const liveByName = new Map(live.filter((p) => !p.systemDefault && p.name).map((p) => [p.name!.toLowerCase(), p]))
 

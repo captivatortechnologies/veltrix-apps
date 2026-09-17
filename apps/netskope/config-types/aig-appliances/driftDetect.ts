@@ -13,12 +13,12 @@ function sortedSig(tokens: string[]): string {
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readNetskopeSettings(ctx.settings)
   const cred = resolveNetskopeCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildNetskopeClient(cred, settings)
 
   const specs = extractAigApplianceSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listed = await client.getAll<LiveAigAppliance>(BASE)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByName = new Map(listed.items.filter((a) => a.name).map((a) => [a.name!.toLowerCase(), a]))
 
   const diffs: Diffs = []

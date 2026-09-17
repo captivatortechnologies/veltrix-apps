@@ -18,6 +18,10 @@ import { buildLabelWaivers, buildWaivers, extractCurationPolicySpecs, findPolicy
  */
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const diffs: DriftDiff[] = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
 
   const built = buildXrayClient(ctx.component.hostname, ctx.credential, ctx.settings)
   if ('error' in built) return { hasDrift: false, diffs }
@@ -42,7 +46,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
 
     const detailRes = await client.request('GET', curationPolicyPath(found.id))
-    if (!detailRes.ok) continue
+    if (!detailRes.ok) {
+      checkedAll = false
+      continue
+    }
     const full = parseJson<XrayCurationPolicy>(detailRes.body)
     if (!full) continue
 
@@ -63,7 +70,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     diffCanonical(`${label}.label_waivers`, buildLabelWaivers(spec), full.label_waivers ?? [], diffs)
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }
 
 function diffScalar(field: string, desired: string, actual: string, diffs: DriftDiff[]): void {

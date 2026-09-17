@@ -16,14 +16,14 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const diffs: DriftDiff[] = []
 
   const built = buildCheckpointClient(ctx.component.hostname, ctx.credential, ctx.settings)
-  if ('error' in built) return { hasDrift: false, diffs: [] }
+  if ('error' in built) return { hasDrift: false, diffs: [], checked: false }
   const { client } = built
 
   const specs = extractSecurityZoneSpecs(ctx.deployedConfig).filter((s) => s.name)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
   const login = await client.login()
-  if (login.error) return { hasDrift: false, diffs: [] }
+  if (login.error) return { hasDrift: false, diffs: [], checked: false }
 
   try {
     const live = await listAllSecurityZones(client)

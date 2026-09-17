@@ -210,7 +210,7 @@ export async function runSectionDriftDetect<TSpec extends SectionSpec & { name: 
 ): Promise<DriftResult> {
   const diffs: DriftDiff[] = []
   const built = buildCatoClient(ctx.component.hostname, ctx.credential, ctx.settings)
-  if ('error' in built) return { hasDrift: false, diffs: [] }
+  if ('error' in built) return { hasDrift: false, diffs: [], checked: false }
 
   const specs = config.extractSpecs(ctx.deployedConfig).filter((s) => s.name)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }

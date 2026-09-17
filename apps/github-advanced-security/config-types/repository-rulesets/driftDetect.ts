@@ -13,6 +13,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { component, credential, settings, canvas } = ctx
   const items = canvas.items ?? canvas.sections ?? []
   const diffs: DriftDiff[] = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
 
   const built = buildGithubClient(component.hostname, credential, settings ?? {})
   if ('error' in built) return { hasDrift: false, diffs }
@@ -44,7 +48,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
 
     const fullRes = await client.getRuleset(desired.owner, desired.repository || null, summary.id)
-    if (!fullRes.ok) continue
+    if (!fullRes.ok) {
+      checkedAll = false
+      continue
+    }
     const live = parseJson<LiveRuleset>(fullRes.body) ?? summary
 
     compare(diffs, fullName, 'target', body.target, live.target)
@@ -54,7 +61,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     compareJson(diffs, fullName, 'bypass_actors', body.bypass_actors ?? [], live.bypass_actors ?? [])
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }
 
 function compare(diffs: DriftDiff[], name: string, field: string, expected: unknown, actual: unknown): void {

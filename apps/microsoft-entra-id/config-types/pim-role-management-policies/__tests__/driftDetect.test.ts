@@ -86,7 +86,7 @@ test('makes no Graph call at all without a credential', async () => {
   try {
     const result = await driftDetect(driftContext([pimItem()], { credential: null }))
 
-    assert.deepEqual(result, { hasDrift: false, diffs: [] })
+    assert.deepEqual(result, { hasDrift: false, diffs: [], checked: false })
     assert.equal(calls.length, 0)
   } finally {
     restore()
@@ -283,13 +283,11 @@ test('a failed rules read writes nothing', async () => {
   try {
     const result = await driftDetect(driftContext([pimItem()]))
 
-    // NOTE: the handler skips the role and reports `hasDrift: false`, which the
-    // platform reads as "checked and in sync". `DriftResult.checked` exists for
-    // this case; adopting it across the catalog is tracked separately. What is
-    // unambiguously right today, and pinned here: a transient failure is never
-    // announced as "every activation requirement was removed".
+    // A transient failure is never announced as "every activation requirement
+    // was removed" — and the run says it could not see everything, so a clean
+    // result here does not clear this component's drift record.
+    assert.deepEqual(result, { hasDrift: false, diffs: [], checked: false })
     assert.equal(writeCalls(calls).length, 0)
-    assert.deepEqual(result.diffs, [])
   } finally {
     restore()
   }

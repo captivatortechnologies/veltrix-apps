@@ -7,15 +7,22 @@ const BASE = '/policies/authenticationMethodsPolicy/authenticationMethodConfigur
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
   const cred = resolveGraphCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractAuthMethodSpecs(ctx.deployedConfig).filter((s) => s.method in METHOD_ODATA_TYPES)
 
   const diffs: DriftResult['diffs'] = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
   for (const spec of specs) {
     const resp = await client.get(`${BASE}/${spec.method}?$select=id,state`)
-    if (!resp.ok) continue
+    if (!resp.ok) {
+      checkedAll = false
+      continue
+    }
     const live = parseJson<LiveAuthMethodConfig>(resp.body)
     const liveState = live?.state ?? 'disabled'
     if (liveState !== spec.state) {
@@ -28,5 +35,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

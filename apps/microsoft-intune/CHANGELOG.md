@@ -3,6 +3,28 @@
 All notable changes to the Microsoft Intune app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.6.1 — 2026-09-16
+
+### Fixed — drift no longer claims "in sync" from a run that could not look
+
+`driftDetect` returned `{ hasDrift: false, diffs: [] }` when it had no usable
+credential, and again when the vendor refused the read. That is not "I checked
+and found nothing" — it is "I never looked". The platform cannot tell the
+difference: it treats `hasDrift: false` as a positive assurance and resolves the
+component's outstanding drift record with `drift_cleared`.
+
+So a rotated credential, a de-scoped API user or a vendor maintenance window
+silently wiped real drift on the next scheduled run, and the console showed a
+clean estate.
+
+Those paths now return `checked: false` (`DriftResult.checked`, SDK 3.9.0), on
+which the platform records nothing and clears nothing. Where a handler loops
+over several objects and skips the ones it could not read, the run reports
+`checked: false` too, rather than "in sync" from a partial view. A return that
+genuinely established "nothing is deployed, so there is no drift" is unchanged.
+
+`veltrix validate` now rejects the bare form, so it cannot come back.
+
 ## 1.6.0 — 2026-08-05
 
 ### Added

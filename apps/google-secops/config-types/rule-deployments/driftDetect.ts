@@ -11,16 +11,20 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readSecOpsSettings(ctx.settings)
   const cred = resolveSecOpsCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildSecOpsClient(cred, settings)
   const parent = client.parent()
 
   const listed = await listRules(client, parent)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const byDisplayName = new Map(listed.rules.map((r) => [r.displayName ?? '', r]))
 
   const specs = extractRuleDeploymentSpecs(ctx.deployedConfig).filter((s) => s.ruleName)
   const diffs: Diffs = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
   for (const spec of specs) {
     const live = byDisplayName.get(spec.ruleName)
     if (!live) {
@@ -28,12 +32,15 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       continue
     }
     const getRes = await client.request('GET', `${parent}/rules/${enc(ruleIdOf(live.name ?? ''))}/deployment`)
-    if (!getRes.ok) continue
+    if (!getRes.ok) {
+      checkedAll = false
+      continue
+    }
     const liveDep = parseJson<LiveRuleDeployment>(getRes.body) ?? {}
     if (!deploymentMatches(liveDep, spec)) {
       diffs.push({ field: `${spec.ruleName}.deployment`, expected: `enabled=${spec.enabled}, alerting=${spec.alerting}, ${spec.runFrequency}`, actual: `enabled=${liveDep.enabled ?? false}, alerting=${liveDep.alerting ?? false}, ${liveDep.runFrequency ?? 'RUN_FREQUENCY_UNSPECIFIED'}`, severity: 'warning' })
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

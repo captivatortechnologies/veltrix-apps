@@ -19,7 +19,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const settings = readFmgSettings(ctx.settings)
   const cred = resolveFmgCredential(ctx.credential, settings)
   // Without a usable credential we can't read live state — assert no drift.
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildFmgClient(cred, settings)
   const url = addressUrl(settings.adom)
 
@@ -27,7 +27,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const diffs: Diffs = []
   try {
     const listed = await client.get(url)
-    if (!listed.ok) return { hasDrift: false, diffs: [] }
+    if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
     const live = Array.isArray(listed.data) ? (listed.data as LiveAddress[]) : []
     const liveByName = new Map(live.filter((a) => a.name).map((a) => [a.name!.toLowerCase(), a]))
 

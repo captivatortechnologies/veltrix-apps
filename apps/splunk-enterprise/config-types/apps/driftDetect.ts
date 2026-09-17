@@ -24,7 +24,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   // A managed-ZTNA server has no separate connectivity record — require only a
   // credential (buildSplunkUrl resolves the tailnet address from the provider).
-  if (!credential) return { hasDrift: false, diffs: [] }
+  if (!credential) return { hasDrift: false, diffs: [], checked: false }
 
   // Scope by Target Server Types: this config only deploys to servers whose role
   // is selected, so a server outside that set isn't a drift target (matches

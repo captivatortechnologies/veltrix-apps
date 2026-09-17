@@ -24,12 +24,12 @@ function canonicalJson(v: unknown): string {
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readPcSettings(ctx.settings)
   const cred = resolvePcCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildPcClient(cred, settings)
 
   const specs = extractPermissionGroupSpecs(ctx.deployedConfig).filter((s) => s.name && !s.featuresError)
   const res = await client.get(BASE)
-  if (!res.ok) return { hasDrift: false, diffs: [] }
+  if (!res.ok) return { hasDrift: false, diffs: [], checked: false }
   const live = parseJson<LivePermissionGroup[]>(res.body) ?? []
   const liveByName = new Map(live.filter((g) => g.name).map((g) => [g.name!.toLowerCase(), g]))
 

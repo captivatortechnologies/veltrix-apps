@@ -9,7 +9,7 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readQRadarSettings(ctx.settings)
   const cred = resolveQRadarCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildQRadarClient(cred, settings)
 
   const specs = extractTaggedFieldSpecs(ctx.deployedConfig).filter((s) => s.name)

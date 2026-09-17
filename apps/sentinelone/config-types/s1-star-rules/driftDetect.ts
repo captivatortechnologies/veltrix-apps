@@ -18,7 +18,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     return { hasDrift: false, diffs: [] }
   }
   const { client } = built
-  if (!client.hasScope) return { hasDrift: false, diffs: [] }
+  if (!client.hasScope) return { hasDrift: false, diffs: [], checked: false }
 
   const specs = extractStarRuleSpecs(ctx.deployedConfig).filter((s) => s.name && s.s1ql)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }

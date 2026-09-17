@@ -8,13 +8,13 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readCbSettings(ctx.settings)
   const cred = resolveCbCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildCbClient(cred, settings)
   const base = client.dataForwardersPath()
 
   const specs = extractForwarderSpecs(ctx.deployedConfig).filter((s) => s.name)
   const res = await client.get(base)
-  if (!res.ok) return { hasDrift: false, diffs: [] }
+  if (!res.ok) return { hasDrift: false, diffs: [], checked: false }
   const parsed = parseJson<{ results?: LiveForwarder[] } | LiveForwarder[]>(res.body)
   const forwarders = Array.isArray(parsed) ? parsed : parsed?.results ?? []
   const liveByName = new Map(forwarders.filter((f) => f.name).map((f) => [f.name!.toLowerCase(), f]))

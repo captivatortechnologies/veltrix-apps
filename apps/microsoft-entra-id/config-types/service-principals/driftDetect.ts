@@ -21,12 +21,16 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const settings = readGraphSettings(ctx.settings)
   const cred = resolveGraphCredential(ctx.credential, settings)
   // Without a usable credential we can't read live state — assert no drift.
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractServicePrincipalSpecs(ctx.deployedConfig).filter((s) => s.appId)
   const ownerMaps = await buildOwnerPrincipalNameMaps(client)
   const diffs: Diffs = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
 
   for (const spec of specs) {
     const found = await client.getAll<LiveServicePrincipal>(findByAppIdPath(spec.appId))
@@ -114,7 +118,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       continue
     }
     const liveOwners = await listRefIds(client, `${SP_BASE}/${live.id}`, 'owners')
-    if (!liveOwners.ok) continue
+    if (!liveOwners.ok) {
+      checkedAll = false
+      continue
+    }
     const missingLive = ownerResolution.ids.filter((id) => !liveOwners.ids.has(id))
     if (missingLive.length) {
       diffs.push({
@@ -126,5 +133,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

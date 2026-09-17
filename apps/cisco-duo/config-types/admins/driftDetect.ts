@@ -10,12 +10,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const settings = readDuoSettings(ctx.settings)
   const cred = resolveDuoCredential(ctx.credential, settings)
   // Without a usable credential we can't read live state — assert no drift.
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildDuoClient(cred, settings)
 
   const specs = extractAdminSpecs(ctx.deployedConfig).filter((s) => s.email)
   const listed = await client.getAll<LiveAdmin>(BASE)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByEmail = new Map(listed.items.filter((a) => a.email).map((a) => [a.email!.toLowerCase(), a]))
 
   const diffs: Diffs = []

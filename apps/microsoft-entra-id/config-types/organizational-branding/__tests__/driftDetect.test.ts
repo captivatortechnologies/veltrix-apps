@@ -45,7 +45,7 @@ test('makes no Graph call at all without a credential', async () => {
   try {
     const result = await driftDetect(driftContext([brandingItem()], { credential: null }))
 
-    assert.deepEqual(result, { hasDrift: false, diffs: [] })
+    assert.deepEqual(result, { hasDrift: false, diffs: [], checked: false })
     assert.equal(calls.length, 0)
   } finally {
     restore()
@@ -163,25 +163,22 @@ test('an unresolvable organization id writes nothing', async () => {
   try {
     const result = await driftDetect(driftContext([brandingItem()]))
 
-    // NOTE: the handler reports `{ hasDrift: false, diffs: [] }` here, which the
-    // platform reads as "checked and in sync" and uses to clear an outstanding
-    // drift record. `DriftResult.checked` exists for this case; adopting it
-    // across the catalog is tracked separately, so this pins only what is
-    // unambiguously right today — an unreadable target is never written to.
+    // Unreadable is not in sync: reporting a bare `hasDrift: false` would clear
+    // this component's outstanding drift record on every scheduled run.
+    assert.deepEqual(result, { hasDrift: false, diffs: [], checked: false })
     assert.equal(writeCalls(calls).length, 0)
-    assert.deepEqual(result.diffs, [])
   } finally {
     restore()
   }
 })
 
-test('a failed branding read writes nothing', async () => {
+test('a failed branding read is reported as unchecked, and writes nothing', async () => {
   const { calls, restore } = recordFetch([TOKEN, ORG, graphError(500, 'Service unavailable')])
   try {
     const result = await driftDetect(driftContext([brandingItem()]))
 
+    assert.deepEqual(result, { hasDrift: false, diffs: [], checked: false })
     assert.equal(writeCalls(calls).length, 0)
-    assert.deepEqual(result.diffs, [])
   } finally {
     restore()
   }

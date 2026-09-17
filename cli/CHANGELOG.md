@@ -2,6 +2,15 @@
 
 ## 0.9.1 — 2026-09-16
 
+### `validate` rejects drift that reports a conclusion it did not reach
+
+`hasDrift: false` is a positive assurance — the platform resolves the
+component's outstanding drift record on it. A handler returning that because it
+had no credential, could not build a client, or had its read refused is claiming
+it looked. `DriftResult.checked` (SDK 3.9.0) is how to say otherwise, and
+`validate` now fails the bare form on those guards, naming the guard it found.
+358 handlers across 36 apps were in that position.
+
 ### `validate` rejects a health score written as a fraction
 
 `HealthCheckResult.score` is a percentage — the platform stores it verbatim on

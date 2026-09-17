@@ -12,7 +12,7 @@ function sortedJson(v: string[]): string {
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readCbSettings(ctx.settings)
   const cred = resolveCbCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildCbClient(cred, settings)
   const feedsPath = `/threathunter/feedmgr/v2/orgs/${cred.orgKey}/feeds`
 
@@ -20,7 +20,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
   const feedsRes = await client.get(feedsPath)
-  if (!feedsRes.ok) return { hasDrift: false, diffs: [] }
+  if (!feedsRes.ok) return { hasDrift: false, diffs: [], checked: false }
   const feedsParsed = parseJson<{ results?: LiveFeed[] } | LiveFeed[]>(feedsRes.body)
   const feeds = Array.isArray(feedsParsed) ? feedsParsed : feedsParsed?.results ?? []
   const feedByName = new Map(feeds.filter((f) => f.name).map((f) => [f.name!.toLowerCase(), f]))

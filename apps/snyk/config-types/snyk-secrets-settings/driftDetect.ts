@@ -15,9 +15,9 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const diffs: DriftDiff[] = []
 
   const built = buildSnykClient(ctx.component.hostname, ctx.credential, ctx.settings)
-  if ('error' in built) return { hasDrift: false, diffs: [] }
+  if ('error' in built) return { hasDrift: false, diffs: [], checked: false }
   const { client } = built
-  if (!client.hasOrg) return { hasDrift: false, diffs: [] }
+  if (!client.hasOrg) return { hasDrift: false, diffs: [], checked: false }
 
   const spec = extractSecretsSettings(ctx.deployedConfig)
 

@@ -10,12 +10,12 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readNetskopeSettings(ctx.settings)
   const cred = resolveNetskopeCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildNetskopeClient(cred, settings)
 
   const specs = extractPublisherSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listed = await client.getAllNpa<LivePublisher>(BASE, LIST_KEY)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveByName = new Map(listed.items.filter((p) => p.publisher_name).map((p) => [p.publisher_name!.toLowerCase(), p]))
 
   const diffs: Diffs = []

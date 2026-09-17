@@ -13,6 +13,10 @@ import { buildFindingsQuery, extractTriageSpecs } from './_shared'
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const { credential, settings, canvas } = ctx
   const diffs: DriftDiff[] = []
+  // Set when an object could not be read. The run then reports `checked: false`
+  // rather than "in sync": the platform treats `hasDrift: false` as verified
+  // and clears any outstanding drift record for the component.
+  let checkedAll = true
 
   if (!credential) return { hasDrift: false, diffs }
 
@@ -33,7 +37,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     } catch {
       continue // best-effort: can't read, no drift asserted
     }
-    if (!res.ok) continue
+    if (!res.ok) {
+      checkedAll = false
+      continue
+    }
 
     const remaining = findingIds(res).length
     if (remaining > 0) {
@@ -46,5 +53,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

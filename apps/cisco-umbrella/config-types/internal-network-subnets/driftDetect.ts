@@ -12,7 +12,7 @@ import { INTERNAL_NETWORK_SUBNET_RESOURCE, extractInternalNetworkSubnetSpecs, re
  */
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const built = buildUmbrellaClient(ctx.credential, ctx.settings)
-  if ('error' in built) return { hasDrift: false, diffs: [] }
+  if ('error' in built) return { hasDrift: false, diffs: [], checked: false }
   const { client } = built
 
   const specs = extractInternalNetworkSubnetSpecs(ctx.deployedConfig).filter((s) => s.name)

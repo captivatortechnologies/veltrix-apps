@@ -8,14 +8,14 @@ const DEFAULT_LOCALE_HEADERS = { 'Accept-Language': '0' }
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
   const cred = resolveGraphCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const spec = extractBrandingSpecs(ctx.deployedConfig)[0]
   if (!spec) return { hasDrift: false, diffs: [] }
 
   const orgId = await resolveOrgId(client)
-  if (!orgId) return { hasDrift: false, diffs: [] }
+  if (!orgId) return { hasDrift: false, diffs: [], checked: false }
 
   const resp = await client.request(
     'GET',
@@ -23,7 +23,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     undefined,
     { headers: DEFAULT_LOCALE_HEADERS },
   )
-  if (!resp.ok) return { hasDrift: false, diffs: [] }
+  if (!resp.ok) return { hasDrift: false, diffs: [], checked: false }
   const live = parseJson<Record<string, unknown>>(resp.body) ?? {}
 
   const diffs: DriftResult['diffs'] = []

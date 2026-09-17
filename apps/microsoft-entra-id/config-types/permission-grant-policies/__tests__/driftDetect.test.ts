@@ -93,7 +93,7 @@ test('makes no Graph call at all without a credential', async () => {
   try {
     const result = await driftDetect(driftContext([policyItem()], { credential: null }))
 
-    assert.deepEqual(result, { hasDrift: false, diffs: [] })
+    assert.deepEqual(result, { hasDrift: false, diffs: [], checked: false })
     assert.equal(calls.length, 0)
   } finally {
     restore()
@@ -283,11 +283,10 @@ test('a failed collection read writes nothing', async () => {
   try {
     const result = await driftDetect(driftContext([policyItem()]))
 
-    // NOTE: the handler skips the unreadable collection and reports on the rest.
-    // That keeps a transient 500 from being announced as "every condition set
-    // was removed" — the failure mode that matters here — but it also means the
-    // run reports `hasDrift: false` when it could not see everything.
-    // `DriftResult.checked` covers that case; adopting it is tracked separately.
+    // Two things at once: a transient 500 is not announced as "every condition
+    // set was removed", AND the run admits it did not see everything, so the
+    // platform does not treat this as a verified clean estate.
+    assert.equal(result.checked, false)
     assert.equal(writeCalls(calls).length, 0)
     assert.equal(
       result.diffs.some((d) => d.field === `${POLICY_ID}.includes`),

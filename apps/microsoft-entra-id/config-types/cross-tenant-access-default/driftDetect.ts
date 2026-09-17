@@ -18,14 +18,14 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
   const cred = resolveGraphCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const spec = extractCrossTenantDefaultSpecs(ctx.deployedConfig)[0]
   if (!spec) return { hasDrift: false, diffs: [] }
 
   const resp = await client.get(PATH)
-  if (!resp.ok) return { hasDrift: false, diffs: [] }
+  if (!resp.ok) return { hasDrift: false, diffs: [], checked: false }
   const live = parseJson<LiveCrossTenantDefault>(resp.body) ?? {}
 
   const diffs: Diffs = []

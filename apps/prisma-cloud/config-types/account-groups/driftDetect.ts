@@ -13,12 +13,12 @@ function sortedJson(v: string[]): string {
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readPcSettings(ctx.settings)
   const cred = resolvePcCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildPcClient(cred, settings)
 
   const specs = extractAccountGroupSpecs(ctx.deployedConfig).filter((s) => s.name)
   const res = await client.get(BASE)
-  if (!res.ok) return { hasDrift: false, diffs: [] }
+  if (!res.ok) return { hasDrift: false, diffs: [], checked: false }
   const live = parseJson<LiveAccountGroup[]>(res.body) ?? []
   const liveByName = new Map(live.filter((g) => g.name).map((g) => [g.name!.toLowerCase(), g]))
 

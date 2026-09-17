@@ -14,12 +14,12 @@ function sortedJson(v: string[]): string {
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
   const cred = resolveGraphCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractB2xUserFlowSpecs(ctx.deployedConfig).filter((s) => s.id)
   const listed = await client.getAll<LiveB2xUserFlow>(`${BASE}?$select=id`)
-  if (!listed.ok) return { hasDrift: false, diffs: [] }
+  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
   const liveIds = new Set(listed.items.filter((f) => f.id).map((f) => f.id!.toLowerCase()))
   const identityProviderMap = await buildIdNameMap(client, '/identity/identityProviders?$select=id,displayName')
   const attributeMaps = await buildAttributeMaps(client)

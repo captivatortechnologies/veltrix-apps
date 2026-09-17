@@ -30,7 +30,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const settings = readIllumioSettings(ctx.settings)
   const base = buildIllumioBaseUrl(settings)
   const cred = resolveIllumioCredential(ctx.credential)
-  if (!base || !cred) return { hasDrift: false, diffs: [] }
+  if (!base || !cred) return { hasDrift: false, diffs: [], checked: false }
 
   const headers = basicAuthHeader(cred)
   const opts = { timeoutMs: settings.timeoutMs, verifyTls: settings.verifyTls }

@@ -106,6 +106,35 @@ function fractionScoreExpressions(source) {
   return found
 }
 
+// An early return of a bare in-sync drift result, and the guard that reached it.
+const BARE_IN_SYNC_RE = /if \(([^()]{1,90}?)\) return \{ hasDrift: false, diffs: \[\] \}/g
+
+/**
+ * Guards that mean "I could not look", as opposed to "there is nothing to
+ * compare". A missing credential, an unusable client, a refused read: none of
+ * them establish that the target matches.
+ */
+const CANNOT_LOOK_RE =
+  /^(!\s*cred(ential)?\b|!\s*[\w$.]*\.ok\b|'\s*error\s*'\s+in\s+\w+|[\w$]+\.error\b|!\s*client\.has\w+|!\s*orgId\b|!\s*base\s*\|\|\s*!\s*cred\b)/
+
+/**
+ * Drift results that claim "in sync" from a run that never read anything.
+ *
+ * `hasDrift: false` is a positive assurance: the platform's drift detector
+ * marks any outstanding drift record for the component resolved, with
+ * `drift_cleared`. A handler that returns it because it had no credential, or
+ * because the vendor refused the read, silently clears real drift found by
+ * other means. `DriftResult.checked` is the field for saying so.
+ */
+function uncheckedDriftGuards(source) {
+  const found = []
+  for (const match of source.matchAll(BARE_IN_SYNC_RE)) {
+    const guard = match[1].trim()
+    if (CANNOT_LOOK_RE.test(guard)) found.push(guard)
+  }
+  return found
+}
+
 export function validateApp(appDirArg) {
   const errors = []
   const warnings = []
@@ -634,6 +663,14 @@ export function validateApp(appDirArg) {
           'HealthCheckResult.score is a PERCENTAGE, 0-100. The platform stores it verbatim and ' +
           'the console renders it as "<score>%", so a fraction shows a healthy deployment as 1%. ' +
           'Use: checks.length ? Math.round((passed / checks.length) * 100) : 0',
+      )
+    }
+    for (const guard of uncheckedDriftGuards(source)) {
+      err(
+        `${relFile} returns "no drift" from a run that could not look (if (${guard})) — ` +
+          'hasDrift: false is a positive assurance, and the platform clears the component\'s ' +
+          'outstanding drift record on it. Add checked: false to say the check did not happen: ' +
+          '{ hasDrift: false, diffs: [], checked: false }',
       )
     }
   }

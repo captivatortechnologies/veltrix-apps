@@ -465,7 +465,7 @@ export function makeDriftDetect(base: PropertyBase) {
   return async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
     const settings = readQRadarSettings(ctx.settings)
     const cred = resolveQRadarCredential(ctx.credential, settings)
-    if (!cred) return { hasDrift: false, diffs: [] }
+    if (!cred) return { hasDrift: false, diffs: [], checked: false }
     const client = buildQRadarClient(cred, settings)
 
     const specs = extractCustomPropertySpecs(ctx.deployedConfig).filter((s) => s.name)

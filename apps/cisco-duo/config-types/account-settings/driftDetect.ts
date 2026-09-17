@@ -8,7 +8,7 @@ type Diffs = DriftResult['diffs']
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readDuoSettings(ctx.settings)
   const cred = resolveDuoCredential(ctx.credential, settings)
-  if (!cred) return { hasDrift: false, diffs: [] }
+  if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildDuoClient(cred, settings)
 
   const specs = extractAccountSettingsSpecs(ctx.deployedConfig)
