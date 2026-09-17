@@ -59,6 +59,27 @@ function recordFetch(responses: Array<{ status?: number; body?: unknown }>) {
 
 Always restore in a `finally`, or one test's stub leaks into the next.
 
+That is the whole idea, but do not paste it into every file. Every app that has
+been covered so far ended up with **one shared fake** under
+`lib/__tests__/`, because a handler's calls are only worth asserting in the
+vendor's own terms — the RPC method and target for FortiManager, the device-group
+scoping for Panorama, the SEC token and API version for QRadar. A per-file stub
+can only say "a POST happened".
+
+Read one close to your app before starting:
+
+| App | What its fake had to do |
+|---|---|
+| [`microsoft-entra-id`](../apps/microsoft-entra-id/lib/__tests__/fakeGraph.ts) | the plain `fetch` case, queue and URL-routed |
+| [`keycloak`](../apps/keycloak/lib/__tests__/fakeKeycloak.ts) | a client on `node:https` rather than `fetch` |
+| [`fortimanager`](../apps/fortimanager/lib/__tests__/fakeFmg.ts) | JSON-RPC: parse the request BODY, and errors inside a 200 |
+| [`palo-alto-panorama`](../apps/palo-alto-panorama/lib/__tests__/fakePanorama.ts) | two APIs on one host, plus XML |
+
+And when N config types compile the same handler body — almost always true of
+`healthCheck` and `getStatus` — write the assertions once as a contract suite in
+`lib/__tests__/` and invoke it from each config type's own `__tests__`. The
+module under test stays per-config-type; only the expectations are shared.
+
 The worked example is
 [`apps/crowdstrike-edr/config-types/cloud-groups/__tests__/deploy.test.ts`](../apps/crowdstrike-edr/config-types/cloud-groups/__tests__/deploy.test.ts).
 
@@ -99,13 +120,26 @@ happy path:
 - **Deploy records the rollback state** it is supposed to record. Rollback cannot
   work if deploy never wrote the state down, and nothing else catches that.
 
-## Two things that will bite you
+## Three things that will bite you
 
 **Your fixture is wrong before the handler is.** The first version of the worked
 example had two failures, both caused by the test's own canvas shape rather than
 the code — the handler read `section.fields` and the fixture supplied
 `section.items`. Read the handler's extractor before building the fixture, and
 when a test fails, work out which side is wrong before changing either.
+
+Make the live fixture differ from the canvas in every field you assert on. A
+handler that recorded the desired value instead of the live one passes against a
+fixture where the two happen to match, and that is precisely the defect the test
+exists to catch.
+
+**A token cache will silently shift your queue.** Several clients cache their
+access token in a module-scope map keyed by the credential, so a file that reuses
+one credential skips the token exchange from the second test onward — and every
+queued response lands one position early. Nothing fails loudly; tests pass for
+the wrong reason. The worked example had exactly this: its fourth test never
+reached the 403 it queued, and passed on a different error entirely. Mint a fresh
+credential per context in the fake and the whole class disappears.
 
 **Minified handlers are normal here.** Several apps ship handlers as a single
 line with no spaces after `import`/`from`. That is the release build, not a
