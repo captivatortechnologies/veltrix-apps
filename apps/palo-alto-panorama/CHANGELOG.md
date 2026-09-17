@@ -3,6 +3,35 @@
 All notable changes to the Palo Alto Panorama app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.3.3 — 2026-09-17
+
+### Fixed — a no-op no longer activates another administrator's staged work
+
+A PAN-OS `<commit></commit>` carries no scope: it activates the ENTIRE candidate
+configuration, including whatever another administrator has staged and not yet
+reviewed. `commitIfEnabled` was called unconditionally, so a deploy whose canvas
+items were all filtered out — and a rollback that deleted and restored nothing —
+still issued one, pushing somebody else's unreviewed changes live under Veltrix's
+job id. Both now commit only when something was actually written.
+
+### Fixed — an unconfirmed commit is no longer reported as committed
+
+When the commit job did not reach FIN inside the poll budget, the result carried
+`committed: true` and the deployment record said the configuration was live on
+the firewalls. Nothing had established that. It now reports `committed: false`
+and says the job may still be running; the job id is still returned so it can be
+chased.
+
+### Fixed — healthCheck and driftDetect report an unreachable Panorama
+
+`PanoramaClient.send` does not catch transport errors, so a DNS failure, a
+refused connection or the request timeout propagated out of both handlers as an
+opaque pipeline crash — rather than "unhealthy, cannot reach panorama", which is
+the one case a health check exists for. Deploy and rollback already wrapped their
+work. Drift also now reports `checked: false` when there is no usable credential,
+instead of a bare `hasDrift: false` the platform would act on by clearing the
+component's outstanding drift record.
+
 ## 1.3.2 — 2026-09-17
 
 ### Fixed — three ways a REST call was believed when it should not have been

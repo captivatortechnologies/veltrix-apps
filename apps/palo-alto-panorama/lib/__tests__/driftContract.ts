@@ -39,6 +39,7 @@ import {
   mutatingCalls,
   restError,
   withPanorama,
+  withUnreachablePanorama,
 } from './fakePanorama'
 import { bystanderEntry, liveInSyncEntry, livePriorEntry, type ConfigFixture } from './configFixture'
 
@@ -109,6 +110,30 @@ export function describeDriftContract(fx: ConfigFixture, driftDetect: DriftHandl
       assert.match(String(result.diffs[0].actual), /HTTP 403/)
       assert.equal(result.diffs[0].severity, 'critical')
       assert.equal(leaksSecret(result), false)
+    })
+  })
+
+  test(`${label} reports an unreachable Panorama rather than throwing`, async () => {
+    await withUnreachablePanorama(async () => {
+      const result = await driftDetect(driftContext([fx.item]))
+
+      assert.equal(result.hasDrift, true, 'an unreachable Panorama is surfaced, not swallowed')
+      assert.equal(result.diffs[0].field, 'panorama')
+      assert.match(result.diffs[0].actual, /unreachable/i)
+    })
+  })
+
+  test(`${label} says it did not check when there is no usable credential`, async () => {
+    // A bare `hasDrift: false` is a positive assurance the platform acts on — it
+    // resolves the component's outstanding drift record — so a rotated or
+    // revoked key would silently clear real drift on every scheduled run.
+    await withPanorama([], async (calls) => {
+      const result = await driftDetect(driftContext([fx.item], { credential: null }))
+
+      assert.equal(result.hasDrift, false)
+      assert.deepEqual(result.diffs, [])
+      assert.equal(result.checked, false)
+      assert.equal(calls.length, 0)
     })
   })
 

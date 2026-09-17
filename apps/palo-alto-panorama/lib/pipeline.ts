@@ -70,7 +70,7 @@ export async function runDeploy(
 
   try {
     await upsertObjects(client, resourcePath, specs, rollback, deployed)
-    const commit = await commitIfEnabled(client, settings)
+    const commit = await commitIfEnabled(client, settings, deployed.length > 0)
 
     return {
       success: true,
@@ -148,7 +148,7 @@ export async function runRollback(ctx: RollbackContext, typeLabel: string): Prom
       restored.push(entry.name)
     }
 
-    const commit = await commitIfEnabled(client, settings)
+    const commit = await commitIfEnabled(client, settings, deleted.length + restored.length > 0)
 
     const note = unrestorable.length
       ? ` Not restored (no prior state was recorded for them): ${unrestorable.map((r) => r.name).join(', ')}.`
@@ -189,7 +189,25 @@ export async function runHealthCheck(
   const where = locationLabel(location)
 
   const start = Date.now()
-  const listed = await client.list(resourcePath)
+  // `PanoramaClient.send` does not catch transport errors, so a DNS failure, a
+  // refused connection or the request timeout used to propagate out of the
+  // handler. An unreachable Panorama then surfaced as an opaque pipeline crash
+  // rather than "unhealthy, cannot reach panorama.example.com" — which is the
+  // one case a health check exists for.
+  let listed: Awaited<ReturnType<typeof client.list>>
+  try {
+    listed = await client.list(resourcePath)
+  } catch (error) {
+    checks.push({
+      name: 'panorama_reachable',
+      passed: false,
+      message: `Panorama unreachable at ${panoramaUrl} (${where}): ${
+        error instanceof Error ? error.message : 'unknown error'
+      }`,
+      latencyMs: Date.now() - start,
+    })
+    return { healthy: false, score: 0, checks }
+  }
   if (!listed.ok) {
     checks.push({
       name: 'panorama_reachable',
@@ -238,11 +256,36 @@ export async function runDriftDetect<T extends { name: string }>(
 
   const built = buildPanoramaClient(ctx.component.hostname, ctx.credential, ctx.settings)
   if ('error' in built) {
-    return { hasDrift: false, diffs: [] }
+    // No usable credential means nothing was read. A bare `hasDrift: false` is a
+    // positive assurance the platform acts on — it resolves the component's
+    // outstanding drift record — so a rotated or revoked key would silently
+    // clear real drift on every scheduled run.
+    return { hasDrift: false, diffs: [], checked: false }
   }
   const { client } = built
 
-  const listed = await client.list(resourcePath)
+  // `PanoramaClient.send` does not catch transport errors, so a DNS failure, a
+  // refused connection or the request timeout used to propagate out of the
+  // handler as an opaque pipeline crash. Deploy and rollback already wrap their
+  // work; drift did not.
+  let listed: Awaited<ReturnType<typeof client.list>>
+  try {
+    listed = await client.list(resourcePath)
+  } catch (error) {
+    // Reported the same way as a refused list below — visibly, not silently —
+    // rather than propagating. Deploy and rollback already wrap their work.
+    return {
+      hasDrift: true,
+      diffs: [
+        {
+          field: 'panorama',
+          expected: 'reachable',
+          actual: `unreachable: ${error instanceof Error ? error.message : 'unknown error'}`,
+          severity: 'critical',
+        },
+      ],
+    }
+  }
   if (!listed.ok) {
     return {
       hasDrift: true,

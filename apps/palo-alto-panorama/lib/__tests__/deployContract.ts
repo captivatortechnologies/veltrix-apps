@@ -262,6 +262,33 @@ export function describeDeployContract(fx: ConfigFixture, deploy: DeployHandler)
     )
   })
 
+  test(`${label} issues no commit when it wrote nothing`, async () => {
+    // A PAN-OS `<commit></commit>` carries no scope: it activates the ENTIRE
+    // candidate configuration, including whatever another administrator has
+    // staged and not yet reviewed. Committing for a no-op pushes somebody else's
+    // unreviewed work live under Veltrix's job id.
+    await withPanorama([], async (calls) => {
+      const result = await deploy(deployContext([], { autoCommit: true }))
+
+      assert.equal(result.success, true)
+      assert.equal(commitCalls(calls).length, 0, 'nothing was written, so nothing may be activated')
+      assert.equal(result.artifacts?.committed, false)
+      assert.match(result.message, /Nothing was written/)
+    })
+  })
+
+  test(`${label} does not claim a commit is active while its job is still running`, async () => {
+    // The job was issued but never reached FIN inside the poll budget, so
+    // nothing here establishes the configuration is live on the firewalls.
+    await withPanorama([listOk([]), WRITE_OK, commitQueued('9')], async () => {
+      const result = await deploy(deployContext([fx.item], { autoCommit: true }))
+
+      assert.equal(result.artifacts?.committed, false, 'unconfirmed is not committed')
+      assert.equal(result.artifacts?.commitJobId, '9', 'the job id is still reported so it can be chased')
+      assert.match(result.message, /NOT confirmed active/)
+    })
+  })
+
   test(`${label} lists the collection once, not once per object`, async () => {
     await withPanorama([listOk([]), WRITE_OK, WRITE_OK], async (calls) => {
       await deploy(deployContext([fx.item, fx.secondItem]))

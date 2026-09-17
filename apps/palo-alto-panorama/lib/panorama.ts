@@ -474,7 +474,18 @@ export interface CommitOutcome {
  * to completion. Returns a human message describing what happened; throws only
  * on a hard commit failure so the caller can mark the deploy failed.
  */
-export async function commitIfEnabled(client: PanoramaClient, settings: PanoramaSettings): Promise<CommitOutcome> {
+export async function commitIfEnabled(
+  client: PanoramaClient,
+  settings: PanoramaSettings,
+  wrote = true,
+): Promise<CommitOutcome> {
+  // A PAN-OS `<commit></commit>` carries no scope: it activates the ENTIRE
+  // candidate configuration, including whatever another administrator has
+  // staged and not yet reviewed. Issuing one when this run wrote nothing pushes
+  // somebody else's unreviewed work live under Veltrix's job id.
+  if (!wrote) {
+    return { committed: false, jobId: null, message: 'Nothing was written, so no commit was issued.' }
+  }
   if (!settings.autoCommit) {
     return {
       committed: false,
@@ -488,7 +499,14 @@ export async function commitIfEnabled(client: PanoramaClient, settings: Panorama
   }
   const job = await client.pollJob(jobId)
   if (!job.finished) {
-    return { committed: true, jobId, message: `Commit job ${jobId} ${job.detail}.` }
+    // The job was issued but never reached FIN within the poll budget, so
+    // nothing here establishes that the configuration is live on the firewalls.
+    // Reporting `committed: true` put that claim on the deployment record.
+    return {
+      committed: false,
+      jobId,
+      message: `Commit job ${jobId} ${job.detail} — it may still be running, so the configuration is NOT confirmed active.`,
+    }
   }
   if (!job.ok) {
     throw new Error(`Commit job ${jobId} finished with result ${job.detail}`)

@@ -32,6 +32,7 @@ import {
   mutatingCalls,
   restError,
   withPanorama,
+  withUnreachablePanorama,
 } from './fakePanorama'
 import { bystanderEntry, liveInSyncEntry, type ConfigFixture } from './configFixture'
 
@@ -149,6 +150,24 @@ export function describeHealthCheckContract(fx: ConfigFixture, healthCheck: Heal
       assert.equal(result.checks[0].passed, false)
       assert.match(result.checks[0].message, /not authorized/)
       assert.notEqual(result.checks[0].latencyMs, undefined)
+      assert.equal(leaksSecret(result), false)
+    })
+  })
+
+  test(`${label} reports an unreachable Panorama rather than throwing`, async () => {
+    // PanoramaClient.send does not catch transport errors, so a DNS failure, a
+    // refused connection or the request timeout used to propagate out of the
+    // handler. An unreachable Panorama then surfaced as an opaque pipeline crash
+    // instead of "unhealthy, cannot reach it" — the one case a health check
+    // exists for.
+    await withUnreachablePanorama(async () => {
+      const result = await healthCheck(healthContext([fx.item]))
+
+      assert.equal(result.healthy, false)
+      assert.equal(result.score, 0)
+      assert.equal(result.checks[0].name, 'panorama_reachable')
+      assert.equal(result.checks[0].passed, false)
+      assert.match(result.checks[0].message, /unreachable/i)
       assert.equal(leaksSecret(result), false)
     })
   })
