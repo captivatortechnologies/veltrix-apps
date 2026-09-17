@@ -26,9 +26,18 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   }
 
   const reverted: string[] = []
+  const skipped: string[] = []
 
   try {
     for (const entry of previousState) {
+      // Nothing to address this entry by. Inventing a delete or a restore would be
+      // worse, but counting it as reverted told the operator the tenant had been put
+      // back while an object this deploy created is still live — and now unfindable
+      // by the platform. Name it instead.
+      if (!entry.id) {
+        skipped.push(entry.name)
+        continue
+      }
       if (!entry.existed) {
         // Deploy created this policy — remove it. Disable first (enabled
         // policies cannot be deleted); 404 on delete means it never finished
@@ -85,9 +94,12 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
       reverted.push(entry.name)
     }
 
+    const skipNote = skipped.length
+      ? ` Not rolled back (no id was recorded for them): ${skipped.join(', ')}.`
+      : ''
     return {
-      success: true,
-      message: `Rolled back ${reverted.length} content update policy(ies): ${reverted.join(', ')}`,
+      success: skipped.length === 0,
+      message: `Rolled back ${reverted.length} content update policy(ies): ${reverted.join(', ')}${skipNote}`,
     }
   } catch (error) {
     return {

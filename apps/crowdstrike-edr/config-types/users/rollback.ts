@@ -21,9 +21,17 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   }
 
   const reverted: string[] = []
+  const skipped: string[] = []
 
   try {
     for (const entry of previousState) {
+      // Every branch below addresses the user by uuid. Without one, nothing can
+      // be done — and counting it as reverted told the operator the tenant had
+      // been put back while a user account this deploy invited is still live.
+      if (!entry.uuid) {
+        skipped.push(entry.email)
+        continue
+      }
       if (!entry.existed) {
         // Deploy created this user — remove it. Deleting also removes any role
         // grants. 404 means it was never created (or already gone).
@@ -57,9 +65,12 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
       reverted.push(entry.email)
     }
 
+    const skipNote = skipped.length
+      ? ` Not rolled back (no uuid was recorded for them): ${skipped.join(', ')}.`
+      : ''
     return {
-      success: true,
-      message: `Rolled back ${reverted.length} Falcon user(s): ${reverted.join(', ')}`,
+      success: skipped.length === 0,
+      message: `Rolled back ${reverted.length} Falcon user(s): ${reverted.join(', ')}${skipNote}`,
     }
   } catch (error) {
     return {

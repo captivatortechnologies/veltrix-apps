@@ -84,9 +84,16 @@ test('host-groups rollback: writes nothing for a created entry whose id was neve
   // remove a group this deployment never created.
   const { calls, restore } = routeFetch([], EMPTY)
   try {
-    await rollback(rollbackContext({ previousState: [{ name: 'prod-servers', existed: false }] }))
+    const result = await rollback(rollbackContext({ previousState: [{ name: 'prod-servers', existed: false }] }))
 
     assert.equal(writeCalls(calls).length, 0, `rollback wrote: ${describeCalls(writeCalls(calls))}`)
+
+    // ...and it says so. The entry used to be counted as reverted anyway, so the
+    // handler returned "Rolled back 1 host group(s)" and success having issued
+    // zero calls — turning a stale group into a stale group nobody looks for.
+    assert.equal(result.success, false, 'an entry that could not be rolled back is not a clean revert')
+    assert.match(String(result.message), /Not rolled back/)
+    assert.match(String(result.message), /prod-servers/)
   } finally {
     restore()
   }

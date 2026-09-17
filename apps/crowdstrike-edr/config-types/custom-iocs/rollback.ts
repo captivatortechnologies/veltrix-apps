@@ -22,10 +22,19 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   }
 
   const reverted: string[] = []
+  const skipped: string[] = []
   const uncleardExpirations: string[] = []
 
   try {
     for (const entry of previousState) {
+      // Nothing to address this entry by. Inventing a delete or a restore would be
+      // worse, but counting it as reverted told the operator the tenant had been put
+      // back while an object this deploy created is still live — and now unfindable
+      // by the platform. Name it instead.
+      if (!entry.id) {
+        skipped.push(entry.value)
+        continue
+      }
       if (!entry.existed) {
         // Deploy created this indicator — remove it. 404 means it was never
         // created (or already removed), which is the desired state.
@@ -82,9 +91,12 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
             ', ',
           )}, remove it in the Falcon console.`
         : ''
+    const skipNote = skipped.length
+      ? ` Not rolled back (no id was recorded for them): ${skipped.join(', ')}.`
+      : ''
     return {
-      success: true,
-      message: `Rolled back ${reverted.length} custom IOC(s): ${reverted.join(', ')}.${expirationNote}`,
+      success: skipped.length === 0,
+      message: `Rolled back ${reverted.length} custom IOC(s): ${reverted.join(', ')}.${expirationNote}${skipNote}`,
     }
   } catch (error) {
     return {

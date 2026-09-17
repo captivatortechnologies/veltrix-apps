@@ -3,6 +3,26 @@
 All notable changes to the CrowdStrike Falcon app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.13.5 — 2026-09-16
+
+### Fixed — a rollback that made no call no longer counts the entry as reverted
+
+Fifteen rollbacks pushed each entry onto `reverted` at the end of the loop
+whether or not any branch had fired. An entry carrying no recorded id matches
+neither the delete nor the restore branch, so the handler returned
+`"Rolled back 1 …"` and `success: true` having issued zero calls.
+
+Making no call is right — inventing a delete would remove an object this
+deployment never created — but claiming a clean revert is not. It is the second
+half of the orphan problem: it turns "a stale object" into "a stale object
+nobody will ever look for". The skipped entries are now named in the message and
+the result stops reporting success.
+
+`idp-policy-rules` has the same shape but a bespoke entry (separate ids for the
+prior and the created rule, plus a `deleted` flag) and a second, related defect
+around leaving two conflicting rules live; it is left for its own change rather
+than bent into this one.
+
 ## 1.13.4 — 2026-09-16
 
 ### Fixed — a created object no longer reports itself as never created
