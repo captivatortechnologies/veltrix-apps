@@ -77,11 +77,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         if (!res.ok) {
           throw new Error(`Failed to create GRE tunnel "${spec.sourceIp}": ${zscalerErrorMessage(res)}`)
         }
+        // The object exists in the tenant from here on, so record it BEFORE the id
+        // check can throw. An entry without an id still tells rollback that this
+        // deploy created something, rather than leaving it orphaned and unrecorded.
+        rollbackState.push({ sourceIp: spec.sourceIp, existed: false })
         const created = parseJson<LiveGreTunnel>(res.body)
         if (created?.id == null) {
           throw new Error(`GRE tunnel "${spec.sourceIp}" was created but the API returned no id`)
         }
-        rollbackState.push({ sourceIp: spec.sourceIp, existed: false, id: created.id })
+        rollbackState[rollbackState.length - 1].id = created.id
         createdIds.push(created.id)
       }
 

@@ -55,22 +55,36 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   if (reachable.passed) {
     const specs = extractProvisioningKeySpecs(ctx.canvas).filter((s) => s.name && s.associationType)
     if (specs.length > 0) {
-      // Re-list once per association type, then confirm each declared key.
-      const namesByType = new Map<string, Set<string>>()
-      for (const spec of specs) {
-        let names = namesByType.get(spec.associationType)
-        if (!names) {
-          const live = await listProvisioningKeys(client, spec.associationType)
-          names = new Set(live.map((k) => k.name).filter((n): n is string => !!n))
-          namesByType.set(spec.associationType, names)
+      // Every listX() throws on a non-OK response, so without this the most
+      // likely real failure — a credential scoped to the tenant status API but
+      // not to this resource — crashed the pipeline instead of reporting, and
+      // took the reachability check that DID pass down with it.
+      try {
+        // Re-list once per association type, then confirm each declared key.
+        const namesByType = new Map<string, Set<string>>()
+        for (const spec of specs) {
+          let names = namesByType.get(spec.associationType)
+          if (!names) {
+            const live = await listProvisioningKeys(client, spec.associationType)
+            names = new Set(live.map((k) => k.name).filter((n): n is string => !!n))
+            namesByType.set(spec.associationType, names)
+          }
+          const present = names.has(spec.name)
+          checks.push({
+            name: `provisioningKey:${spec.associationType}/${spec.name}`,
+            passed: present,
+            message: present
+              ? `Provisioning key "${spec.name}" (${spec.associationType}) is present`
+              : `Provisioning key "${spec.name}" (${spec.associationType}) does not exist in the tenant`,
+          })
         }
-        const present = names.has(spec.name)
+      } catch (error) {
         checks.push({
-          name: `provisioningKey:${spec.associationType}/${spec.name}`,
-          passed: present,
-          message: present
-            ? `Provisioning key "${spec.name}" (${spec.associationType}) is present`
-            : `Provisioning key "${spec.name}" (${spec.associationType}) does not exist in the tenant`,
+          name: 'presence',
+          passed: false,
+          message: `Could not list the zpa-provisioning-keys this canvas declares: ${
+            error instanceof Error ? error.message : 'error'
+          }`,
         })
       }
     }

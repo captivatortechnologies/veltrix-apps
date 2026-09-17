@@ -92,11 +92,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         if (!res.ok) {
           throw new Error(`Failed to create firewall IPS rule "${spec.name}": ${zscalerErrorMessage(res)}`)
         }
+        // The object exists in the tenant from here on, so record it BEFORE the id
+        // check can throw. An entry without an id still tells rollback that this
+        // deploy created something, rather than leaving it orphaned and unrecorded.
+        rollbackState.push({ name: spec.name, existed: false })
         const created = parseJson<LiveIpsRule>(res.body)
         if (created?.id == null) {
           throw new Error(`Firewall IPS rule "${spec.name}" was created but the API returned no id`)
         }
-        rollbackState.push({ name: spec.name, existed: false, id: created.id })
+        rollbackState[rollbackState.length - 1].id = created.id
         createdIds.push(created.id)
       }
 

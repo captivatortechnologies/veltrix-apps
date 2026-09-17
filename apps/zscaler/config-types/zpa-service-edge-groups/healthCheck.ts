@@ -42,15 +42,29 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   if (reachable.passed) {
     const specs = extractServiceEdgeGroupSpecs(ctx.canvas).filter((s) => s.name)
     if (specs.length > 0) {
-      const live = await listServiceEdgeGroups(client)
-      const names = new Set(live.map((g) => g.name))
-      for (const spec of specs) {
+      // Every listX() throws on a non-OK response, so without this the most
+      // likely real failure — a credential scoped to the tenant status API but
+      // not to this resource — crashed the pipeline instead of reporting, and
+      // took the reachability check that DID pass down with it.
+      try {
+        const live = await listServiceEdgeGroups(client)
+        const names = new Set(live.map((g) => g.name))
+        for (const spec of specs) {
+          checks.push({
+            name: `serviceEdgeGroup:${spec.name}`,
+            passed: names.has(spec.name),
+            message: names.has(spec.name)
+              ? `Service edge group "${spec.name}" is present`
+              : `Service edge group "${spec.name}" does not exist in the tenant`,
+          })
+        }
+      } catch (error) {
         checks.push({
-          name: `serviceEdgeGroup:${spec.name}`,
-          passed: names.has(spec.name),
-          message: names.has(spec.name)
-            ? `Service edge group "${spec.name}" is present`
-            : `Service edge group "${spec.name}" does not exist in the tenant`,
+          name: 'presence',
+          passed: false,
+          message: `Could not list the zpa-service-edge-groups this canvas declares: ${
+            error instanceof Error ? error.message : 'error'
+          }`,
         })
       }
     }

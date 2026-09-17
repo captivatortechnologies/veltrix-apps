@@ -36,15 +36,29 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   if (reachable.passed) {
     const specs = extractStaticIpSpecs(ctx.canvas).filter((s) => s.ipAddress)
     if (specs.length > 0) {
-      const live = await listStaticIps(client)
-      const ips = new Set(live.map((s) => s.ipAddress))
-      for (const spec of specs) {
+      // Every listX() throws on a non-OK response, so without this the most
+      // likely real failure — a credential scoped to the tenant status API but
+      // not to this resource — crashed the pipeline instead of reporting, and
+      // took the reachability check that DID pass down with it.
+      try {
+        const live = await listStaticIps(client)
+        const ips = new Set(live.map((s) => s.ipAddress))
+        for (const spec of specs) {
+          checks.push({
+            name: `static-ip:${spec.ipAddress}`,
+            passed: ips.has(spec.ipAddress),
+            message: ips.has(spec.ipAddress)
+              ? `Static IP "${spec.ipAddress}" is present`
+              : `Static IP "${spec.ipAddress}" does not exist in the tenant`,
+          })
+        }
+      } catch (error) {
         checks.push({
-          name: `static-ip:${spec.ipAddress}`,
-          passed: ips.has(spec.ipAddress),
-          message: ips.has(spec.ipAddress)
-            ? `Static IP "${spec.ipAddress}" is present`
-            : `Static IP "${spec.ipAddress}" does not exist in the tenant`,
+          name: 'presence',
+          passed: false,
+          message: `Could not list the zia-static-ips this canvas declares: ${
+            error instanceof Error ? error.message : 'error'
+          }`,
         })
       }
     }

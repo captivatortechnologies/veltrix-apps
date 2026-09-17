@@ -3,6 +3,30 @@
 All notable changes to the Zscaler app are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## 1.4.2 — 2026-09-16
+
+### Fixed — a created object with no rollback record, and a health check that crashed
+
+**`deploy` now records what it created before anything else can throw.** The
+POST was checked for `res.ok` first, so by the time the id check ran the object
+existed in the tenant — and that check threw BEFORE the rollback entry was
+pushed. The deploy reported "failed, nothing to undo" about a live firewall,
+DLP or access rule it had just created. Worse, the next deploy's name match
+found that object and took the update path, recording the half-made object as
+the "prior state", which put the real pre-deploy state permanently out of reach.
+Every rollback entry type already had an optional id, so an entry without one is
+recorded immediately and the id filled in once it is known. 33 configuration
+types.
+
+**`healthCheck` reports an unreadable listing instead of throwing it.** Only the
+reachability probe was wrapped; the presence listing after it sat in no
+try/catch and every `listX` throws on a non-OK response. So the most likely real
+failure — a OneAPI client granted the tenant status role but not the resource
+role — surfaced as an opaque pipeline crash rather than `healthy: false` with a
+message naming the missing scope, and the reachability check that HAD passed was
+lost with it. 32 configuration types; `zpa-policy-rules` already did this
+correctly and was the template.
+
 ## 1.4.1 — 2026-09-16
 
 ### Fixed — drift no longer claims "in sync" from a run that could not look

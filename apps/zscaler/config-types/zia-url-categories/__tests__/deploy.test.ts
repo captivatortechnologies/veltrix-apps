@@ -96,6 +96,33 @@ test('zia-url-categories deploy: creates a category that does not exist, then ac
   }
 })
 
+test('zia-url-categories deploy: records the created category even when the API returns no id', async () => {
+  // The POST succeeded, so the category exists in the tenant. The id check that
+  // follows used to throw BEFORE the rollback entry was pushed, so the deploy
+  // reported "failed, nothing to undo" about an object it had just created —
+  // and the next deploy's name match would adopt that object as "prior state",
+  // putting the real pre-deploy state permanently out of reach.
+  const { calls, restore } = recordFetch([
+    TOKEN,
+    ziaList([]),
+    created({ configuredName: 'Blocked Vendors', customCategory: true }),
+  ])
+  try {
+    const result = await deploy(deployContext([CATEGORY]))
+
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /returned no id/)
+    assert.equal(writeCalls(calls).length, 1, 'the create did happen')
+
+    const rollback = result.rollbackData as { previousState: Array<Record<string, unknown>> }
+    assert.deepEqual(rollback.previousState, [{ configuredName: 'Blocked Vendors', existed: false }])
+    // Without an id rollback still cannot delete it, but the operator is told
+    // something was created rather than told that nothing was.
+  } finally {
+    restore()
+  }
+})
+
 test('zia-url-categories deploy: updates an existing category and records its LIVE prior body', async () => {
   const { calls, restore } = recordFetch([TOKEN, ziaList([LIVE]), created({ id: 'CUSTOM_01' }), ACTIVATED])
   try {

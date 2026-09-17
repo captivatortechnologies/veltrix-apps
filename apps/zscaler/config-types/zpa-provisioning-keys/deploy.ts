@@ -112,18 +112,22 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         if (!res.ok) {
           throw new Error(`Failed to create provisioning key "${spec.name}": ${zscalerErrorMessage(res)}`)
         }
+        // The key exists — and can already enroll connectors — from here on, so
+        // record it BEFORE the id check can throw. An entry without an id still
+        // tells rollback this deploy created something, rather than leaving a
+        // live enrollment key orphaned and unrecorded.
+        rollbackState.push({
+          name: spec.name,
+          associationType: spec.associationType,
+          existed: false,
+        })
         // Read ONLY the id from the create response — never the `provisioningKey`
         // secret value it also returns.
         const created = parseJson<{ id?: string }>(res.body)
         if (created?.id == null) {
           throw new Error(`Provisioning key "${spec.name}" was created but the API returned no id`)
         }
-        rollbackState.push({
-          name: spec.name,
-          associationType: spec.associationType,
-          existed: false,
-          id: created.id,
-        })
+        rollbackState[rollbackState.length - 1].id = created.id
         createdKeys.push({ id: created.id, associationType: spec.associationType })
       }
 

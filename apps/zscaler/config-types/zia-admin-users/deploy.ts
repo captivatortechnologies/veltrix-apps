@@ -104,11 +104,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         if (!res.ok) {
           throw new Error(`Failed to create admin user "${spec.loginName}": ${zscalerErrorMessage(res)}`)
         }
+        // The object exists in the tenant from here on, so record it BEFORE the id
+        // check can throw. An entry without an id still tells rollback that this
+        // deploy created something, rather than leaving it orphaned and unrecorded.
+        rollbackState.push({ loginName: spec.loginName, existed: false })
         const created = parseJson<LiveAdminUser>(res.body)
         if (created?.id == null) {
           throw new Error(`Admin user "${spec.loginName}" was created but the API returned no id`)
         }
-        rollbackState.push({ loginName: spec.loginName, existed: false, id: created.id })
+        rollbackState[rollbackState.length - 1].id = created.id
         createdIds.push(created.id)
       }
 

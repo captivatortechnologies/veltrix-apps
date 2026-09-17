@@ -90,11 +90,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         if (!res.ok) {
           throw new Error(`Failed to create URL category "${spec.configuredName}": ${zscalerErrorMessage(res)}`)
         }
+        // The object exists in the tenant from here on, so record it BEFORE the id
+        // check can throw. An entry without an id still tells rollback that this
+        // deploy created something, rather than leaving it orphaned and unrecorded.
+        rollbackState.push({ configuredName: spec.configuredName, existed: false })
         const created = parseJson<LiveUrlCategory>(res.body)
         if (!created?.id) {
           throw new Error(`URL category "${spec.configuredName}" was created but the API returned no id`)
         }
-        rollbackState.push({ configuredName: spec.configuredName, existed: false, id: created.id })
+        rollbackState[rollbackState.length - 1].id = created.id
         createdIds.push(created.id)
       }
 

@@ -127,6 +127,38 @@ test('zpa-policy-rules deploy: resolves the policy set, then creates a rule that
   }
 })
 
+test('zpa-policy-rules deploy: records the created rule even when the API returns no id', async () => {
+  // The POST succeeded, so the rule is live in the policy set and ZPA is already
+  // evaluating it. The id check that follows used to throw BEFORE the rollback
+  // entry was pushed, so the deploy reported "failed, nothing to undo" about an
+  // access rule it had just created.
+  const { calls, restore } = recordFetch([
+    TOKEN,
+    ok({ id: POLICY_SET_ID, name: 'Global_Policy_Set' }),
+    zpaList([]),
+    created({ name: 'Allow Finance to ERP' }),
+  ])
+  try {
+    const result = await deploy(deployContext([RULE]))
+
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /returned no id/)
+    assert.equal(resourceWrites(calls).length, 1, 'the create did happen')
+
+    const rollback = result.rollbackData as { previousState: Array<Record<string, unknown>> }
+    assert.deepEqual(rollback.previousState, [
+      {
+        name: 'Allow Finance to ERP',
+        policyType: 'ACCESS_POLICY',
+        policySetId: POLICY_SET_ID,
+        existed: false,
+      },
+    ])
+  } finally {
+    restore()
+  }
+})
+
 test('zpa-policy-rules deploy: a rule with no conditions authored is sent with an empty operand list', async () => {
   const bare = item('Catch Contractors', {
     name: 'Catch Contractors',

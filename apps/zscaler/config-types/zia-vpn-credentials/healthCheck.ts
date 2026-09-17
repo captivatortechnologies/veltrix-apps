@@ -37,19 +37,33 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   if (reachable.passed) {
     const specs = extractVpnCredentialSpecs(ctx.canvas).filter((s) => s.type && credentialIdentity(s))
     if (specs.length > 0) {
-      const live = await listVpnCredentials(client)
-      const identities = new Set(
-        live.map((c) => liveCredentialIdentity(c)).filter((id) => id).map((id) => id.toLowerCase()),
-      )
-      for (const spec of specs) {
-        const identity = credentialIdentity(spec)
-        const present = identities.has(identity.toLowerCase())
+      // Every listX() throws on a non-OK response, so without this the most
+      // likely real failure — a credential scoped to the tenant status API but
+      // not to this resource — crashed the pipeline instead of reporting, and
+      // took the reachability check that DID pass down with it.
+      try {
+        const live = await listVpnCredentials(client)
+        const identities = new Set(
+          live.map((c) => liveCredentialIdentity(c)).filter((id) => id).map((id) => id.toLowerCase()),
+        )
+        for (const spec of specs) {
+          const identity = credentialIdentity(spec)
+          const present = identities.has(identity.toLowerCase())
+          checks.push({
+            name: `vpn-credential:${identity}`,
+            passed: present,
+            message: present
+              ? `VPN credential "${identity}" is present`
+              : `VPN credential "${identity}" does not exist in the tenant`,
+          })
+        }
+      } catch (error) {
         checks.push({
-          name: `vpn-credential:${identity}`,
-          passed: present,
-          message: present
-            ? `VPN credential "${identity}" is present`
-            : `VPN credential "${identity}" does not exist in the tenant`,
+          name: 'presence',
+          passed: false,
+          message: `Could not list the zia-vpn-credentials this canvas declares: ${
+            error instanceof Error ? error.message : 'error'
+          }`,
         })
       }
     }

@@ -36,15 +36,29 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   if (reachable.passed) {
     const specs = extractDlpTemplateSpecs(ctx.canvas).filter((s) => s.name)
     if (specs.length > 0) {
-      const live = await listTemplates(client)
-      const names = new Set(live.map((t) => t.name))
-      for (const spec of specs) {
+      // Every listX() throws on a non-OK response, so without this the most
+      // likely real failure — a credential scoped to the tenant status API but
+      // not to this resource — crashed the pipeline instead of reporting, and
+      // took the reachability check that DID pass down with it.
+      try {
+        const live = await listTemplates(client)
+        const names = new Set(live.map((t) => t.name))
+        for (const spec of specs) {
+          checks.push({
+            name: `template:${spec.name}`,
+            passed: names.has(spec.name),
+            message: names.has(spec.name)
+              ? `DLP notification template "${spec.name}" is present`
+              : `DLP notification template "${spec.name}" does not exist in the tenant`,
+          })
+        }
+      } catch (error) {
         checks.push({
-          name: `template:${spec.name}`,
-          passed: names.has(spec.name),
-          message: names.has(spec.name)
-            ? `DLP notification template "${spec.name}" is present`
-            : `DLP notification template "${spec.name}" does not exist in the tenant`,
+          name: 'presence',
+          passed: false,
+          message: `Could not list the zia-dlp-notification-templates this canvas declares: ${
+            error instanceof Error ? error.message : 'error'
+          }`,
         })
       }
     }

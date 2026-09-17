@@ -36,15 +36,29 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   if (reachable.passed) {
     const specs = extractGreTunnelSpecs(ctx.canvas).filter((s) => s.sourceIp)
     if (specs.length > 0) {
-      const live = await listGreTunnels(client)
-      const sourceIps = new Set(live.map((t) => t.sourceIp))
-      for (const spec of specs) {
+      // Every listX() throws on a non-OK response, so without this the most
+      // likely real failure — a credential scoped to the tenant status API but
+      // not to this resource — crashed the pipeline instead of reporting, and
+      // took the reachability check that DID pass down with it.
+      try {
+        const live = await listGreTunnels(client)
+        const sourceIps = new Set(live.map((t) => t.sourceIp))
+        for (const spec of specs) {
+          checks.push({
+            name: `tunnel:${spec.sourceIp}`,
+            passed: sourceIps.has(spec.sourceIp),
+            message: sourceIps.has(spec.sourceIp)
+              ? `GRE tunnel "${spec.sourceIp}" is present`
+              : `GRE tunnel "${spec.sourceIp}" does not exist in the tenant`,
+          })
+        }
+      } catch (error) {
         checks.push({
-          name: `tunnel:${spec.sourceIp}`,
-          passed: sourceIps.has(spec.sourceIp),
-          message: sourceIps.has(spec.sourceIp)
-            ? `GRE tunnel "${spec.sourceIp}" is present`
-            : `GRE tunnel "${spec.sourceIp}" does not exist in the tenant`,
+          name: 'presence',
+          passed: false,
+          message: `Could not list the zia-gre-tunnels this canvas declares: ${
+            error instanceof Error ? error.message : 'error'
+          }`,
         })
       }
     }

@@ -95,17 +95,21 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         if (!res.ok) {
           throw new Error(`Failed to create ${spec.policyType} rule "${spec.name}": ${zscalerErrorMessage(res)}`)
         }
-        const created = parseJson<LivePolicyRule>(res.body)
-        if (created?.id == null) {
-          throw new Error(`${spec.policyType} rule "${spec.name}" was created but the API returned no id`)
-        }
+        // The rule exists in the policy set from here on, so record it BEFORE the
+        // id check can throw. An entry without a ruleId still tells rollback this
+        // deploy created something, rather than leaving a live access rule
+        // orphaned and unrecorded.
         rollbackState.push({
           name: spec.name,
           policyType: spec.policyType,
           policySetId,
           existed: false,
-          ruleId: String(created.id),
         })
+        const created = parseJson<LivePolicyRule>(res.body)
+        if (created?.id == null) {
+          throw new Error(`${spec.policyType} rule "${spec.name}" was created but the API returned no id`)
+        }
+        rollbackState[rollbackState.length - 1].ruleId = String(created.id)
         createdIds.push(String(created.id))
       }
 

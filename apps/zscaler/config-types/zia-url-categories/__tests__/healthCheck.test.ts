@@ -15,6 +15,7 @@ import {
   item,
   recordFetch,
   writeCalls,
+  ziaError,
   ziaList,
 } from '../../../lib/__tests__/fakeZscaler'
 import { registerHealthCheckContract } from '../../../lib/__tests__/zscalerContracts'
@@ -46,6 +47,35 @@ test('zia-url-categories healthCheck: passes when every declared category is pre
     const check = result.checks.find((c) => c.name === 'category:Blocked Vendors')
     assert.ok(check, `expected a per-category check, got ${result.checks.map((c) => c.name).join(', ')}`)
     assert.equal(check.passed, true)
+    assert.equal(writeCalls(calls).length, 0, 'a health check must never write')
+  } finally {
+    restore()
+  }
+})
+
+test('zia-url-categories healthCheck: reports an unreadable listing rather than throwing', async () => {
+  // The most likely real failure: a OneAPI client granted the ZIA status role
+  // but not the URL-category role. The probe passes and the listing is refused.
+  // This used to reject out of the handler entirely — an opaque pipeline crash
+  // instead of a message naming the missing scope, taking the reachability
+  // check that DID pass down with it.
+  const { calls, restore } = recordFetch([
+    TOKEN,
+    activationStatus('ACTIVE'),
+    ziaError(403, 'read denied'),
+  ])
+  try {
+    const result = await healthCheck(healthContext([CATEGORY]))
+
+    assert.equal(result.healthy, false)
+    const presence = result.checks.find((c) => c.name === 'presence')
+    assert.ok(presence, `expected a presence check, got ${result.checks.map((c) => c.name).join(', ')}`)
+    assert.equal(presence.passed, false)
+    assert.match(presence.message, /read denied/)
+
+    // The half that worked is still reported — that is what a checks[] is for.
+    const reachable = result.checks.find((c) => c.name === 'zia_reachable')
+    assert.equal(reachable?.passed, true)
     assert.equal(writeCalls(calls).length, 0, 'a health check must never write')
   } finally {
     restore()

@@ -38,15 +38,29 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   if (reachable.passed) {
     const specs = extractAdminUserSpecs(ctx.canvas).filter((s) => s.loginName)
     if (specs.length > 0) {
-      const live = await listAdminUsers(client)
-      const loginNames = new Set(live.map((u) => u.loginName))
-      for (const spec of specs) {
+      // Every listX() throws on a non-OK response, so without this the most
+      // likely real failure — a credential scoped to the tenant status API but
+      // not to this resource — crashed the pipeline instead of reporting, and
+      // took the reachability check that DID pass down with it.
+      try {
+        const live = await listAdminUsers(client)
+        const loginNames = new Set(live.map((u) => u.loginName))
+        for (const spec of specs) {
+          checks.push({
+            name: `admin_user:${spec.loginName}`,
+            passed: loginNames.has(spec.loginName),
+            message: loginNames.has(spec.loginName)
+              ? `Admin user "${spec.loginName}" is present`
+              : `Admin user "${spec.loginName}" does not exist in the tenant`,
+          })
+        }
+      } catch (error) {
         checks.push({
-          name: `admin_user:${spec.loginName}`,
-          passed: loginNames.has(spec.loginName),
-          message: loginNames.has(spec.loginName)
-            ? `Admin user "${spec.loginName}" is present`
-            : `Admin user "${spec.loginName}" does not exist in the tenant`,
+          name: 'presence',
+          passed: false,
+          message: `Could not list the zia-admin-users this canvas declares: ${
+            error instanceof Error ? error.message : 'error'
+          }`,
         })
       }
     }
