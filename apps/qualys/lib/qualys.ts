@@ -55,7 +55,7 @@ export interface QualysCredentials {
 export function resolveQualysCredentials(credential: CredentialRef | null): QualysCredentials | null {
   if (!credential) return null
   const username = (credential.username ?? '').trim()
-  const password = (credential.password ?? credential.apiToken ?? '').trim()
+  const password = (credential.password || credential.apiToken || '').trim()
   if (!username || !password) return null
   return { username, password }
 }

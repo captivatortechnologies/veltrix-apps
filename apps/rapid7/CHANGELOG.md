@@ -3,6 +3,22 @@
 All notable changes to the Rapid7 InsightVM app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.3.1 — 2026-09-16
+
+### Fixed — the documented alternative credential field was dead code
+
+The resolver read `credential.password ?? credential.apiToken`. `CredentialRef.password` is a
+non-optional `string` and the platform supplies it as `''` rather than null, so
+`??` never fell through: the alternative field this app's own
+`MISSING_CREDENTIAL_MESSAGE` tells the operator they may use was never read.
+
+A tenant that stored its secret where the documentation said got a silent, total
+refusal from every handler — and because `driftDetect` reports `checked: false`
+without a usable credential, nothing ever alarmed about it either. The operator
+sees a connection that simply does not work, with no indication why.
+
+`||` is the right operator here: an empty credential field means "not set".
+
 ## 1.3.0 — 2026-08-05
 
 ### Added

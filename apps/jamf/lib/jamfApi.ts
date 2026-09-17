@@ -108,7 +108,7 @@ export interface JamfCredentials {
 export function resolveJamfCredentials(credential: CredentialRef | null): JamfCredentials | null {
   if (!credential) return null
   const username = (credential.username ?? '').trim()
-  const password = (credential.password ?? credential.apiToken ?? '').trim()
+  const password = (credential.password || credential.apiToken || '').trim()
   if (!username || !password) return null
   return { username, password }
 }

@@ -46,6 +46,7 @@ import {
   EMPTY_CREDENTIAL,
   NO_CONTENT,
   Route,
+  API_TOKEN_CREDENTIAL,
   assertTokenSent,
   badRequest,
   bodyOf,
@@ -124,6 +125,25 @@ export function registerHealthCheckContract(c: HealthCheckContract): void {
       assert.equal(result.healthy, false)
       assert.equal(result.score, 0)
       assert.equal(calls.length, 0, 'must not reach Netskope with an unusable credential')
+    } finally {
+      restore()
+    }
+  })
+
+  test(`${c.label} healthCheck: accepts a token stored in the apiToken field`, async () => {
+    // The library header and MISSING_CREDENTIAL_MESSAGE both tell the operator
+    // they may store the token in either field. `password ?? apiToken` never
+    // honoured that: the platform supplies `password` as '' rather than null, so
+    // `??` short-circuits on the empty string and apiToken was dead code. A
+    // tenant that followed the documentation got a silent, total refusal from
+    // all six handlers — and drift returned `checked: false` forever, so nothing
+    // ever alarmed.
+    const { calls, restore } = recordFetch([ok({})])
+    try {
+      const result = await c.handler(healthContext([], { credential: API_TOKEN_CREDENTIAL }))
+
+      assert.equal(result.healthy, true)
+      assertTokenSent(assert, calls)
     } finally {
       restore()
     }

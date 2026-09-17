@@ -50,7 +50,7 @@ export function resolveSecretServerCredentials(credential: CredentialRef | null)
   if (!credential) return null
   const username = (credential.username ?? '').trim()
   // Fall back to apiToken so a password stored in the token field still works.
-  const password = (credential.password ?? credential.apiToken ?? '').trim()
+  const password = (credential.password || credential.apiToken || '').trim()
   if (!username || !password) return null
   return { username, password }
 }

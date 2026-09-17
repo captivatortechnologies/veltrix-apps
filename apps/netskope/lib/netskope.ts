@@ -54,7 +54,7 @@ export function resolveNetskopeCredential(
   settings: NetskopeSettings
 ): NetskopeCredential | null {
   if (!credential) return null
-  const token = (credential.password ?? (credential as { apiToken?: string }).apiToken ?? '').trim()
+  const token = (credential.password || (credential as { apiToken?: string }).apiToken || '').trim()
   const baseUrl = (settings.baseUrl ?? '').trim()
   if (!token || !baseUrl) return null
   return { baseUrl, token }

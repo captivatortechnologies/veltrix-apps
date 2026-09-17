@@ -57,7 +57,7 @@ export interface QRadarCredential {
 export function resolveQRadarCredential(credential: CredentialRef | null, settings: QRadarSettings): QRadarCredential | null {
   if (!credential) return null
   // The SEC token may be stored in password (preferred) or username.
-  const token = (credential.password ?? credential.username ?? '').trim()
+  const token = (credential.password || credential.username || '').trim()
   const baseUrl = (settings.baseUrl ?? '').trim()
   if (!token || !baseUrl) return null
   return { baseUrl, token, version: settings.version }

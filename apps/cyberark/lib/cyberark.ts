@@ -62,7 +62,7 @@ export function resolveCyberArkCredentials(credential: CredentialRef | null): Cy
   if (!credential) return null
   const username = (credential.username ?? '').trim()
   // The logon password is the manager account's Vault/LDAP/RADIUS password.
-  const password = (credential.password ?? credential.apiToken ?? '').trim()
+  const password = (credential.password || credential.apiToken || '').trim()
   if (!username || !password) return null
   return { username, password }
 }
