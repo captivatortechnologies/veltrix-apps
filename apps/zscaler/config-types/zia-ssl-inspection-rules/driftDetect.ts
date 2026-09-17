@@ -2,20 +2,24 @@ import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sd
 import { buildZscalerClient } from '../../lib/zscaler'
 import { attachDriftActor, veltrixActorLogins } from '../lib/zscalerAudit'
 import { listSslRules } from './deploy'
-import { extractSslRuleSpecs } from './validate'
+import { extractSslRuleSpecs, parseRuleObject } from './validate'
 
 /**
  * Detect drift between the deployed SSL inspection rule configuration and the
- * live tenant. Re-finds each declared rule by name and diffs only the managed
- * scalar fields: presence, `order` and `state`. A missing rule is critical
- * drift.
+ * live tenant. Re-finds each declared rule by name and diffs the managed
+ * fields: presence, `order`, `state` and the SSL action type. A missing rule is
+ * critical drift.
  *
- * The SSL `action` is an OBJECT that lives inside rule_json, and the rest of the
- * rule_json body is optional, high-cardinality, and ZIA server-normalizes its
- * references (ids, ordering, echoed defaults) — so it is deliberately NOT
- * deep-diffed here; comparing it produces noisy phantom drift. Presence + the
- * two scalar fields ZIA lets us manage first-class (order, state) is the signal
- * worth alerting on.
+ * The rest of the rule_json body is optional, high-cardinality, and ZIA
+ * server-normalizes its references (ids, ordering, echoed defaults) — so it is
+ * deliberately NOT deep-diffed here; comparing it produces noisy phantom drift.
+ *
+ * `action.type` is the exception. The action object lives inside rule_json, but
+ * its `type` is a single un-normalised scalar and it is what the rule DOES: a
+ * rule switched from DECRYPT to DO_NOT_DECRYPT in the console silently stops
+ * inspecting TLS for everything it matches, and reporting that as "in sync" is
+ * the failure this detector exists to prevent. The rest of the action object is
+ * still left alone.
  */
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const diffs: DriftDiff[] = []
@@ -64,6 +68,24 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'warning',
         })
       }
+
+      // action.type — what the rule actually does. Compared only when the canvas
+      // declares one; a rule whose rule_json omits the action is not managed
+      // here and cannot drift. An action the tenant no longer reports reads as
+      // 'not set', because "I could not read it" is not "it matches".
+      const declaredAction = declaredActionType(spec.ruleJson)
+      if (declaredAction) {
+        const liveAction = typeof found.action?.type === 'string' ? found.action.type : ''
+        if (liveAction.toUpperCase() !== declaredAction.toUpperCase()) {
+          diffs.push({
+            field: `${spec.name}.action.type`,
+            expected: declaredAction,
+            actual: liveAction || 'not set',
+            severity: 'critical',
+          })
+        }
+      }
+
       attachDriftActor(diffs.slice(before), found, { excludeActorLogins })
     }
   } catch (error) {
@@ -76,4 +98,20 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   }
 
   return { hasDrift: diffs.length > 0, diffs }
+}
+
+/**
+ * The SSL action type the canvas declares, or '' when it declares none.
+ *
+ * rule_json is a raw string here (unlike the sandbox rules, which hand drift a
+ * parsed object), and a body that will not parse declares nothing rather than
+ * producing a phantom diff — validate already reports that separately.
+ */
+function declaredActionType(ruleJson: string | undefined): string {
+  if (!ruleJson) return ''
+  const parsed = parseRuleObject(ruleJson)
+  const action = parsed?.action
+  if (!action || typeof action !== 'object' || Array.isArray(action)) return ''
+  const type = (action as { type?: unknown }).type
+  return typeof type === 'string' ? type : ''
 }

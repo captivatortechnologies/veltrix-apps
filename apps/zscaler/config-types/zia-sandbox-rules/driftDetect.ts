@@ -6,12 +6,19 @@ import { extractSandboxRuleSpecs } from './validate'
 
 /**
  * Detect drift between the deployed sandbox rule configuration and the live
- * tenant. Re-finds each declared rule by name and diffs only the managed
- * scalars — presence, `order` and `state`. A missing rule is critical drift.
+ * tenant. Re-finds each declared rule by name and diffs the managed scalars —
+ * presence, `order`, `state` and the Sandbox action. A missing rule is critical
+ * drift.
  *
- * The full rule_json body (Sandbox action, policy categories, file types, …) is
- * intentionally NOT deep-diffed: ZIA server-normalizes references and expands
- * defaults, so a field-by-field JSON comparison is too noisy to be useful.
+ * The REST of the rule_json body (policy categories, file types, advanced
+ * criteria, …) is intentionally NOT deep-diffed: ZIA server-normalizes
+ * references and expands defaults, so a field-by-field JSON comparison is too
+ * noisy to be useful.
+ *
+ * `ba_rule_action` is the exception. It is one scalar, ZIA does not normalise
+ * it, and it is the entire point of a sandbox rule — a rule flipped from BLOCK
+ * to ALLOW in the console stops quarantining malware, and reporting that as "in
+ * sync" is precisely the failure this detector exists to prevent.
  */
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const diffs: DriftDiff[] = []
@@ -56,6 +63,25 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'warning',
         })
       }
+
+      // The Sandbox action, declared inside rule_json. Only compared when the
+      // canvas actually claims one — a rule left on the tenant default is not
+      // managed here and cannot drift. An action the tenant no longer reports is
+      // 'not set' rather than silently skipped, because "I could not read it" is
+      // not "it matches".
+      const declaredAction = spec.ruleJson?.ba_rule_action
+      if (typeof declaredAction === 'string' && declaredAction) {
+        const liveAction = typeof found.ba_rule_action === 'string' ? found.ba_rule_action : ''
+        if (liveAction.toUpperCase() !== declaredAction.toUpperCase()) {
+          diffs.push({
+            field: `${spec.name}.ba_rule_action`,
+            expected: declaredAction,
+            actual: liveAction || 'not set',
+            severity: 'critical',
+          })
+        }
+      }
+
       attachDriftActor(diffs.slice(before), found, { excludeActorLogins })
     }
   } catch (error) {

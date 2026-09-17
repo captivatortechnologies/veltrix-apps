@@ -56,6 +56,22 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'warning',
         })
       }
+
+      // The role. Deploy writes it and rollback restores it, but drift never
+      // compared it — so a managed admin account escalated to Super Admin in the
+      // console reported in sync. Compared by NAME, which is what the canvas
+      // declares and what the live user carries alongside its id, so this stays
+      // a read-only comparison needing no role lookup of its own.
+      const liveRole = (typeof found.role?.name === 'string' ? found.role.name : '').trim()
+      if (spec.roleName && liveRole.toLowerCase() !== spec.roleName.toLowerCase()) {
+        diffs.push({
+          field: `${spec.loginName}.role`,
+          expected: spec.roleName,
+          actual: liveRole || 'not set',
+          severity: 'critical',
+        })
+      }
+
       attachDriftActor(diffs.slice(before), found, { excludeActorLogins })
     }
   } catch (error) {

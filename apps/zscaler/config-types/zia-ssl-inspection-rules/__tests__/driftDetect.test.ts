@@ -50,6 +50,57 @@ const live = (over: Record<string, unknown> = {}) => ({
   ...over,
 })
 
+test('zia-ssl-inspection-rules driftDetect: reports a rule switched to DO_NOT_DECRYPT', async () => {
+  // Drift compared order and state and not the action, so a rule switched in the
+  // console silently stopped inspecting TLS for everything it matched — and
+  // every scheduled run reported the estate in sync.
+  const { calls, restore } = recordFetch([
+    TOKEN,
+    ziaList([live({ action: { type: 'DO_NOT_DECRYPT' } })]),
+  ])
+  try {
+    const result = await driftDetect(driftContext([RULE]))
+
+    assert.equal(result.hasDrift, true)
+    const diff = result.diffs.find((d) => d.field === 'Decrypt Finance.action.type')
+    assert.ok(diff, `expected an action diff, got ${JSON.stringify(result.diffs)}`)
+    assert.equal(diff.expected, 'DECRYPT')
+    assert.equal(diff.actual, 'DO_NOT_DECRYPT')
+    assert.equal(diff.severity, 'critical')
+    assert.equal(writeCalls(calls).length, 0, 'drift must never write')
+  } finally {
+    restore()
+  }
+})
+
+test('zia-ssl-inspection-rules driftDetect: the rest of the action object is still left alone', async () => {
+  // Only `type` is compared. ZIA normalises and echoes the rest, so diffing it
+  // would produce phantom drift on a tenant nobody has touched.
+  const { restore } = recordFetch([
+    TOKEN,
+    ziaList([live({ action: { type: 'DECRYPT', sslInterceptionCert: { id: 77 }, decryptSubActions: {} } })]),
+  ])
+  try {
+    const result = await driftDetect(driftContext([RULE]))
+
+    assert.deepEqual(result.diffs, [])
+  } finally {
+    restore()
+  }
+})
+
+test('zia-ssl-inspection-rules driftDetect: a rule declaring no action cannot drift on one', async () => {
+  const unmanaged = item('Decrypt Finance', { name: 'Decrypt Finance', order: '3', state: 'ENABLED' })
+  const { restore } = recordFetch([TOKEN, ziaList([live({ action: { type: 'DO_NOT_DECRYPT' } })])])
+  try {
+    const result = await driftDetect(driftContext([unmanaged]))
+
+    assert.deepEqual(result.diffs, [])
+  } finally {
+    restore()
+  }
+})
+
 test('zia-ssl-inspection-rules driftDetect: reports no drift when the tenant matches', async () => {
   const { calls, restore } = recordFetch([TOKEN, ziaList([live()])])
   try {
@@ -85,7 +136,7 @@ test('zia-ssl-inspection-rules driftDetect: a rule declared without an order is 
     rule_json: JSON.stringify({ action: { type: 'DECRYPT' } }),
   })
 
-  const matching = recordFetch([TOKEN, ziaList([{ id: 6010, name: 'Unordered', order: 1, state: 'ENABLED' }])])
+  const matching = recordFetch([TOKEN, ziaList([{ id: 6010, name: 'Unordered', order: 1, state: 'ENABLED', action: { type: 'DECRYPT' } }])])
   try {
     const result = await driftDetect(driftContext([unordered]))
     assert.equal(result.hasDrift, false, 'deploy sends order 1, so order 1 is in sync')
@@ -93,7 +144,7 @@ test('zia-ssl-inspection-rules driftDetect: a rule declared without an order is 
     matching.restore()
   }
 
-  const moved = recordFetch([TOKEN, ziaList([{ id: 6010, name: 'Unordered', order: 4, state: 'ENABLED' }])])
+  const moved = recordFetch([TOKEN, ziaList([{ id: 6010, name: 'Unordered', order: 4, state: 'ENABLED', action: { type: 'DECRYPT' } }])])
   try {
     const result = await driftDetect(driftContext([unordered]))
     const diff = result.diffs.find((d) => d.field === 'Unordered.order')

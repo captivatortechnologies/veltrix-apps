@@ -96,6 +96,57 @@ test('zia-sandbox-rules driftDetect: reports a rule disabled in the console as a
   }
 })
 
+test('zia-sandbox-rules driftDetect: reports a sandbox action flipped from BLOCK to ALLOW', async () => {
+  // The whole point of a sandbox rule. Drift compared order and state and not
+  // this, so a rule switched to ALLOW in the console stopped quarantining
+  // malware and every scheduled run reported the estate in sync.
+  const { calls, restore } = recordFetch([TOKEN, ziaList([live({ ba_rule_action: 'ALLOW' })])])
+  try {
+    const result = await driftDetect(driftContext([RULE]))
+
+    assert.equal(result.hasDrift, true)
+    const diff = result.diffs.find((d) => d.field === 'Block Malicious Files.ba_rule_action')
+    assert.ok(diff, `expected an action diff, got ${JSON.stringify(result.diffs)}`)
+    assert.equal(diff.expected, 'BLOCK')
+    assert.equal(diff.actual, 'ALLOW')
+    assert.equal(diff.severity, 'critical')
+    assert.equal(writeCalls(calls).length, 0, 'drift must never write')
+  } finally {
+    restore()
+  }
+})
+
+test('zia-sandbox-rules driftDetect: an action the tenant no longer reports is not read as a match', async () => {
+  const { restore } = recordFetch([TOKEN, ziaList([live({ ba_rule_action: undefined })])])
+  try {
+    const result = await driftDetect(driftContext([RULE]))
+
+    const diff = result.diffs.find((d) => d.field === 'Block Malicious Files.ba_rule_action')
+    assert.ok(diff, 'an unreadable action is reported, not skipped')
+    assert.equal(diff.actual, 'not set')
+  } finally {
+    restore()
+  }
+})
+
+test('zia-sandbox-rules driftDetect: a rule that declares no action cannot drift on one', async () => {
+  // A rule left on the tenant default is not managed here, so whatever the
+  // console shows for it is not this canvas's business.
+  const unmanaged = item('Block Malicious Files', {
+    name: 'Block Malicious Files',
+    order: '2',
+    state: 'ENABLED',
+  })
+  const { restore } = recordFetch([TOKEN, ziaList([live({ ba_rule_action: 'ALLOW' })])])
+  try {
+    const result = await driftDetect(driftContext([unmanaged]))
+
+    assert.deepEqual(result.diffs, [])
+  } finally {
+    restore()
+  }
+})
+
 test('zia-sandbox-rules driftDetect: a state ZIA echoes in lower case is not drift', async () => {
   const { restore } = recordFetch([TOKEN, ziaList([live({ state: 'enabled' })])])
   try {

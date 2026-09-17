@@ -81,6 +81,57 @@ test('zia-admin-users driftDetect: reports an email redirected in the ZIA consol
   }
 })
 
+test('zia-admin-users driftDetect: reports an account escalated to Super Admin', async () => {
+  // Deploy writes the role and rollback restores it, but drift never compared
+  // it — so a managed analyst account promoted in the console reported in sync,
+  // indefinitely.
+  const { calls, restore } = recordFetch([
+    TOKEN,
+    ziaList([live({ role: { id: 1, name: 'Super Admin' } })]),
+  ])
+  try {
+    const result = await driftDetect(driftContext([USER]))
+
+    assert.equal(result.hasDrift, true)
+    const diff = result.diffs.find((d) => d.field === 'soc.analyst@acme.com.role')
+    assert.ok(diff, `expected a role diff, got ${JSON.stringify(result.diffs)}`)
+    assert.equal(diff.expected, 'SOC Analyst')
+    assert.equal(diff.actual, 'Super Admin')
+    assert.equal(diff.severity, 'critical')
+    assert.equal(writeCalls(calls).length, 0, 'drift must never write')
+  } finally {
+    restore()
+  }
+})
+
+test('zia-admin-users driftDetect: a role the tenant no longer reports is not read as a match', async () => {
+  const { restore } = recordFetch([TOKEN, ziaList([live({ role: undefined })])])
+  try {
+    const result = await driftDetect(driftContext([USER]))
+
+    const diff = result.diffs.find((d) => d.field === 'soc.analyst@acme.com.role')
+    assert.ok(diff, 'an unreadable role is reported, not skipped')
+    assert.equal(diff.actual, 'not set')
+  } finally {
+    restore()
+  }
+})
+
+test('zia-admin-users driftDetect: a role differing only in case is not drift', async () => {
+  const { restore } = recordFetch([TOKEN, ziaList([live({ role: { id: 7, name: 'soc analyst' } })])])
+  try {
+    const result = await driftDetect(driftContext([USER]))
+
+    assert.equal(
+      result.diffs.some((d) => d.field === 'soc.analyst@acme.com.role'),
+      false,
+      'ZIA echoes role names with its own casing',
+    )
+  } finally {
+    restore()
+  }
+})
+
 test('zia-admin-users driftDetect: reports an account disabled out from under the canvas', async () => {
   const { restore } = recordFetch([TOKEN, ziaList([live({ disabled: true })])])
   try {

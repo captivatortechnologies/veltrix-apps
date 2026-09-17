@@ -3,6 +3,33 @@
 All notable changes to the Zscaler app are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## 1.4.3 — 2026-09-16
+
+### Fixed — drift now compares the three fields that decide what a rule DOES
+
+Three drift handlers compared presence, order and state, and stopped there — so
+the setting each config type exists to manage could be changed in the console and
+every scheduled run still reported the estate in sync:
+
+- **`zia-sandbox-rules`** did not compare `ba_rule_action`. A rule flipped from
+  BLOCK to ALLOW stops quarantining malware.
+- **`zia-ssl-inspection-rules`** did not compare the action type. A rule switched
+  from DECRYPT to DO_NOT_DECRYPT silently stops inspecting TLS for everything it
+  matches.
+- **`zia-admin-users`** did not compare the role, though deploy writes it and
+  rollback restores it. A managed analyst account escalated to Super Admin read
+  as healthy.
+
+Each is now compared, at `critical` severity, and only where the canvas actually
+declares the value — a rule left on the tenant default is not managed here and
+cannot drift. A value the tenant no longer reports reads as `not set` rather than
+being skipped, because "I could not read it" is not "it matches".
+
+The surrounding rule_json body is still deliberately not deep-diffed: ZIA
+normalises references and echoes defaults, so comparing it produces phantom
+drift. These are single un-normalised scalars, which is what makes them the
+exception.
+
 ## 1.4.2 — 2026-09-16
 
 ### Fixed — a created object with no rollback record, and a health check that crashed
