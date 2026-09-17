@@ -32,6 +32,13 @@ export interface PutFileRollbackEntry {
   replaced?: boolean
   /** Description of the replaced original (metadata only — its bytes are unrecoverable). */
   priorDescription?: string
+  /**
+   * True when the original was deleted and the replacement upload did NOT land.
+   * Put-file bytes are never readable from the API, so nothing can restore the
+   * original — this flag exists so the operator is at least told which file is
+   * gone and has to be re-uploaded by hand.
+   */
+  replacementMissing?: boolean
 }
 
 /**
@@ -66,15 +73,24 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         } else {
           // Immutable: converge by delete-then-recreate. The original bytes are
           // not retrievable, so rollback of this cannot restore them (documented).
+          //
+          // Record the loss BEFORE the upload can throw. The moment the delete
+          // lands the customer's file is gone for good, and the create that
+          // follows can fail — which used to leave the result saying "failed
+          // after 0 of 1", naming nothing. An entry marked `replacementMissing`
+          // is the only thing that tells the operator which file to re-upload.
           await deletePutFile(client, existing.id)
-          const newId = await createPutFile(client, spec)
-          rollbackState.push({
+          const entry: PutFileRollbackEntry = {
             name: spec.name,
             existed: true,
-            id: newId,
             replaced: true,
             priorDescription: existing.description,
-          })
+            replacementMissing: true,
+          }
+          rollbackState.push(entry)
+          const newId = await createPutFile(client, spec)
+          entry.id = newId
+          entry.replacementMissing = false
         }
       } else {
         const id = await createPutFile(client, spec)
@@ -95,7 +111,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       success: false,
       message: `RTR put-file deployment failed after ${deployed.length} of ${specs.length} put-file(s): ${
         error instanceof Error ? error.message : 'Unknown error'
-      }`,
+      }${destroyedNote(rollbackState)}`,
       artifacts: { baseUrl, deployedPutFiles: deployed },
       // Partial rollback data lets the platform revert what was already applied.
       rollbackData: { previousState: rollbackState },
@@ -104,6 +120,20 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 }
 
 // --- Helpers ---
+
+/**
+ * Name the put-files whose original was deleted and whose replacement never
+ * uploaded. Their bytes are unrecoverable through this API, so the message is
+ * the only place an operator can learn what to restore by hand.
+ */
+function destroyedNote(state: PutFileRollbackEntry[]): string {
+  const lost = state.filter((e) => e.replacementMissing).map((e) => e.name)
+  if (lost.length === 0) return ''
+  return (
+    `. The previous version of ${lost.join(', ')} was deleted before the replacement ` +
+    'uploaded and cannot be recovered from Falcon — re-upload it by hand.'
+  )
+}
 
 /** Look up a put-file by its exact name; null when absent. */
 export async function findPutFile(client: FalconClient, name: string): Promise<LiveRtrPutFile | null> {

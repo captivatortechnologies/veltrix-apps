@@ -294,14 +294,13 @@ test('rtr-put-files deploy: treats HTTP 200 with a populated errors[] as a failu
   }
 })
 
-test('rtr-put-files deploy: a failed re-upload after the delete is not reported as a success', async () => {
-  // DEFECT (reported, not blessed): the converge path deletes the live put-file
-  // BEFORE it uploads the replacement, and pushes the rollback entry only after
-  // the upload succeeds. When the upload is rejected the customer's staged file
-  // is gone AND nothing was recorded about it — and put-file bytes cannot be
-  // read back from the API, so no later run can restore it either. Only the half
-  // that is certainly right is asserted: the deploy does not claim success, and
-  // the delete demonstrably happened. The absent rollback record is NOT asserted.
+test('rtr-put-files deploy: a failed re-upload after the delete names the file it destroyed', async () => {
+  // The converge path is delete-then-recreate, so once the DELETE lands the
+  // customer's staged file is gone — and put-file bytes cannot be read back from
+  // the API, so nothing can restore it. The rollback entry used to be pushed
+  // only after the upload succeeded, so a rejected upload reported "failed after
+  // 0 of 1" and named nothing: the operator was not told which file had been
+  // lost, let alone which one to re-upload.
   const live = {
     id: 'pf-live-1',
     name: 'isolate-host.ps1',
@@ -320,6 +319,21 @@ test('rtr-put-files deploy: a failed re-upload after the delete is not reported 
     assert.equal(result.success, false)
     assert.match(String(result.message), /access denied/)
     assert.equal(callsOfMethod(calls, 'DELETE').length, 1, 'the original put-file was already destroyed')
+
+    // The loss is named, because nothing else can name it.
+    assert.match(String(result.message), /isolate-host\.ps1/)
+    assert.match(String(result.message), /cannot be recovered from Falcon/)
+
+    const state = (result.rollbackData as { previousState: Array<Record<string, unknown>> }).previousState
+    assert.deepEqual(state, [
+      {
+        name: 'isolate-host.ps1',
+        existed: true,
+        replaced: true,
+        priorDescription: 'legacy description nobody updated',
+        replacementMissing: true,
+      },
+    ])
   } finally {
     restore()
   }

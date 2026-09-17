@@ -3,6 +3,22 @@
 All notable changes to the CrowdStrike Falcon app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.13.3 — 2026-09-16
+
+### Fixed — a destroyed put-file is now named, instead of reported as nothing
+
+`rtr-put-files` converges a changed file by delete-then-recreate, because the
+resource is immutable. The rollback entry was pushed only after the replacement
+uploaded, so a rejected upload left the customer's staged file deleted and
+NOTHING recorded about it — the result said "failed after 0 of 1 put-file(s)"
+and named no file at all.
+
+Put-file bytes are never readable from the API, so nothing can restore the
+original; no code change can make this recoverable. What it can do is tell the
+truth. The entry is now recorded the moment the delete lands, marked
+`replacementMissing` until the upload succeeds, and the failure message names
+the file and says it must be re-uploaded by hand.
+
 ## 1.13.2 — 2026-08-05
 
 ### Documentation (research-first coverage audit, no new config type)
