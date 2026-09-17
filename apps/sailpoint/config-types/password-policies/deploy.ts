@@ -82,8 +82,16 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
     if (live?.id) {
       // The tenant default password policy is protected — never overwrite it.
-      if (live.defaultPolicy) {
-        failures.push(`${spec.name}: this is the tenant default password policy and will not be modified`)
+      // ABSENT counts as protected: this flag is what stands between the PUT
+      // below and the policy governing every account without one of its own, and
+      // a listing that did not carry it has not established that this is safe to
+      // write. Refusing is visible and recoverable; overwriting is neither.
+      if (live.defaultPolicy !== false) {
+        failures.push(
+          live.defaultPolicy === undefined
+            ? `${spec.name}: could not confirm this is not the tenant default password policy (the API did not report defaultPolicy), so it was not modified`
+            : `${spec.name}: this is the tenant default password policy and will not be modified`,
+        )
         continue
       }
       const resp = await client.put(`${BASE}/${live.id}`, updateBody(live, spec))

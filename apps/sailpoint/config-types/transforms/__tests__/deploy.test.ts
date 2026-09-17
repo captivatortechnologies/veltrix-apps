@@ -51,6 +51,22 @@ test('transforms deploy: never writes a SailPoint-internal transform', async () 
   }
 })
 
+test('transforms deploy: refuses when it cannot tell whether the transform is internal', async () => {
+  // `if (liveMatch.internal)` read an absent flag as "not internal", so a
+  // listing that omitted it let the PUT overwrite a transform SailPoint ships
+  // and the product itself uses.
+  const { calls, restore } = recordFetch([TOKEN, listPage([liveTransform({ internal: undefined })])])
+  try {
+    const result = await deploy(deployContext([transformItem()]))
+
+    assert.equal(result.success, false)
+    assert.match(result.message, /could not confirm/)
+    assert.equal(writeCalls(calls).length, 0, 'unknown must mean protected, not unprotected')
+  } finally {
+    restore()
+  }
+})
+
 test('transforms deploy: refuses to change an existing transform\'s type', async () => {
   const { calls, restore } = recordFetch([TOKEN, listPage([liveTransform({ type: 'lower' })])])
   try {

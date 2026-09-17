@@ -371,6 +371,28 @@ export function registerNestedDriftContract(c: NestedDriftContract): void {
         0,
         'an unreadable tenant is not the same as a deleted child',
       )
+      assert.equal(result.checked, false, 'a run that could not look must say so')
+      assert.equal(writeCalls(calls).length, 0)
+    } finally {
+      restore()
+    }
+  })
+
+  test(`${c.label} driftDetect: a failed CHILD listing is not reported as the children being deleted`, async () => {
+    // The parent listing's `.ok` was checked and the child's was not, so a 403
+    // on one parent's children reported every declared child under it as
+    // critically absent. Somebody gets paged for a deletion that never happened,
+    // and the obvious remedy is a redeploy of things that were never gone.
+    const { calls, restore } = recordFetch([TOKEN, listPage([c.parent]), iscError(403, 'read denied')])
+    try {
+      const result = await c.handler(driftContext([c.item]))
+
+      assert.equal(
+        result.diffs.filter((d) => d.actual === 'absent').length,
+        0,
+        'an unreadable child collection is not an empty one',
+      )
+      assert.equal(result.checked, false, 'the run saw some of the estate, not all of it')
       assert.equal(writeCalls(calls).length, 0)
     } finally {
       restore()

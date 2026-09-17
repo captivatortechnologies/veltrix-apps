@@ -58,8 +58,19 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     }
     // Snapshot the prior enabled state so an undeclared/rolled-back method that
     // WAS disabled can be safely disabled again (secrets can't round-trip).
+    //
+    // A failed read must NOT fall through to `false`. `priorEnabled` is what
+    // authorises a destructive undo: both rollback and the reconcile pass below
+    // DELETE the method config when it is false. Recording "it was off" from a
+    // transient 403 therefore turns off an MFA method the tenant was relying on
+    // — and `configProperties` is masked on read, so this app cannot put it back.
+    // Refusing to write is recoverable; removing a second factor is not.
     const cur = await client.get(configPath(spec.method))
-    const priorEnabled = cur.ok ? (parseJson<LiveMfaConfig>(cur.body)?.enabled ?? false) : false
+    if (!cur.ok) {
+      failures.push(`${spec.method}: could not read the current state (${iscErrorMessage(cur)})`)
+      continue
+    }
+    const priorEnabled = parseJson<LiveMfaConfig>(cur.body)?.enabled ?? false
 
     const resp = await client.put(configPath(spec.method), buildBody(spec, parsed.value))
     if (!resp.ok) {

@@ -18,8 +18,11 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   if (!sourcesRes.ok) return { hasDrift: false, diffs: [], checked: false }
   const sourceByName = new Map(sourcesRes.items.filter((s) => s.name && s.id).map((s) => [s.name!.toLowerCase(), s]))
 
-  const childCache = new Map<string, Map<string, LiveSourceSchema>>()
+  const childCache = new Map<string, Map<string, LiveSourceSchema> | null>()
   const diffs: Diffs = []
+  // Cleared when a child collection could not be read, so the run reports
+  // `checked: false` rather than "in sync" from a partial view.
+  let checkedAll = true
   for (const spec of specs) {
     const source = sourceByName.get(spec.sourceName.toLowerCase())
     if (!source?.id) {
@@ -27,10 +30,17 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       continue
     }
     let children = childCache.get(source.id)
-    if (!children) {
+    if (children === undefined) {
       const listed = await client.getAll<LiveSourceSchema>(`${SOURCES}/${source.id}/schemas`)
-      children = new Map(listed.items.filter((s) => s.name).map((s) => [s.name!.toLowerCase(), s]))
+      // A REFUSED child listing is not an empty one. Reporting every declared
+      // child as critically absent because one read failed pages somebody for a
+      // deletion that never happened — and the obvious remedy is a redeploy.
+      children = listed.ok ? new Map(listed.items.filter((s) => s.name).map((s) => [s.name!.toLowerCase(), s])) : null
       childCache.set(source.id, children)
+    }
+    if (children === null) {
+      checkedAll = false
+      continue
     }
     const live = children.get(spec.name.toLowerCase())
     if (!live) {
@@ -45,5 +55,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

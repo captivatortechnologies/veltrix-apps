@@ -81,8 +81,16 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     }
     const live = liveByName.get(spec.name.toLowerCase()) ?? null
     if (live) {
-      if (live.standard || live.system) {
-        failures.push(`${spec.name}: this is a standard/system identity attribute and cannot be modified`)
+      // ABSENT counts as protected: these flags are what stand between the PUT
+      // below and a SailPoint standard attribute, which decides how every
+      // identity in the tenant is built. A listing that did not carry them has
+      // not established this attribute is safe to write.
+      if (live.standard !== false || live.system !== false) {
+        failures.push(
+          live.standard === undefined || live.system === undefined
+            ? `${spec.name}: could not confirm this is not a standard/system identity attribute (the API did not report standard/system), so it was not modified`
+            : `${spec.name}: this is a standard/system identity attribute and cannot be modified`,
+        )
         continue
       }
       const resp = await client.put(`${BASE}/${encodeURIComponent(spec.name)}`, buildBody(spec, parsed.value))

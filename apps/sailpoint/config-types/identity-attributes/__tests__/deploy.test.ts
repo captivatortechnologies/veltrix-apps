@@ -51,3 +51,21 @@ test('identity-attributes deploy: refuses to modify a standard or system attribu
     }
   }
 })
+
+test('identity-attributes deploy: refuses when it cannot tell whether the attribute is standard', async () => {
+  // `if (live.standard || live.system)` read an absent flag as "not protected",
+  // so a listing that omitted them let the PUT overwrite a SailPoint standard
+  // attribute — which decides how every identity in the tenant is built.
+  for (const flags of [{ standard: undefined }, { system: undefined }]) {
+    const { calls, restore } = recordFetch([TOKEN, listPage([liveIdentityAttribute(flags)])])
+    try {
+      const result = await deploy(deployContext([attributeItem()]))
+
+      assert.equal(result.success, false)
+      assert.match(result.message, /could not confirm/)
+      assert.equal(writeCalls(calls).length, 0, 'unknown must mean protected, not unprotected')
+    } finally {
+      restore()
+    }
+  }
+})

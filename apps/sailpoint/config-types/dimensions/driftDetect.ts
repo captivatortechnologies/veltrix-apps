@@ -18,8 +18,11 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   if (!rolesRes.ok) return { hasDrift: false, diffs: [], checked: false }
   const roleByName = new Map(rolesRes.items.filter((r) => r.name && r.id).map((r) => [r.name!.toLowerCase(), r]))
 
-  const childCache = new Map<string, Map<string, LiveDimension>>()
+  const childCache = new Map<string, Map<string, LiveDimension> | null>()
   const diffs: Diffs = []
+  // Cleared when a child collection could not be read, so the run reports
+  // `checked: false` rather than "in sync" from a partial view.
+  let checkedAll = true
   for (const spec of specs) {
     const role = roleByName.get(spec.roleName.toLowerCase())
     if (!role?.id) {
@@ -27,10 +30,17 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       continue
     }
     let children = childCache.get(role.id)
-    if (!children) {
+    if (children === undefined) {
       const listed = await client.getAll<LiveDimension>(`/beta/roles/${role.id}/dimensions`)
-      children = new Map(listed.items.filter((d) => d.name).map((d) => [d.name!.toLowerCase(), d]))
+      // A REFUSED child listing is not an empty one. Reporting every declared
+      // child as critically absent because one read failed pages somebody for a
+      // deletion that never happened — and the obvious remedy is a redeploy.
+      children = listed.ok ? new Map(listed.items.filter((d) => d.name).map((d) => [d.name!.toLowerCase(), d])) : null
       childCache.set(role.id, children)
+    }
+    if (children === null) {
+      checkedAll = false
+      continue
     }
     const live = children.get(spec.name.toLowerCase())
     if (!live) {
@@ -45,5 +55,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

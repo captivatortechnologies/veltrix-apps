@@ -50,6 +50,22 @@ test('password-policies deploy: never writes the tenant default policy', async (
   }
 })
 
+test('password-policies deploy: refuses when it cannot tell whether this is the default policy', async () => {
+  // The guard used to be `if (live.defaultPolicy)`, so a listing that omitted
+  // the flag read as "not the default" and the PUT went ahead — changing the
+  // password rules for every account in the tenant without one of its own.
+  const { calls, restore } = recordFetch([TOKEN, listPage([livePasswordPolicy({ defaultPolicy: undefined })])])
+  try {
+    const result = await deploy(deployContext([policyItem()]))
+
+    assert.equal(result.success, false)
+    assert.match(result.message, /could not confirm/)
+    assert.equal(writeCalls(calls).length, 0, 'unknown must mean protected, not unprotected')
+  } finally {
+    restore()
+  }
+})
+
 test('password-policies deploy: the update preserves fields the app does not manage', async () => {
   // A whole-body PUT drops anything it omits — sourceIds decides which sources
   // the policy governs, and nothing in the canvas declares it.

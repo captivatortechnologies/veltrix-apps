@@ -8,6 +8,35 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.2 — 2026-09-16
+
+### Fixed — four guards that failed open, and a drift report of deletions that never happened
+
+- **`mfa-configs` no longer records "MFA was off" when it could not read whether
+  it was on.** `priorEnabled` fell through to `false` on a failed GET, and that
+  flag is what authorises a destructive undo: both rollback and the reconcile
+  pass DELETE the method config when it is false. A transient 403 on the
+  pre-read therefore turned off an MFA method the tenant was relying on — and
+  `configProperties` is masked on read, so this app could not put it back. The
+  deploy now refuses that method and says why.
+
+- **Nested drift stops reporting an unreadable child collection as "every child
+  was deleted".** `dimensions`, `lifecycle-states`, `provisioning-policies` and
+  `source-schemas` checked the parent listing's `.ok` and not the child's, so a
+  403 on one role's `/dimensions` reported every dimension on that role as
+  critically absent. Somebody gets paged for a deletion that never happened, and
+  the obvious remedy is a redeploy. The run now skips that parent and reports
+  `checked: false`.
+
+- **Three protected-object guards now treat "the API did not tell me" as
+  protected**, not as unprotected: the tenant default password policy
+  (`defaultPolicy`), a SailPoint standard identity attribute
+  (`standard`/`system`) and a built-in transform (`internal`). Each guard read an
+  ABSENT flag as "not protected" and let the write through — overwriting the
+  policy that governs every account without one of its own, or the attribute that
+  decides how every identity in the tenant is built. Refusing is visible and
+  recoverable; overwriting is neither.
+
 ## 0.6.1 — 2026-09-16
 
 ### Fixed — drift no longer claims "in sync" from a run that could not look

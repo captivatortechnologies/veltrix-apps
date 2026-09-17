@@ -114,6 +114,26 @@ test('mfa-configs deploy: records that the method was already ON before this dep
   }
 })
 
+test('mfa-configs deploy: refuses to write when it could not read whether the method was on', async () => {
+  // `priorEnabled` used to fall through to `false` on a failed read. It is the
+  // flag that authorises a destructive undo — both rollback and the reconcile
+  // pass DELETE the method config when it is false — so a transient 403 on this
+  // pre-read would later turn off an MFA method the tenant was relying on. The
+  // provider secret in configProperties is masked on read, so this app could not
+  // put it back.
+  const { calls, restore } = recordFetch([TOKEN, iscError(403, 'read denied')])
+  try {
+    const result = await deploy(deployContext([mfaItem()]))
+
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /could not read the current state/)
+    assert.equal(writeCalls(calls).length, 0, 'not writing is recoverable; a wrong priorEnabled is not')
+    assert.deepEqual(entriesOf(result), [], 'an entry here would authorise the destructive undo')
+  } finally {
+    restore()
+  }
+})
+
 test('mfa-configs deploy: reports a rejected write rather than throwing', async () => {
   const { restore } = recordFetch([TOKEN, resource(liveConfig()), iscError(400, 'the client id is not valid')])
   try {

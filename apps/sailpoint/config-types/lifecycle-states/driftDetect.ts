@@ -18,8 +18,11 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   if (!profilesRes.ok) return { hasDrift: false, diffs: [], checked: false }
   const profileByName = new Map(profilesRes.items.filter((p) => p.name && p.id).map((p) => [p.name!.toLowerCase(), p]))
 
-  const childCache = new Map<string, Map<string, LiveLifecycleState>>()
+  const childCache = new Map<string, Map<string, LiveLifecycleState> | null>()
   const diffs: Diffs = []
+  // Cleared when a child collection could not be read, so the run reports
+  // `checked: false` rather than "in sync" from a partial view.
+  let checkedAll = true
   for (const spec of specs) {
     const profile = profileByName.get(spec.profileName.toLowerCase())
     if (!profile?.id) {
@@ -27,10 +30,17 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       continue
     }
     let children = childCache.get(profile.id)
-    if (!children) {
+    if (children === undefined) {
       const listed = await client.getAll<LiveLifecycleState>(`${PROFILES}/${profile.id}/lifecycle-states`)
-      children = new Map(listed.items.filter((s) => s.technicalName).map((s) => [s.technicalName!.toLowerCase(), s]))
+      // A REFUSED child listing is not an empty one. Reporting every declared
+      // child as critically absent because one read failed pages somebody for a
+      // deletion that never happened — and the obvious remedy is a redeploy.
+      children = listed.ok ? new Map(listed.items.filter((s) => s.technicalName).map((s) => [s.technicalName!.toLowerCase(), s])) : null
       childCache.set(profile.id, children)
+    }
+    if (children === null) {
+      checkedAll = false
+      continue
     }
     const live = children.get(spec.technicalName.toLowerCase())
     if (!live) {
@@ -45,5 +55,5 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
-  return { hasDrift: diffs.length > 0, diffs }
+  return { hasDrift: diffs.length > 0, diffs, ...(checkedAll ? {} : { checked: false }) }
 }

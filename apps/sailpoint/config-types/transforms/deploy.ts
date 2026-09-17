@@ -80,9 +80,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     const liveMatch = liveByName.get(spec.name.toLowerCase()) ?? null
 
     if (liveMatch?.id) {
-      // Never modify a SailPoint-internal transform.
-      if (liveMatch.internal) {
-        failures.push(`${spec.name}: a built-in (internal) transform with this name exists and will not be modified`)
+      // Never modify a SailPoint-internal transform. ABSENT counts as internal:
+      // a listing that did not carry the flag has not established this transform
+      // is one of ours to write.
+      if (liveMatch.internal !== false) {
+        failures.push(
+          liveMatch.internal === undefined
+            ? `${spec.name}: could not confirm this transform is not built-in (the API did not report internal), so it was not modified`
+            : `${spec.name}: a built-in (internal) transform with this name exists and will not be modified`,
+        )
         continue
       }
       // type is immutable — a same-name, different-type transform must be
