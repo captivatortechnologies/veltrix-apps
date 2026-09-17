@@ -97,6 +97,17 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
           // replace) and record a no-op so rollback skips it.
           rollbackState.push({ name: spec.name, existed: true, replaced: false })
         } else {
+          // Never delete a rule this app could not put back. There was no guard
+          // here at all, so any live rule whose name matched a canvas item was
+          // deleted and replaced — including one CrowdStrike ships.
+          const refusal = refuseToReplaceReason(existing)
+          if (refusal) {
+            throw new Error(
+              `Rule "${spec.name}" already exists and was NOT replaced because ${refusal}. ` +
+                'Rename the canvas item, or remove the live rule in the Falcon console first.',
+            )
+          }
+
           // REPLACE-IN-PLACE: capture the prior rule BEFORE deleting so a
           // failure mid-replace still leaves rollback able to recreate it.
           const entry: IdpRuleRollbackEntry = {
@@ -156,6 +167,67 @@ export function buildRuleBody(spec: IdpRuleSpec, conditions: Record<string, unkn
     action: spec.action,
     ...conditions,
   }
+}
+
+/** Keys `toCreateBody` reproduces, plus the read-only ones it is right to drop. */
+const RECREATABLE_KEYS = new Set<string>([
+  'name',
+  'enabled',
+  'simulationMode',
+  'action',
+  ...CONDITION_KEYS,
+  // Server-assigned or audit-only: not part of what defines the rule.
+  'id',
+  'modified_by',
+  'modified_timestamp',
+  'modified_on',
+  'created_by',
+  'created_timestamp',
+  'created_on',
+])
+
+/** Markers a vendor typically uses for a rule it ships and owns. */
+const BUILT_IN_MARKERS = ['system', 'isDefault', 'default', 'predefined', 'readOnly', 'immutable']
+
+/**
+ * Why this deploy must NOT delete the given live rule, or '' when it may.
+ *
+ * The converge path is delete-then-recreate, and there was no guard on it at
+ * all: any live rule whose name matched a canvas item was deleted and replaced.
+ * The question is not "is this rule ours" — the canvas matched it by name — but
+ * "can we put it back". Two ways the answer is no:
+ *
+ *   1. The rule is marked as one CrowdStrike ships. Identity Protection does not
+ *      document such a flag today, so this checks the usual spellings and fires
+ *      only when one is actually present and true. It costs nothing now and
+ *      starts working the day the API surfaces one.
+ *
+ *   2. The rule carries fields `toCreateBody` does not reproduce. Deleting it
+ *      discards them permanently, and the "prior rule" recorded for rollback
+ *      would recreate a stripped-down copy while reporting success.
+ *
+ * The asymmetry decides the default: refusing leaves a rule the operator can
+ * rename or remove by hand, and says which one. Proceeding destroys an
+ * authentication rule and cannot be undone from here.
+ */
+export function refuseToReplaceReason(live: LiveIdpRule): string {
+  const record = live as Record<string, unknown>
+
+  for (const marker of BUILT_IN_MARKERS) {
+    if (record[marker] === true) {
+      return `it is marked "${marker}" — a rule CrowdStrike ships is never deleted and recreated`
+    }
+  }
+
+  const lost = Object.keys(record).filter((key) => !RECREATABLE_KEYS.has(key))
+  if (lost.length > 0) {
+    return (
+      `it carries field(s) this app cannot recreate (${lost.sort().join(', ')}), so deleting it ` +
+      'would discard them and a rollback could only put back a stripped-down copy'
+    )
+  }
+
+  return ''
 }
 
 /** Strip a live rule down to a recreatable create body (drops id and audit metadata). */

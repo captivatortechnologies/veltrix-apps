@@ -193,6 +193,65 @@ test('idp-policy-rules deploy: replaces a changed rule, deleting the old one bef
   }
 })
 
+test('idp-policy-rules deploy: refuses to replace a rule CrowdStrike marks as its own', async () => {
+  // There was no guard here at all: any live rule whose name matched a canvas
+  // item was DELETED and recreated, including one the vendor ships. Identity
+  // Protection does not document such a flag today, so the guard checks the
+  // usual spellings and fires only when one is present and true.
+  for (const marker of ['system', 'isDefault', 'predefined', 'readOnly']) {
+    const { calls, restore } = existingRule({ live: { ...LIVE_RULE, [marker]: true } })
+    try {
+      const result = await deploy(deployContext([RULE]))
+
+      assert.equal(result.success, false)
+      assert.match(String(result.message), new RegExp(marker))
+      assert.equal(
+        callsOfMethod(calls, 'DELETE').length,
+        0,
+        `a rule marked ${marker} must not be deleted: ${describeCalls(calls)}`,
+      )
+    } finally {
+      restore()
+    }
+  }
+})
+
+test('idp-policy-rules deploy: refuses to replace a rule it could not faithfully recreate', async () => {
+  // The converge path is delete-then-recreate, and `toCreateBody` keeps only the
+  // managed scalars plus five condition keys. A live rule carrying anything else
+  // would come back stripped — so the prior state recorded for rollback would
+  // recreate a lesser rule while reporting success.
+  const { calls, restore } = existingRule({
+    live: { ...LIVE_RULE, ruleGroupId: 'grp-7', customThreshold: 42 },
+  })
+  try {
+    const result = await deploy(deployContext([RULE]))
+
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /cannot recreate/)
+    assert.match(String(result.message), /customThreshold, ruleGroupId/)
+    assert.equal(callsOfMethod(calls, 'DELETE').length, 0, 'nothing is destroyed that cannot be restored')
+  } finally {
+    restore()
+  }
+})
+
+test('idp-policy-rules deploy: still replaces an ordinary rule carrying only recreatable fields', async () => {
+  // The guard must not stop the normal converge. Server-assigned and audit-only
+  // keys are dropped on purpose and do not count as unrecreatable.
+  const { calls, restore } = existingRule({
+    live: { ...LIVE_RULE, modified_by: 'someone@acme.com', modified_timestamp: '2026-09-01T00:00:00Z' },
+  })
+  try {
+    const result = await deploy(deployContext([RULE]))
+
+    assert.equal(result.success, true)
+    assert.equal(callsOfMethod(calls, 'DELETE').length, 1)
+  } finally {
+    restore()
+  }
+})
+
 test('idp-policy-rules deploy: records the LIVE prior rule BEFORE deleting it', async () => {
   // The canvas asks for enabled/DENY/LEGACY; the tenant holds
   // disabled/ALLOW/RDP. Rollback recreates what was there, not what was wanted,

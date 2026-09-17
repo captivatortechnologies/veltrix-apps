@@ -3,6 +3,31 @@
 All notable changes to the CrowdStrike Falcon app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.13.6 — 2026-09-17
+
+### Fixed — an Identity Protection rule is no longer deleted just because a name matched
+
+`idp-policy-rules` converges a changed rule by delete-then-recreate, and there
+was NO guard on it: any live rule whose name matched a canvas item was deleted
+and replaced — including one CrowdStrike ships. `toCreateBody` keeps only the
+managed scalars plus five condition keys, so even the rollback path would put
+back a stripped-down copy of a built-in.
+
+The converge now refuses when the rule cannot be faithfully put back, for either
+reason:
+
+- it carries a built-in marker (`system`, `isDefault`, `predefined`, `readOnly`
+  and the usual variants). Identity Protection does not document one today, so
+  this fires only when a flag is actually present and true — it costs nothing
+  now and starts working the day the API surfaces one;
+- it carries any field this app cannot recreate, which deleting would discard
+  permanently. The message names the fields.
+
+The asymmetry decides the default: refusing leaves a rule the operator can
+rename or remove by hand, and says which one. Proceeding destroys an
+authentication rule and cannot be undone from here. Server-assigned and
+audit-only keys are still dropped on purpose and do not trigger the refusal.
+
 ## 1.13.5 — 2026-09-16
 
 ### Fixed — a rollback that made no call no longer counts the entry as reverted
