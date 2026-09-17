@@ -8,6 +8,32 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.2 — 2026-09-16
+
+### Fixed — two ways a deploy could destroy configuration it did not own
+
+- **`network-hierarchy` could erase the customer's entire hierarchy.** The read
+  returned `[]` on failure, the handler computed what to preserve from that
+  empty list, and then PUT a whole-list REPLACE — so a single 500 on the GET
+  deleted every network the operator maintains by hand. The same run recorded
+  the empty list as the rollback snapshot, destroying the way back. QRadar
+  routes events by this hierarchy. The read now returns null when it failed, and
+  deploy, rollback and drift each refuse rather than treat "unreadable" as
+  "empty": rollback with no recorded snapshot writes nothing instead of PUTting
+  `[]`, and drift reports `checked: false` instead of marking every network
+  critically absent.
+
+- **`qid-records` could overwrite an unrelated device type's record.** Identity
+  is (log source type, name) — a QID record name is unique only within a device
+  type — but the lookup filtered on name alone and took the first match, and the
+  update body omits `log_source_type_id`, so the victim kept its own type and
+  nothing showed what had happened. Deploying "Failed Login" for Linux rewrote
+  the customer's Windows "Failed Login" record. QID records have no delete
+  endpoint, so it is unrecoverable. The lookup now matches on both halves of the
+  identity, re-confirms a recorded id still points at this device type, and
+  refuses a name that belongs to another one — refuses rather than creates,
+  because a duplicate would be permanent too.
+
 ## 0.6.1 — 2026-09-16
 
 ### Fixed — drift no longer claims "in sync" from a run that could not look

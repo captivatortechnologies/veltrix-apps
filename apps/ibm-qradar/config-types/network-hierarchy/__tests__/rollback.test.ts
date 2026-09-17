@@ -56,6 +56,25 @@ test('network-hierarchy rollback: puts the captured snapshot back verbatim', asy
   }
 })
 
+test('network-hierarchy rollback: writes nothing when no snapshot was recorded', async () => {
+  // The PUT here is a whole-list REPLACE. Falling back to `[]` — as this used
+  // to — wipes the customer's entire network hierarchy in the name of undoing a
+  // deploy. Every other rollback in this app returns early when nothing was
+  // recorded; this is the only one whose "empty" is destructive.
+  for (const data of [undefined, {}, { entries: [] }, { entries: [], priorList: 'not-a-list' }]) {
+    const { calls, restore } = recordFetch([])
+    try {
+      const result = await rollback(rollbackContext(data))
+
+      assert.equal(result.success, false)
+      assert.match(String(result.message), /No prior network hierarchy was recorded/)
+      assert.equal(calls.length, 0, 'an empty replace would delete every network object')
+    } finally {
+      restore()
+    }
+  }
+})
+
 test('network-hierarchy rollback: applies the restored list with an INCREMENTAL deploy', async () => {
   // A staged revert is not a revert until it is applied — the hierarchy QRadar
   // routes on is the deployed one, not the staged one.

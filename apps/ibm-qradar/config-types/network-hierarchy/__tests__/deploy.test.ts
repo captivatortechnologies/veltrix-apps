@@ -173,6 +173,24 @@ test('network-hierarchy deploy: drops an object it created before and no longer 
   }
 })
 
+test('network-hierarchy deploy: refuses to replace a hierarchy it could not read', async () => {
+  // This deploy sends a whole-list REPLACE, and the list it sends is built from
+  // the read. A failed read used to become `[]`, so one 500 on this GET deleted
+  // every network the operator maintains by hand — and the same run recorded
+  // that empty list as the rollback snapshot, destroying the way back. QRadar
+  // routes events by this hierarchy.
+  const { calls, restore } = recordFetch([serverError('Staged config is locked')])
+  try {
+    const result = await deploy(deployContext([DMZ]))
+
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /Could not read the staged network hierarchy/)
+    assert.equal(writeCalls(calls).length, 0, 'not writing is the only safe answer to an unreadable list')
+  } finally {
+    restore()
+  }
+})
+
 test('network-hierarchy deploy: applies the staged list with an INCREMENTAL deploy', async () => {
   const { calls, restore } = recordFetch([list([]), ok({}), ACCEPTED])
   try {

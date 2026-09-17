@@ -17,7 +17,21 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   const client = buildQRadarClient(cred, settings)
 
   const data = ctx.rollbackData as RollbackData | undefined
-  const priorList = Array.isArray(data?.priorList) ? data.priorList : []
+  const priorList = Array.isArray(data?.priorList) ? data.priorList : null
+
+  // No snapshot means no restore. The PUT below is a whole-list REPLACE, so
+  // falling back to an empty list would wipe the customer's entire network
+  // hierarchy — the thing QRadar routes events by — in the name of undoing a
+  // deploy. Every other rollback in this app returns early when nothing was
+  // recorded; this one is the only whole-list replace, which is why it mattered.
+  if (priorList === null) {
+    return {
+      success: false,
+      message:
+        'No prior network hierarchy was recorded, so nothing was restored. ' +
+        'Replacing the hierarchy with an empty list would delete every network object.',
+    }
+  }
 
   // Singleton restore: PUT the full snapshot captured before the deploy, then re-apply.
   const resp = await client.request('PUT', PATH, { body: priorList })

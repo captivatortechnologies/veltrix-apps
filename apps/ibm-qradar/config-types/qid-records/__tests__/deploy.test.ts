@@ -298,6 +298,64 @@ test('qid-records deploy: re-points a mapping that belongs to another QID record
   }
 })
 
+test('qid-records deploy: refuses a name that belongs to another device type', async () => {
+  // Identity is (log source type, name) — a QID record name is unique only
+  // WITHIN a device type. Matching on name alone meant deploying "Failed Login"
+  // for Linux rewrote the customer's Windows "Failed Login" record, and since
+  // the update body omits log_source_type_id the victim kept its own type, so
+  // nothing in the console showed what had happened. QID records cannot be
+  // deleted, so it is unrecoverable — and a duplicate alongside it would be
+  // permanent too, which is why this refuses rather than creating.
+  const windowsRecord = liveRecord({ id: 9001, qid: 1000999, log_source_type_id: 12 })
+  const { calls, restore } = routeFetch(routes({ byName: list([windowsRecord]) }))
+  try {
+    const result = await deploy(deployContext([FAILED_LOGIN]))
+
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /different log source type/)
+    assert.equal(writeCalls(calls).length, 0, 'neither overwrite the other type nor add a permanent duplicate')
+  } finally {
+    restore()
+  }
+})
+
+test('qid-records deploy: refuses a live record that does not say which device type it is', async () => {
+  // An absent log_source_type_id has not established that the record is this
+  // device type's to write, and the cost of being wrong cannot be undone.
+  const { calls, restore } = routeFetch(
+    routes({ byName: list([liveRecord({ log_source_type_id: undefined })]) }),
+  )
+  try {
+    const result = await deploy(deployContext([FAILED_LOGIN]))
+
+    assert.equal(result.success, false)
+    assert.equal(writeCalls(calls).length, 0)
+  } finally {
+    restore()
+  }
+})
+
+test('qid-records deploy: a recorded id pointing at another device type is not written to', async () => {
+  // Ids are reusable and a recorded one can outlive its record, so the type is
+  // confirmed again before the update rather than trusted from rollback data.
+  const { calls, restore } = routeFetch(
+    routes({ byId: ok(liveRecord({ log_source_type_id: 12 })), byName: list([]) }),
+  )
+  try {
+    const result = await deploy(
+      deployContext([FAILED_LOGIN], {
+        priorRollbackData: { entries: [{ name: 'Failed Login', id: 7001, existed: true }] },
+      }),
+    )
+
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /different log source type/)
+    assert.equal(writeCalls(calls).length, 0)
+  } finally {
+    restore()
+  }
+})
+
 test('qid-records deploy: an unresolvable log source type fails the item without writing', async () => {
   // log_source_type_id is a foreign key on both the record and every mapping.
   const { calls, restore } = routeFetch(routes({ types: list([{ id: 12, name: 'Some Other Type' }]) }))

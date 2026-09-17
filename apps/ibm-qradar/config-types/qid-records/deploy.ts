@@ -53,12 +53,43 @@ async function getById(client: QRadarClient, id: number): Promise<LiveQidRecord 
   return parseJson<LiveQidRecord>(res.body)
 }
 
-async function findByName(client: QRadarClient, name: string): Promise<LiveQidRecord | undefined> {
+/** A name match that belongs to a DIFFERENT log source type (or to no stated type). */
+interface NameCollision {
+  collision: LiveQidRecord
+}
+
+/**
+ * Find this spec's record. Identity is (log source type, name) — a QID record
+ * name is unique only WITHIN a device type.
+ *
+ * Matching on name alone meant deploying "Failed Login" for Linux rewrote the
+ * customer's Windows "Failed Login" record; and since the update body omits
+ * `log_source_type_id`, the victim kept its own type, so nothing in the console
+ * showed what had happened. There is no delete endpoint for QID records, so that
+ * is unrecoverable.
+ *
+ * A name matching a record of ANOTHER type comes back as a collision rather than
+ * being created alongside it — a duplicate would be permanent too. An absent
+ * `log_source_type_id` counts as a collision for the same reason: it has not
+ * established that the record is this device type's to write.
+ */
+async function findByName(
+  client: QRadarClient,
+  name: string,
+  logSourceTypeId: number,
+): Promise<LiveQidRecord | NameCollision | undefined> {
   const res = await client.request('GET', `${QID_PATH}?filter=${enc(`name="${name}"`)}`, { range: 'items=0-99' })
   if (!res.ok) return undefined
   const parsed = parseJson<LiveQidRecord[]>(res.body)
   if (!Array.isArray(parsed)) return undefined
-  return parsed.find((r) => (r.name ?? '').toLowerCase() === name.toLowerCase())
+  const named = parsed.filter((r) => (r.name ?? '').toLowerCase() === name.toLowerCase())
+  const mine = named.find((r) => r.log_source_type_id === logSourceTypeId)
+  if (mine) return mine
+  return named.length > 0 ? { collision: named[0] } : undefined
+}
+
+function isCollision(v: LiveQidRecord | NameCollision | undefined | null): v is NameCollision {
+  return !!v && 'collision' in v
 }
 
 async function listMappingsFor(client: QRadarClient, qidRecordId: number): Promise<LiveEventMapping[]> {
@@ -135,8 +166,25 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     }
 
     const priorEntry = (spec.itemId && priorByItem.get(spec.itemId)) || priorByName.get(spec.name.toLowerCase())
-    let existing: LiveQidRecord | undefined | null = priorEntry?.id !== undefined ? await getById(client, priorEntry.id) : undefined
-    if (!existing) existing = await findByName(client, spec.name)
+    let existing: LiveQidRecord | NameCollision | undefined | null =
+      priorEntry?.id !== undefined ? await getById(client, priorEntry.id) : undefined
+    // A recorded id can outlive its record, and the id is reusable — confirm the
+    // record it points at still belongs to this device type before writing to it.
+    if (existing && !isCollision(existing) && existing.log_source_type_id !== typeId) {
+      existing = { collision: existing }
+    }
+    if (!existing) existing = await findByName(client, spec.name, typeId)
+
+    if (isCollision(existing)) {
+      const other = existing.collision
+      failures.push(
+        `${spec.name}: a QID record with this name already exists under a different log source type ` +
+          `(id ${String(other.log_source_type_id ?? 'unreported')}, qid ${String(other.qid ?? other.id ?? '?')}) — ` +
+          'writing it would rewrite that device type\'s record, and QID records cannot be deleted. ' +
+          'Rename this one, or reconcile it in the console first.',
+      )
+      continue
+    }
 
     let recordId: number | undefined
     let existed: boolean

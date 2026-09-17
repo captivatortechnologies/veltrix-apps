@@ -25,11 +25,21 @@ export interface RollbackData {
   priorList: LiveNetwork[]
 }
 
-export async function listStagedNetworks(client: QRadarClient): Promise<LiveNetwork[]> {
+/**
+ * The staged hierarchy. Returns null when it could NOT be read.
+ *
+ * This is not a list that can default to empty: the deploy below computes what
+ * to preserve from it and then PUTs a whole-list REPLACE, so an empty list means
+ * "delete every network the operator maintains by hand". QRadar routes events by
+ * this hierarchy. A single 500 on this GET used to erase it — and record the
+ * empty list as the rollback snapshot in the same run, destroying the only way
+ * back.
+ */
+export async function listStagedNetworks(client: QRadarClient): Promise<LiveNetwork[] | null> {
   const res = await client.request('GET', PATH, { range: 'items=0-9999' })
-  if (!res.ok) return []
+  if (!res.ok) return null
   const parsed = parseJson<LiveNetwork[]>(res.body)
-  return Array.isArray(parsed) ? parsed : []
+  return Array.isArray(parsed) ? parsed : null
 }
 
 function liveKey(n: LiveNetwork): string {
@@ -64,6 +74,16 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const priorOwnedKeys = new Set(prior.entries.filter((e) => !e.existed).map((e) => e.key))
 
   const current = await listStagedNetworks(client)
+  if (current === null) {
+    return {
+      success: false,
+      message:
+        'Could not read the staged network hierarchy, so it was not replaced. ' +
+        'This deploy sends a whole-list replace, and writing one built from an ' +
+        'unreadable console would delete every network not declared here.',
+      rollbackData: { entries: prior.entries, priorList: prior.priorList },
+    }
+  }
   const currentByKey = new Map(current.map((n) => [liveKey(n), n]))
   const desiredKeys = new Set(specs.map((s) => networkKey(s.group, s.name)))
 

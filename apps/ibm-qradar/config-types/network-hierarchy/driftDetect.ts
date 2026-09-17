@@ -13,6 +13,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   const specs = extractNetworkEntrySpecs(ctx.deployedConfig).filter((s) => s.group && s.name)
   const live = await listStagedNetworks(client)
+  // An unreadable hierarchy is not an empty one. Reporting every declared
+  // network as critically absent because one read failed pages somebody for
+  // deletions that never happened.
+  if (live === null) return { hasDrift: false, diffs: [], checked: false }
   const byKey = new Map(live.map((n) => [networkKey(n.group ?? '', n.name ?? ''), n]))
 
   const diffs: Diffs = []
