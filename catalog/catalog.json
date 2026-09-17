@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-09-17T03:19:06.305Z",
+  "generatedAt": "2026-09-17T13:35:53.747Z",
   "apps": [
     {
       "appId": "akamai",
@@ -133,7 +133,7 @@
     {
       "appId": "barracuda-waf",
       "name": "Barracuda WAF-as-a-Service",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "vendor": "Veltrix",
       "description": "Manage Barracuda WAF-as-a-Service (Web Application Firewall) security configuration as code through its native REST API (v4, api.waas. barracudanetworks.com). Covers the WAF engine mode, IP/geo reputation blocking, DDoS allow-listing, rate-control pools, header allow/deny rules, parameter and URL protection (injection/attack-type controls, CSRF, upload limits), traffic routing rules and custom violation response pages — driven through the Security-as-Code pipeline (validate, deploy, health check, drift detection and rollback). Each configuration type targets one WAF-as-a-Service Application, addressed by the registered component's hostname.",
       "category": "NETWORK",
@@ -142,12 +142,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/barracuda-waf",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/barracuda-waf-v0.1.0/barracuda-waf.zip",
-      "sha256": "c51896132bdd62e6c12a6579538fab7c4a3a6119872ed5798e1380d12ff31c08",
-      "sizeBytes": 227399,
-      "publishedAt": "2026-08-06T02:31:35.504Z",
-      "releaseNotes": "## 0.1.0 — 2026-08-05\n\nInitial release. Built against the live WAF-as-a-Service v4 OpenAPI document\nafter Barracuda Email Gateway Defense (the originally-targeted product) failed\nthis catalog's config-as-code viability gate — see the README's pivot note for\nthe full evidence (EGD's public API is a beta, region-limited, read-only-only\nsurface: three resources, one scope, `ess:account:read`, no write operation\nanywhere).\n\n### Added\n\n- **Basic Security** (`basic-security`) — the WAF engine's protection mode\n  (Active/Passive) via `/applications/{appName}/basic_security/`. Singleton.\n- **IP Reputation** (`ip-reputation`) — GeoIP/IP-reputation blocking (Tor,\n  anonymous/public proxies, datacenters, attack sources, fake crawlers,\n  blocked countries) and its IP exception list via\n  `/applications/{appName}/ip_reputation/`. Singleton.\n- **DDoS Allow List** (`ddos-allow-list`) — IP/CIDR entries exempted from the\n  DDoS protection engine via `/applications/{appName}/ddos/allow_list/`.\n  Canvas-owns-the-list reconciliation by IP address (the paired DDoS Block\n  List is read/delete-only in the API — not modeled, see Coverage).\n- **Header Allow/Deny Rules** (`header-allow-deny`) — named per-header\n  attack-type blocking rules via\n  `/applications/{appName}/headers_allow_deny/rules/`. Canvas-owns-the-list\n  reconciliation by rule name.\n- **Parameter Protection** (`parameter-protection`) — application-wide\n  parameter value/length/instance limits, file-upload controls and\n  per-attack-type settings via\n  `/applications/{appName}/parameter_protection/`. Singleton.\n- **URL Protection** (`url-protection`) — application-wide allowed HTTP\n  methods/content types, CSRF prevention, request/upload limits and\n  per-attack-type settings via `/applications/{appName}/url_protection/`.\n  Singleton.\n- **Traffic Rules** (`traffic-rules`) — named host/URL-match routing rules to\n  backend Servers/Endpoints via `/applications/{appName}/traffic_rules/`.\n  Canvas-owns-the-list reconciliation by rule name.\n- **Rate Control Pools** (`rate-control-pools`) — named rate-control pools\n  (request-rate limiting, optional preferred clients and URL scoping) via\n  `/applications/{appName}/rate_control/pools/`. Canvas-owns-the-list\n  reconciliation by pool name.\n- **Response Pages** (`response-pages`) — named custom violation/error\n  response pages via\n  `/applications/{appName}/response_page_component/pages/`.\n  Canvas-owns-the-list reconciliation by page name.\n\n### Notes\n\n- Auth is a Barracuda Cloud Control admin email/password, exchanged for a\n  short-lived session token (`POST /api_login/` → `{key, expiry}`, sent as\n  the `auth-api` header on every call) — see `lib/barracudaWaf.ts`.\n- Each configuration type targets one Application, addressed by the\n  registered `barracuda-waf` component's hostname (the Application name) —\n  the same convention this codebase uses for Cloudflare zones.\n- See the README's [Coverage](README.md#coverage-v010) section for the full\n  audit, including what was intentionally left out and why (the DDoS Block\n  List, the Header Allow/Deny master toggle, Rate Control Pool nested\n  sub-resources, SNI Certificate/Trusted CA, Trusted Hosts, Application/\n  AppGroup provisioning, and the ~30 further per-Application resources this\n  API exposes that are candidates for a future release).",
-      "releasedAt": "2026-08-05T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/barracuda-waf-v0.1.1/barracuda-waf.zip",
+      "sha256": "90ae4efa0c9c455d8fa9a91df29644a24f83cac1eb603f3fe8a5b2c4050ec114",
+      "sizeBytes": 227970,
+      "publishedAt": "2026-09-17T13:35:53.657Z",
+      "releaseNotes": "## 0.1.1 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "beyondtrust",
@@ -302,7 +302,7 @@
     {
       "appId": "cisco-secure-firewall",
       "name": "Cisco Secure Firewall (FMC)",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "vendor": "Veltrix",
       "description": "Manage Cisco Secure Firewall Management Center (FMC, formerly Firepower Management Center) configuration as code through the FMC REST API - access control policies and rules, network objects (hosts/networks/ranges/FQDNs) and network groups, port objects and port groups, URL objects and URL groups, and security zones - with validation, drift detection and rollback handled by the Security-as-Code pipeline. Deploying to managed firewalls (FTDs) is a separate, opt-in activation step, not a configuration type.",
       "category": "NETWORK",
@@ -311,12 +311,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-secure-firewall",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cisco-secure-firewall-v0.1.1/cisco-secure-firewall.zip",
-      "sha256": "6d82849348a71b9bd4d32095aaea8e953f956033e4a061ba75e556d5a593da97",
-      "sizeBytes": 188510,
-      "publishedAt": "2026-09-17T02:46:17.269Z",
-      "releaseNotes": "## 0.1.1 — 2026-09-16\n\n### Fixed — drift no longer claims \"in sync\" from a run that could not look\n\n`driftDetect` returned `{ hasDrift: false, diffs: [] }` when it had no usable\ncredential, and again when the vendor refused the read. That is not \"I checked\nand found nothing\" — it is \"I never looked\". The platform cannot tell the\ndifference: it treats `hasDrift: false` as a positive assurance and resolves the\ncomponent's outstanding drift record with `drift_cleared`.\n\nSo a rotated credential, a de-scoped API user or a vendor maintenance window\nsilently wiped real drift on the next scheduled run, and the console showed a\nclean estate.\n\nThose paths now return `checked: false` (`DriftResult.checked`, SDK 3.9.0), on\nwhich the platform records nothing and clears nothing. Where a handler loops\nover several objects and skips the ones it could not read, the run reports\n`checked: false` too, rather than \"in sync\" from a partial view. A return that\ngenuinely established \"nothing is deployed, so there is no drift\" is unchanged.\n\n`veltrix validate` now rejects the bare form, so it cannot come back.",
-      "releasedAt": "2026-09-16T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cisco-secure-firewall-v0.1.2/cisco-secure-firewall.zip",
+      "sha256": "4ebdd157d3fccf6c7a285550cfbdfbad2a82b03ee76c6302ade607b3853dd3d8",
+      "sizeBytes": 188697,
+      "publishedAt": "2026-09-17T13:35:53.672Z",
+      "releaseNotes": "## 0.1.2 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "cisco-umbrella",
@@ -339,7 +339,7 @@
     {
       "appId": "cloudflare",
       "name": "Cloudflare",
-      "version": "1.5.0",
+      "version": "1.5.1",
       "vendor": "Veltrix",
       "description": "Manage Cloudflare configuration as code through the Cloudflare API (v4). Covers DNS, the WAF/firewall Rulesets engine (custom rules, rate limiting, redirects, transforms and managed-ruleset overrides), Bot Management, Turnstile, zone settings, account Lists, and Zero Trust (Access applications/policies/ groups/service-tokens/identity providers/mTLS certificates, device posture rules, and Gateway rules/lists) — with validation, drift detection and rollback handled by the Security-as-Code pipeline. The component hostname is the zone domain; the app resolves zone and account ids automatically.",
       "category": "NETWORK",
@@ -349,12 +349,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloudflare",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.5.0/cloudflare.zip",
-      "sha256": "24188ee5c220975a220fe60645da5dece328dd4859f63d2b30bef84591672dff",
-      "sizeBytes": 465293,
-      "publishedAt": "2026-08-06T02:31:35.522Z",
-      "releaseNotes": "## 1.5.0 — 2026-08-05\n\n### Added\nResearch pass against the current Cloudflare API v4 (`api.cloudflare.com`, cross-\nchecked against Cloudflare's own OpenAPI schema) to close five genuine gaps in\nthe app's declarative security surface — all newly added config types, wired\ninto their sidebar groups:\n\n- **Cloudflare Access Identity Providers** (`cloudflare-access-identity-providers`,\n  **Zero Trust · Access**). Zero Trust Access identity providers\n  (`/accounts/{account_id}/access/identity_providers`) — the login backends an\n  Access application's `allowed_idps` and an Access policy's `login_method` rule\n  reference by id, which this app had no way to manage until now. Reconciled by\n  name across the 15 supported provider types (Azure AD, Okta, generic OIDC,\n  SAML 2.0, Google, GitHub, One-Time PIN, ...); provider-specific `config` is a\n  JSON object (the same \"advanced JSON\" convention `app_json` / `rule_json` use\n  elsewhere). `client_secret` and equivalent fields are write-only — Cloudflare\n  marks them `x-sensitive` and never echoes them back — so drift reports\n  presence + type only, never a value diff of the config.\n- **Cloudflare Device Posture Rules** (`cloudflare-device-posture-rules`,\n  **Zero Trust · Access**). Zero Trust device posture rules\n  (`/accounts/{account_id}/devices/posture`) — referenced by an Access policy's\n  `device_posture` rule and a Gateway policy's `identity.device_posture`, both\n  previously pointing at rules this app couldn't create. Reconciled by name\n  across ~20 check types (OS version, disk encryption, domain-joined, and EDR\n  vendor integrations — CrowdStrike, SentinelOne, Tanium, Intune, Kolide, ...);\n  the type-specific `input` object is a JSON field, following the same\n  discriminated-union-as-JSON approach Access applications use for `app_json`.\n- **Cloudflare Turnstile Widgets** (`cloudflare-turnstile-widgets`,\n  **WAF & Security**). Cloudflare's CAPTCHA replacement\n  (`/accounts/{account_id}/challenges/widgets`) — mode, domains, bot-fight-mode,\n  region, clearance level and branding options, reconciled by name. The\n  generated `secret` is write-only (shown once at creation, redacted by\n  Cloudflare on every read after) and is treated exactly like an Access service\n  token's client secret: never read back, diffed or stored — only the\n  server-assigned `sitekey` is kept, to address and delete the widget.\n- **Cloudflare Bot Management** (`cloudflare-bot-management`, **WAF & Security**).\n  The zone's Bot Management configuration (`/zones/{zone_id}/bot_management`) —\n  a singleton read (GET) then updated (PUT), like zone settings, but a distinct\n  endpoint/schema (not one of the `/settings/{id}` keys that type already\n  covers). Exposes the \"Shared Config\" fields valid on every plan (AI bot/\n  crawler blocking, content-bot blocking, JS detections, latest-model opt-in)\n  directly, plus an `advanced_json` merge field for plan-gated fields (Bot Fight\n  Mode, Super Bot Fight Mode, the Enterprise subscription's session-score/\n  auto-update/cookie controls) — deploy reads the current live object, merges\n  the declared fields on top, and PUTs the merged result so unmanaged /\n  plan-inapplicable fields are never reset.\n- **Cloudflare Access mTLS Certificates** (`cloudflare-access-mtls-certificates`,\n  **Zero Trust · Access**). The root CA certificate an Access policy's\n  `certificate` rule validates a user's client certificate against\n  (`/accounts/{account_id}/access/certificates`) — the certificate-auth\n  counterpart to identity providers, and (unlike a client mTLS identity) a\n  PUBLIC CA cert with no private key involved. Reconciled by name. Cloudflare's\n  API makes the PEM content immutable after creation (`PUT` accepts only\n  `name`/`associated_hostnames`) and never echoes it back on `GET` — an honest,\n  documented limitation rather than a worked-around one; rotating a\n  certificate's content means adding a new item.\n\n### Notes on scope (researched, not added)\n- **IP Access Rules** (`/zones|accounts/.../firewall/access_rules/rules`) —\n  still live on every plan, but Cloudflare's own docs say \"create custom rules\n  instead of IP Access rules\" for IP/geography blocking; this app's existing\n  WAF Custom Rules + Lists (`ip` kind) already cover that ground on the\n  Rulesets engine Cloudflare is steering customers toward. Adding the legacy\n  mechanism alongside would duplicate, not extend, existing coverage.\n- **DLP profiles** (`/accounts/{account_id}/dlp/profiles`) — a genuine\n  Enterprise-add-on security surface, but its `entries` sub-schema is a deep\n  discriminated union (pattern-match / predefined / exact-data / word-list /\n  document-fingerprint, each with its own detection config) that Cloudflare's\n  own official Terraform provider schema flags as `x-stainless-skip:\n  [\"terraform\"]` — i.e. even the reference IaC tool doesn't fully model it.\n  Left for a dedicated future pass rather than a shallow partial import here.\n- **mTLS Certificates (general)** (`/accounts/{account_id}/mtls_certificates`),\n  **origin TLS client auth**, and **zone client certificates** — all can\n  require uploading a private key (mTLS *identity*, not just a validating CA),\n  which this app's existing write-only-secret handling is built for but which\n  sit outside this pass's security-policy scope (they're origin/CDN\n  connectivity certificate management, not WAF/Zero Trust policy).\n- **Custom Pages** (block/challenge page branding) — cosmetic (which hosted\n  HTML page a challenge shows), not a security control in itself; out of scope\n  for a security-config-as-code surface.\n- **Notification/alerting policies** (`/accounts/{account_id}/alerting/v3/...`)\n  — genuinely useful, but an operational-notification surface (who gets paged),\n  not a declarative security control; a better fit for a future\n  observability-focused pass than this one.",
-      "releasedAt": "2026-08-05T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.5.1/cloudflare.zip",
+      "sha256": "69bc28fddd68feb113eb4c9f911e0bd717cdf7783fba7774411141cdd4793500",
+      "sizeBytes": 466048,
+      "publishedAt": "2026-09-17T13:35:53.674Z",
+      "releaseNotes": "## 1.5.1 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "cortex-xdr",
@@ -377,7 +377,7 @@
     {
       "appId": "cortex-xsoar",
       "name": "Cortex XSOAR",
-      "version": "1.3.0",
+      "version": "1.3.1",
       "vendor": "Veltrix",
       "description": "Manage Palo Alto Networks Cortex XSOAR content configuration as code through the XSOAR server REST API. Covers lists, incident types, incident/indicator fields, classifiers, mappers, scheduled jobs and integration instances — each reconciled by a stable identity with validation, drift detection and rollback handled by the Security-as-Code pipeline. Works with Cortex XSOAR 6.x (API-key header) and Cortex XSOAR 8 / the Cortex platform (API key + x-xdr-auth-id via the API gateway).",
       "category": "SOAR",
@@ -387,12 +387,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cortex-xsoar",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cortex-xsoar-v1.3.0/cortex-xsoar.zip",
-      "sha256": "5040208c56594f8ca6b414eed64a86074c400b2e3247a60bf996f351ba4be6be",
-      "sizeBytes": 217729,
-      "publishedAt": "2026-08-06T02:31:35.524Z",
-      "releaseNotes": "## 1.3.0 — 2026-08-04\n\n### Added\n- **Incident fields configuration type (`xsoar-incident-fields`)** and\n  **indicator fields configuration type (`xsoar-indicator-fields`)**. Manage\n  custom Cortex XSOAR incident/indicator fields as code through the server\n  REST API. Incident and indicator fields are the same underlying server\n  object, sharing one listing endpoint (`GET /incidentfields`) and one import\n  endpoint (`POST /incidentfields/import`), discriminated by the `group`\n  number (0 = incident, 2 = indicator — XSOAR's own `GroupFieldTypes` enum)\n  and the `id` prefix. Each field reconciles by its **cliName** (lowercase\n  alphanumeric); the server `id` is always derived as `incident_<cliName>` /\n  `indicator_<cliName>` rather than authored directly, and a cliName that\n  collides with one of XSOAR's reserved internal columns (`name`, `type`,\n  `score`, …) is rejected at validate time. Field type is checked against the\n  exact enum each kind supports (indicator fields drop `attachments`,\n  `internal` and `timer`, which are incident-only). Built-in/locked fields\n  are never modified. Delete-on-rollback follows the same\n  `POST /<resource>/delete` action convention already shipped for lists and\n  incident types — flagged in the README as inferred rather than\n  independently confirmed, since no source documents an incident-field\n  delete contract.\n- **Classifiers configuration type (`xsoar-classifiers`)** and **mappers\n  configuration type (`xsoar-mappers`)**. Manage Cortex XSOAR classifiers and\n  incoming/outgoing mappers as code. Both are the same underlying server\n  object, sharing one listing endpoint (`POST /classifier/search`) and one\n  import endpoint (`POST /classifier/import`), discriminated by `type`\n  (`classification` vs. `mapping-incoming` / `mapping-outgoing`). Each\n  reconciles by a caller-chosen **id** (also the required `classifierId` sent\n  on every save). The classification-rule graph (`keyTypeMap` + `transformer`)\n  and the field-mapping graph (`mapping`) are deep, variable schemas — as with\n  Cisco Meraki's group-policies precedent, they are authored as one JSON blob\n  merged onto the typed fields rather than exhaustively modeled, and are not\n  diffed field-by-field by drift detection (only the typed fields and the\n  object's presence are reconciled). Built-in/locked classifiers/mappers are\n  never modified. Delete-on-rollback follows the same inferred\n  `POST /classifier/delete` convention, flagged the same way.\n- **Multipart upload support in the shared `XsoarClient`**\n  (`lib/xsoar.ts` `requestMultipart`). The four new configuration types all\n  save through XSOAR's \"import\" endpoints, which are genuine file uploads\n  (`multipart/form-data`) even though the file content is JSON — confirmed\n  against the official generated `demisto-py` client and `demisto-sdk`'s\n  content-graph upload path. Reuses the same auth-header building and 429\n  retry policy as the existing JSON request path.\n- Two shared plumbing modules for the new types, mirroring the existing\n  `config-types/lib/xsoarAudit.ts` convention: `config-types/lib/xsoarFields.ts`\n  (incident/indicator field id derivation, type/reserved-name tables, list/\n  save/delete) and `config-types/lib/xsoarClassification.ts` (classifier/mapper\n  kind detection, search/save/delete, JSON-blob parsing).\n- README **Coverage** section auditing the full Cortex XSOAR content-as-code\n  surface — every configuration type this app manages, plus what was\n  evaluated and intentionally excluded (pre-process rules, roles, playbooks,\n  integration secrets) with the specific reason for each.",
-      "releasedAt": "2026-08-04T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cortex-xsoar-v1.3.1/cortex-xsoar.zip",
+      "sha256": "6096781e058772556709d9028f9918c5ae7fb907e0bd4a57d12a0e49521a3312",
+      "sizeBytes": 218253,
+      "publishedAt": "2026-09-17T13:35:53.676Z",
+      "releaseNotes": "## 1.3.1 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "cribl",
@@ -435,7 +435,7 @@
     {
       "appId": "cyberark",
       "name": "CyberArk Privileged Access Manager",
-      "version": "1.3.1",
+      "version": "1.3.2",
       "vendor": "Veltrix",
       "description": "Manage CyberArk Privileged Access Manager (PVWA) configuration as code through the Privileged Access Security Web Services REST API. Covers safes, safe members (authorizations), privileged accounts, account groups, target platforms and their session-management (PSM) policy, automatic onboarding rules, AAM/CCP applications (including allowed machines), LDAP directory mappings, Vault users/groups and server-wide allowed referrers — with validation, drift detection and rollback handled by the Security-as-Code pipeline. The component hostname is the PVWA web server; auth is the PVWA logon flow (a manager username + password, method CyberArk / LDAP / RADIUS) that returns a session token.",
       "category": "IAM",
@@ -445,12 +445,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cyberark",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cyberark-v1.3.1/cyberark.zip",
-      "sha256": "85725ff99ea18cf28bd4ba0e2f266266a83fb1ab28469fa3fe8ce6b4f7875506",
-      "sizeBytes": 312946,
-      "publishedAt": "2026-09-17T02:46:17.280Z",
-      "releaseNotes": "## 1.3.1 — 2026-09-16\n\n### Fixed — the documented alternative credential field was dead code\n\nThe resolver read `credential.password ?? credential.apiToken`. `CredentialRef.password` is a\nnon-optional `string` and the platform supplies it as `''` rather than null, so\n`??` never fell through: the alternative field this app's own\n`MISSING_CREDENTIAL_MESSAGE` tells the operator they may use was never read.\n\nA tenant that stored its secret where the documentation said got a silent, total\nrefusal from every handler — and because `driftDetect` reports `checked: false`\nwithout a usable credential, nothing ever alarmed about it either. The operator\nsees a connection that simply does not work, with no indication why.\n\n`||` is the right operator here: an empty credential field means \"not set\".",
-      "releasedAt": "2026-09-16T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cyberark-v1.3.2/cyberark.zip",
+      "sha256": "cc6f19797e3d4592e8eb18fa5a1f481ff09f079004e1a595276becc803485444",
+      "sizeBytes": 313498,
+      "publishedAt": "2026-09-17T13:35:53.680Z",
+      "releaseNotes": "## 1.3.2 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "cybereason",
@@ -547,7 +547,7 @@
     {
       "appId": "elastic-security",
       "name": "Elastic Security",
-      "version": "1.3.0",
+      "version": "1.3.1",
       "vendor": "Veltrix",
       "description": "Manage Elastic Security configuration as code through the Kibana, Elasticsearch and Fleet APIs. Covers detection rules, exception lists, value lists, index lifecycle (ILM) policies, role mappings, security roles, ingest pipelines, component templates, transforms, ML anomaly detection jobs, Fleet package (including Elastic Defend) policies, Kibana spaces, tags and timeline templates — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "SIEM",
@@ -557,12 +557,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/elastic-security",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/elastic-security-v1.3.0/elastic-security.zip",
-      "sha256": "5a2a260e4edbccaebc6b0fc5cac0b6dca8430fddd79692ce164829726327562e",
-      "sizeBytes": 376790,
-      "publishedAt": "2026-08-06T02:31:35.537Z",
-      "releaseNotes": "## 1.3.0 — 2026-08-04\n\n### Added\n- **Nine new configuration types**, exhausting the rest of the genuinely\n  declarative Kibana Security + Elasticsearch config surface (research-first,\n  each verified against Elastic's official REST API docs / OpenAPI specs\n  before being modeled — see the README **Coverage** section for exact\n  operations and sources):\n  - **Value Lists** (`value-lists`) — Kibana Lists API value lists (reusable\n    IP/keyword/range value sets referenced by exception-item \"is in list\"\n    entries) and their items. Same container+folded-items shape as Exception\n    Lists; `type` is immutable after creation.\n  - **Roles** (`roles`) — Elasticsearch security roles (cluster/index/\n    application privileges, run_as). True upsert by name; reserved/built-in\n    roles (`metadata._reserved`) protected, the same convention Role Mappings\n    already uses.\n  - **Ingest Pipelines** (`ingest-pipelines`) — Elasticsearch ingest pipelines\n    (processor chains). True upsert by id; dot-prefixed Elastic-managed\n    pipelines protected, \"@\"-suffixed (Fleet-integration-owned) ids warned.\n  - **Component Templates** (`component-templates`) — Elasticsearch component\n    templates (reusable mappings/settings/aliases building blocks). True\n    upsert by name; Elastic's built-in logs-*/metrics-*/synthetics-* templates\n    and dot/@-prefixed names protected.\n  - **Transforms** (`transforms`) — Elasticsearch transforms (pivot/latest\n    aggregations from a source index to a destination index). Create-then-\n    update (the pivot/latest aggregation is immutable after creation — the\n    `_update` endpoint does not accept it); the Enabled toggle drives\n    start/stop.\n  - **ML Anomaly Detection Jobs** (`ml-jobs`) — Elasticsearch machine-learning\n    jobs plus their datafeed. `analysis_config` / `data_description` are\n    immutable after creation; the Enabled toggle drives open/close (job) and\n    start/stop (datafeed) in the correct order. Requires an ML-enabled\n    subscription/trial.\n  - **Fleet Package Policies** (`fleet-package-policies`) — Fleet integration\n    (package) policies, including **Elastic Defend** endpoint protection\n    policies. Fleet assigns the internal id on create, so this reconciles by\n    name (the same shape Cisco Meraki's group-policies config type uses for a\n    Meraki-assigned id).\n  - **Tags** (`tags`) — Kibana saved-object tags. True upsert by a\n    caller-chosen id (`PUT /api/tags/{id}` — documented as \"Upsert a tag\"),\n    unlike `POST /api/tags` which server-generates one.\n  - **Timeline Templates** (`timeline-templates`) — Elastic Security\n    investigation timeline templates, keyed by the portable\n    `templateTimelineId` (the same field Elastic's own prepackaged templates\n    use for cross-environment identity). Ad-hoc analyst timelines are\n    deliberately excluded — see Coverage.\n- **Configuration types are now grouped** in the sidebar (`group:` on every\n  `pipeline.configurationTypes` entry, including the five pre-existing types):\n  **Detections & Lists**, **Elasticsearch**, **Machine Learning**,\n  **Endpoint**, **Kibana**.\n- Drift attribution (`config-types/lib/elasticAudit.ts`) is wired for every\n  new type whose live object carries a modifier: **Value Lists** (list +\n  items, `updated_by`/`created_by`), **Fleet Package Policies**\n  (`updated_by`/`updated_at`) and **Timeline Templates** (Kibana's\n  camelCase `updatedBy`/`updated`, adapted into the shared helper's shape).\n  **Roles**, **Ingest Pipelines**, **Component Templates**, **Transforms**,\n  **ML Jobs** and **Tags** expose no per-object modifier through their APIs\n  and are unattributed by design — the same honest treatment already applied\n  to ILM policies, role mappings and spaces.\n\n### Intentionally not added (see README Coverage for the full list and reasons)\n- **Rule actions / connectors** (Kibana Actions/Connectors API) — a\n  connector's `secrets` object (API keys, webhook tokens, SMTP passwords) is\n  write-only and never returned on read. Authoring it here would mean\n  plaintext credential material sitting in canvas JSON outside the Credential\n  Vault, and drift/rollback can never reconcile a field Kibana will not echo\n  back — this is exactly the \"secret material\" this app's own Elastic API-key\n  design was built to avoid duplicating.\n- Detection rule exception lists + items were **already fully covered** by the\n  existing `exception-lists` type (container + folded items, reconciled by\n  `item_id`) — verified, not re-built.",
-      "releasedAt": "2026-08-04T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/elastic-security-v1.3.1/elastic-security.zip",
+      "sha256": "e369c684dfb2bf19be6a5d0bb5dcb47a871e229f05d0af82c7513e20dd1fb664",
+      "sizeBytes": 377296,
+      "publishedAt": "2026-09-17T13:35:53.685Z",
+      "releaseNotes": "## 1.3.1 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "exabeam",
@@ -586,7 +586,7 @@
     {
       "appId": "f5-distributed-cloud",
       "name": "F5 Distributed Cloud",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "vendor": "Veltrix",
       "description": "Manage F5 Distributed Cloud (XC) - F5's multi-cloud networking and security SaaS - configuration as code through its public config API. Covers HTTP and TCP load balancers, origin pools, health checks, App Firewall (WAF) policies, service policies (L7 allow/deny), malicious user (bot/fraud) mitigation, and network policies (L3/L4 ACLs) - with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "NETWORK",
@@ -595,12 +595,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/f5-distributed-cloud",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/f5-distributed-cloud-v0.1.0/f5-distributed-cloud.zip",
-      "sha256": "fce7c9d87db96888a94a1a3cc4dd2452bd04cf419443cc2223dcf5ba810597c5",
-      "sizeBytes": 222147,
-      "publishedAt": "2026-08-06T02:31:35.539Z",
-      "releaseNotes": "## 0.1.0 — 2026-08-05\n\n### Added — initial release\n\nFirst release of the F5 Distributed Cloud (XC) config-as-code app, built research-first against\nF5's own generated Terraform provider\n([`volterraedge/terraform-provider-volterra`](https://github.com/volterraedge/terraform-provider-volterra))\nand the F5 XC public API docs (<https://docs.cloud.f5.com/docs/api>).\n\nChose **F5 Distributed Cloud (XC)** over BIG-IP iControl REST for this first release: F5 XC's\ntenant + namespace + single-API-Token model fits the platform's per-tenant connection model the\nsame way this catalog's other SaaS security platforms do, whereas BIG-IP's per-appliance\nbasic-auth/device model is already well represented by this catalog's device-based network apps.\n\nEight configuration types, covering the core declarative surface of the F5 XC public config API:\n\n- **HTTP Load Balancers** (`config-types/http-load-balancers`) — domains, TLS mode (plain HTTP or\n  F5-managed HTTPS), default route pools + optional per-path routes, load balancing algorithm, WAF\n  / malicious-user-mitigation / rate-limit attachment, CORS, service policy attachment, advertise\n  mode, via `/http_loadbalancers`.\n- **TCP Load Balancers** (`config-types/tcp-load-balancers`) — listener, origin pool attachment,\n  TLS mode, hash/load-balancing policy, service policy attachment, SNI, via `/tcp_loadbalancers`.\n- **Origin Pools** (`config-types/origin-pools`) — backend server pools, endpoint selection policy,\n  load balancing algorithm, health check attachment, port and TLS-to-origin settings, via\n  `/origin_pools`.\n- **Health Checks** (`config-types/health-checks`) — HTTP/TCP/UDP-ICMP probes, interval, timeout,\n  and healthy/unhealthy thresholds, via `/healthchecks`.\n- **App Firewalls** (`config-types/app-firewalls`) — WAF enforcement mode, F5-default detection\n  profile, bot protection, response-code allow-listing, and blocking page, via `/app_firewalls`.\n- **Service Policies** (`config-types/service-policies`) — L7 allow/deny rules scoped by ASN,\n  country or IP prefix, or a custom rule list, via `/service_policys` (irregular plural, confirmed\n  against F5's own generated route literals).\n- **Malicious User Mitigation** (`config-types/malicious-user-mitigations`) — per-threat-level\n  (low/medium/high) bot/fraud mitigation actions, via `/malicious_user_mitigations`.\n- **Network Policies** (`config-types/network-policies`) — L3/L4 ingress/egress ACLs scoped to a\n  set of endpoints, via `/network_policys` (irregular plural).\n\nAuthentication is a single F5 XC **API Token** credential (`Authorization: APIToken <token>`),\nwith the connection's tenant Console hostname stored as the `f5xc-namespace` component hostname\nand the namespace this connection manages as an app setting — verified directly against F5's own\ngenerated Terraform provider docs and decompiled grpc-gateway route literals rather than assumed\n(two object types, `service_policys` and `network_policys`, have an irregular \"+s\" plural, not\nstandard English pluralization).\n\nSee **Coverage** in `README.md` for the full breakdown of what's covered in this release versus\ndeferred to a future pass (Bot Defense, standalone Rate Limiter/Rate Limiter Policy, Forward Proxy\nPolicies, Alert Receivers/Policies, customer-uploaded TLS certificates, and several deep\nper-feature tuning surfaces).",
-      "releasedAt": "2026-08-05T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/f5-distributed-cloud-v0.1.1/f5-distributed-cloud.zip",
+      "sha256": "5e2bb4ef12a9d5131f0ff1616e770793adbc46c97a014080a4f92a6555b24780",
+      "sizeBytes": 222637,
+      "publishedAt": "2026-09-17T13:35:53.686Z",
+      "releaseNotes": "## 0.1.1 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "fleet",
@@ -808,7 +808,7 @@
     {
       "appId": "jamf",
       "name": "Jamf",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "vendor": "Veltrix",
       "description": "Manage Jamf Pro (Apple MDM / endpoint management) configuration as code through both the modern Jamf Pro API and the legacy Classic (XML) API — Scripts, Categories, Departments, Buildings, Computer Extension Attributes and Package metadata on the modern JSON API; Smart/Static Computer Groups, Policies, Restricted Software and macOS Configuration Profiles (opaque plist payload passthrough) on the Classic XML API, since those resources are not yet exposed for write on the modern API — each reconciled by name, with validation, drift detection and rollback handled by the Security-as-Code pipeline. Authenticates as a Jamf Pro API-only account (username/password exchanged for a short-lived Bearer token) against the tenant's Jamf Pro server; the same Bearer token is reused for Classic API calls, with a Basic-auth fallback. See README § Coverage for every managed vs. intentionally excluded Jamf Pro config surface.",
       "category": "Endpoint Management",
@@ -818,12 +818,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/jamf",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/jamf-v0.3.1/jamf.zip",
-      "sha256": "3ba1a775ffadde3d25651c64164acfe3688a323bbe6f117e8bdd4ed7e9598bce",
-      "sizeBytes": 287223,
-      "publishedAt": "2026-09-17T02:46:17.309Z",
-      "releaseNotes": "## 0.3.1 — 2026-09-16\n\n### Fixed — the documented alternative credential field was dead code\n\nThe resolver read `credential.password ?? credential.apiToken`. `CredentialRef.password` is a\nnon-optional `string` and the platform supplies it as `''` rather than null, so\n`??` never fell through: the alternative field this app's own\n`MISSING_CREDENTIAL_MESSAGE` tells the operator they may use was never read.\n\nA tenant that stored its secret where the documentation said got a silent, total\nrefusal from every handler — and because `driftDetect` reports `checked: false`\nwithout a usable credential, nothing ever alarmed about it either. The operator\nsees a connection that simply does not work, with no indication why.\n\n`||` is the right operator here: an empty credential field means \"not set\".",
-      "releasedAt": "2026-09-16T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/jamf-v0.3.2/jamf.zip",
+      "sha256": "a428dc69b6dfd67161bc5bed7125beb8e3aa7d89f204207637b0fc3ae25d166e",
+      "sizeBytes": 287784,
+      "publishedAt": "2026-09-17T13:35:53.697Z",
+      "releaseNotes": "## 0.3.2 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "jfrog-xray",
@@ -864,7 +864,7 @@
     {
       "appId": "kandji",
       "name": "Kandji",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "vendor": "Veltrix",
       "description": "Manage Kandji (Apple device management / MDM) configuration as code through the Kandji tenant API (`https://<subdomain>.api.kandji.io/api/v1/...`, Bearer API token) — Blueprints (the core device-assignment construct), Tags, and two Library Item types with real single-request CRUD: Custom Scripts and Custom Profiles (an opaque `.mobileconfig` passthrough, like this catalog's Jamf app treats its configuration profiles) — each reconciled by id/name, with validation, drift detection and rollback handled by the Security-as-Code pipeline. Note: Kandji's own current API docs are titled \"Iru Endpoint Management API\" following the vendor's rebrand to Iru; the API surface, auth model and `api.kandji.io` hostnames are unchanged for existing tenants. See README § Coverage for every managed vs. intentionally excluded Kandji API surface (Custom/In-House Apps need a multi-step S3 binary upload and are out of scope, the same way this catalog's Jamf app treats package binaries).",
       "category": "Endpoint Management",
@@ -873,12 +873,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/kandji",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/kandji-v0.1.0/kandji.zip",
-      "sha256": "5f80b7c47ca1e5d7ed4f9b47bdf7dc7978772cb61f3d5488e23fb82c49211768",
-      "sizeBytes": 120523,
-      "publishedAt": "2026-08-06T03:41:42.292Z",
-      "releaseNotes": "## 0.1.0 — 2026-08-05\n\n### Added — initial release\n\nFirst release of the Kandji (Apple device management / MDM) config-as-code app, built research-first\ndirectly against Kandji's own rendered API reference (`api-docs.kandji.io`, now serving from\n`api-docs.iru.com` following the vendor's rebrand to Iru — see README for what changed and what didn't)\nand its published `kandji-inc/support` GitHub example scripts, not documentation assumptions.\n\nFour configuration types, covering Kandji's clearest declarative, round-trippable surface reachable\nthrough the tenant API (`https://<subdomain>.api.kandji.io/api/v1/...`, Bearer API token):\n\n- **Blueprints** (`config-types/blueprints`) — the core device-assignment construct: name, description,\n  icon/color, enrollment code and active state via `/api/v1/blueprints`. `type` (classic vs. Assignment\n  Map) is accepted on create only.\n- **Tags** (`config-types/tags`) — tenant tags via `/api/v1/tags`.\n- **Custom Scripts** (`config-types/custom-scripts`) — Library \"Custom Script\" items (execution\n  frequency, script body, remediation script, restart flag, Self Service visibility) via\n  `/api/v1/library/custom-scripts`.\n- **Custom Profiles** (`config-types/custom-profiles`) — Library \"Custom Profile\" items via\n  `/api/v1/library/custom-profiles`. The `.mobileconfig` plist payload is an opaque passthrough, the same\n  posture `apps/jamf`'s macOS configuration profiles config type takes — transported as a multipart file\n  part per Kandji's own API shape, not an embedded JSON string.\n\nAuthentication is a single tenant-scoped Bearer API token generated in Kandji's Settings > Access; the\nConnection's endpoint IS the tenant API host (no separate subdomain/region setting), mirroring the\npattern `apps/okta-identity` and `apps/pagerduty` use.\n\nSee **Coverage** in `README.md` for the full breakdown of what's covered in this release versus deferred\n(Custom Apps and In-House Apps need a multi-step S3 binary-upload flow this platform does not broker;\nSelf Service Categories is list-only in the API; Blueprint Routing / `assign-library-item` has an\nunresolved documentation ambiguity between its Assign and Remove examples — and why).",
-      "releasedAt": "2026-08-05T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/kandji-v0.1.1/kandji.zip",
+      "sha256": "a7b7e9743114fe1b5cfc73d4439db2838c978fb2d230f1fc908d6f4852793763",
+      "sizeBytes": 120991,
+      "publishedAt": "2026-09-17T13:35:53.700Z",
+      "releaseNotes": "## 0.1.1 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "keycloak",
@@ -1016,7 +1016,7 @@
     {
       "appId": "okta-identity",
       "name": "Okta",
-      "version": "1.12.1",
+      "version": "1.12.2",
       "vendor": "Veltrix",
       "description": "Manage Okta configuration as code through the Okta Management API. Covers policies and their rules, group rules, groups, network zones, trusted origins, behavior rules, authenticators, identity providers, event / inline hooks, authorization servers (scopes / claims / policies), applications and group assignments, plus security and IAM governance — ThreatInsight, log streams, device assurance policies, user types, custom admin roles with resource sets and their role bindings, custom profile-schema attributes and profile mappings, self-service feature toggles, CAPTCHA, user linked-object definitions, org rate-limit settings, brands and their themes, custom login-URL domains and their certificates, custom email domains and SMS templates — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -1026,17 +1026,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.12.1/okta-identity.zip",
-      "sha256": "0d9af7d9500370a655234a742e0360deb841cb246babfc1d90d9f38ebbbd2178",
-      "sizeBytes": 896674,
-      "publishedAt": "2026-09-17T02:46:17.327Z",
-      "releaseNotes": "## 1.12.1 — 2026-09-16\n\n### Fixed — drift no longer claims \"in sync\" from a run that could not look\n\n`driftDetect` returned `{ hasDrift: false, diffs: [] }` when it had no usable\ncredential, and again when the vendor refused the read. That is not \"I checked\nand found nothing\" — it is \"I never looked\". The platform cannot tell the\ndifference: it treats `hasDrift: false` as a positive assurance and resolves the\ncomponent's outstanding drift record with `drift_cleared`.\n\nSo a rotated credential, a de-scoped API user or a vendor maintenance window\nsilently wiped real drift on the next scheduled run, and the console showed a\nclean estate.\n\nThose paths now return `checked: false` (`DriftResult.checked`, SDK 3.9.0), on\nwhich the platform records nothing and clears nothing. Where a handler loops\nover several objects and skips the ones it could not read, the run reports\n`checked: false` too, rather than \"in sync\" from a partial view. A return that\ngenuinely established \"nothing is deployed, so there is no drift\" is unchanged.\n\n`veltrix validate` now rejects the bare form, so it cannot come back.",
-      "releasedAt": "2026-09-16T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.12.2/okta-identity.zip",
+      "sha256": "3ad4558716977593f572ddaff5551d6dfdc14fd1a0745da5028cff3521a6a968",
+      "sizeBytes": 896866,
+      "publishedAt": "2026-09-17T13:35:53.710Z",
+      "releaseNotes": "## 1.12.2 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "onelogin",
       "name": "OneLogin",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "vendor": "Veltrix",
       "description": "Manage OneLogin (One Identity's cloud IAM platform) configuration as code through the OneLogin API. Covers SSO applications (SAML/OIDC connectors and their provisioning parameters), roles and their assigned applications, the account's ordered user-mapping rules, per-application ordered provisioning rules, custom Delegated Administration privileges, and Account Brands - with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -1045,17 +1045,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/onelogin",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/onelogin-v0.1.0/onelogin.zip",
-      "sha256": "340c8e7b277aaad83597ee6da73a6621eea040c48f580d205c102f5c4ebc0b2f",
-      "sizeBytes": 186772,
-      "publishedAt": "2026-08-06T02:31:35.574Z",
-      "releaseNotes": "## 0.1.0 — 2026-08-05\n\n### Added — initial release\n\nFirst release of the OneLogin config-as-code app, built research-first directly against\n[developers.onelogin.com](https://developers.onelogin.com/) (every endpoint and write-shape cited\nbelow was fetched and verified, not assumed from other IAM platforms).\n\nSix configuration types, covering the core declarative surface of the OneLogin API:\n\n- **Apps** (`config-types/apps`) — SSO application connectors (SAML/OIDC/catalog), visibility,\n  admin-impersonation toggle, provisioning enablement, and connector-specific `configuration`/\n  `parameters` via `/api/2/apps` (partial-update PUT, confirmed from OneLogin's own docs).\n- **Roles** (`config-types/roles`) — roles and their full assigned-Apps set via `/api/2/roles` +\n  `PUT .../apps` (a confirmed full-replace endpoint).\n- **User Mappings** (`config-types/mappings`) — account-wide, ordered condition→action rules via\n  `/api/2/mappings` + `PUT .../sort`, reconciled non-destructively against undeclared mappings (see\n  README's Ordered reconciliation section).\n- **App Rules** (`config-types/app-rules`) — the same ordered-rule model as User Mappings, scoped per\n  application via `/api/2/apps/{id}/rules` + `.../rules/sort`.\n- **Privileges** (`config-types/privileges`) — custom Delegated Administration policy documents\n  (`Version`/`Statement`) and diff-reconciled role/user assignment via `/api/1/privileges` (OneLogin\n  never migrated this resource to v2).\n- **Account Brands** (`config-types/brands`) — login-screen label/colors/instructions/messages via the\n  Early Preview `/api/2/branding/brands` API; the account's `master` brand is never created or deleted.\n\nAuthentication is a OneLogin **API Credential** (OAuth2 `client_credentials` grant against\n`/auth/oauth2/v2/token`), with the connection's subdomain stored as the `onelogin-account` component\nhostname — OneLogin has no separate regional API host to configure, unlike Okta/PingOne.\n\nTwo config types (User Mappings, App Rules) required solving OneLogin's all-or-nothing Bulk Sort\ncontract (`PUT .../sort` 422s unless every id for the scope is present) — implemented as a generic,\nindependently-tested `reconcileOrder` helper in `lib/oneLogin.ts` that re-inserts only the\ncanvas-declared ids, in their declared order, without disturbing ids this app doesn't manage.\n\nSee **Coverage** in `README.md` for the full breakdown of what's covered in this release versus\nconfirmed non-declarative (Groups is read-only; custom attribute *field definitions* have no\ncreate/update API; Smart Hooks require resending a write-only code body on every call; MFA is\nper-user-only) or deferred (Risk Rules/Vigilance AI have no confirmed public config endpoint;\nSelf-Registration's doc pages 404'd during this research pass).",
-      "releasedAt": "2026-08-05T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/onelogin-v0.1.1/onelogin.zip",
+      "sha256": "567e3ee197c74f2dbd8a295379ee89b056b1481c431b68a951115b8149b1abac",
+      "sizeBytes": 187229,
+      "publishedAt": "2026-09-17T13:35:53.711Z",
+      "releaseNotes": "## 0.1.1 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "onepassword",
       "name": "1Password",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "vendor": "Veltrix",
       "description": "Manage 1Password Business/Team identity and access configuration as code through the 1Password SCIM Bridge - user provisioning (create, profile, suspend/reactivate) and custom Groups with their membership, the mechanism 1Password uses to grant and revoke a set of users' access to vaults - with validation, drift detection and rollback handled by the Security-as-Code pipeline. 1Password's public APIs are secret-oriented (the Connect API reads/writes vault items; the Events API is read-only); this app deliberately never touches vaults or the secret items inside them - see README Coverage.",
       "category": "IAM",
@@ -1064,12 +1064,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/onepassword",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/onepassword-v0.1.0/onepassword.zip",
-      "sha256": "3357dad14601680b9623f8b8f3601c5bf287ab3cfdcfff8222466f5f38df3c13",
-      "sizeBytes": 92408,
-      "publishedAt": "2026-08-06T03:12:43.292Z",
-      "releaseNotes": "## 0.1.0 — 2026-08-05\n\n### Added — initial release\n\nFirst release of the 1Password config-as-code app, built research-first against\n[developer.1password.com](https://developer.1password.com/) (Connect API, Events API, Terraform\nprovider, Users API for Partners, Service Accounts) and 1Password's own SCIM Bridge sources\n(`support.1password.com/scim/`, `github.com/1Password/scim-examples`).\n\n1Password's public write surface is almost entirely secret-oriented - the Connect API reads/writes\nvault items and only lists vaults (no create/update); the Events API is read-only; Service Accounts have\nno REST API; and the Users API for Partners is Partner-gated, public-preview, and explicitly incompatible\nwith automated provisioning. None of these is a genuine config-as-code surface. What is genuine, and\nwhat this release covers, is identity/access governance through the self-hosted **1Password SCIM\nBridge** - the same integration point 1Password's supported identity providers use to provision users\nand manage the Groups that grant/revoke vault access:\n\n- **Users** (`config-types/users`) — provisions users (email, name) and manages their active/suspended\n  status via standard SCIM 2.0 `POST`/`PATCH /Users`, matched by `userName` (email). Never touches a\n  password, Secret Key, or vault item.\n- **Groups** (`config-types/groups`) — creates custom Groups and full-replaces their membership via\n  `POST`/`PATCH /Groups`, matched by `displayName` — 1Password's own \"create and manage access to\n  groups\" capability, and the mechanism that grants/revokes a set of users' access to whichever vaults\n  the group has been given permissions on.\n\nAuthentication is the SCIM Bridge's own bearer token (the `scimsession` credential), sent as\n`Authorization: Bearer <token>` with `application/scim+json` bodies per RFC 7644 §3.1. The connection's\nendpoint is the bridge's own base URL (no `/scim/v2` path - confirmed against two independent, current\n1Password IdP setup guides), and the connectivity test calls the bridge's documented `GET /health`\nstatus endpoint.\n\nNeither config type exposes a delete: 1Password's own capability statement is \"create, confirm, and\nsuspend users, and create and manage access to groups\" - no delete is documented for either resource.\nRollback of a resource this app created suspends the user or clears the group's membership instead of\ndeleting anything, consistent with what the bridge actually supports.\n\nSee **Coverage** in `README.md` for the full breakdown of what's covered in this release versus\nconfirmed non-viable (Vaults create/update, secret items, Service Accounts REST, Events API) or\ndeliberately out of scope (Group → Vault permission assignment, hard delete, the Partner-only Users API).",
-      "releasedAt": "2026-08-05T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/onepassword-v0.1.1/onepassword.zip",
+      "sha256": "6a1b36b318bfa82c96932f4be03a9b00118531521ff399ef5102bac53d9c39e6",
+      "sizeBytes": 92824,
+      "publishedAt": "2026-09-17T13:35:53.711Z",
+      "releaseNotes": "## 0.1.1 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "opencti",
@@ -1146,7 +1146,7 @@
     {
       "appId": "palo-alto-panorama",
       "name": "Palo Alto Panorama",
-      "version": "1.3.1",
+      "version": "1.3.3",
       "vendor": "Veltrix",
       "description": "Manage Palo Alto Networks Panorama / PAN-OS configuration as code through the PAN-OS REST API. Covers tags, address objects, service objects, address groups, service groups, application groups, schedules, custom URL categories, external dynamic lists, security/NAT/decryption/policy-based-forwarding/authentication pre-rules, security profiles (antivirus, anti-spyware, vulnerability, URL filtering, file blocking, WildFire analysis, data filtering), security profile groups and log forwarding profiles — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Writes land in the Panorama candidate config and are committed to Panorama (XML API) when auto-commit is on. The component hostname is the Panorama management host; auth is a pre-generated PAN-OS API key sent as the X-PAN-KEY header.",
       "category": "NETWORK",
@@ -1156,12 +1156,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/palo-alto-panorama",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/palo-alto-panorama-v1.3.1/palo-alto-panorama.zip",
-      "sha256": "23e25ec4f3f543e34661af5f19e02eff1426dc743d69f0171c9a41abfc032997",
-      "sizeBytes": 364389,
-      "publishedAt": "2026-09-17T02:46:17.334Z",
-      "releaseNotes": "## 1.3.1 — 2026-08-05\n\nGrouped all configuration types in the Configurations sidebar. Organization-only —\nno change to any deploy/rollback/drift behavior.\n\n- **Config sidebar groups** — the thirteen pre-existing types now join the same\n  Objects / Policies / Security Profiles / Logging groups introduced for the 1.3.0\n  additions, instead of rendering as a flat list above them: address/service objects\n  and groups, tags, application groups → Objects; security and NAT rules → Policies;\n  security-profile groups and AV / anti-spyware / URL-filtering / WildFire profiles →\n  Security Profiles.",
-      "releasedAt": "2026-08-05T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/palo-alto-panorama-v1.3.3/palo-alto-panorama.zip",
+      "sha256": "e8e39157394da815cbccb50f2e79dd2412216d4bf7fbe84607f19e5e78a3b510",
+      "sizeBytes": 368656,
+      "publishedAt": "2026-09-17T13:35:53.715Z",
+      "releaseNotes": "## 1.3.3 — 2026-09-17\n\n### Fixed — a no-op no longer activates another administrator's staged work\n\nA PAN-OS `<commit></commit>` carries no scope: it activates the ENTIRE candidate\nconfiguration, including whatever another administrator has staged and not yet\nreviewed. `commitIfEnabled` was called unconditionally, so a deploy whose canvas\nitems were all filtered out — and a rollback that deleted and restored nothing —\nstill issued one, pushing somebody else's unreviewed changes live under Veltrix's\njob id. Both now commit only when something was actually written.\n\n### Fixed — an unconfirmed commit is no longer reported as committed\n\nWhen the commit job did not reach FIN inside the poll budget, the result carried\n`committed: true` and the deployment record said the configuration was live on\nthe firewalls. Nothing had established that. It now reports `committed: false`\nand says the job may still be running; the job id is still returned so it can be\nchased.\n\n### Fixed — healthCheck and driftDetect report an unreachable Panorama\n\n`PanoramaClient.send` does not catch transport errors, so a DNS failure, a\nrefused connection or the request timeout propagated out of both handlers as an\nopaque pipeline crash — rather than \"unhealthy, cannot reach panorama\", which is\nthe one case a health check exists for. Deploy and rollback already wrapped their\nwork. Drift also now reports `checked: false` when there is no usable credential,\ninstead of a bare `hasDrift: false` the platform would act on by clearing the\ncomponent's outstanding drift record.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "pfsense",
@@ -1222,7 +1222,7 @@
     {
       "appId": "proofpoint",
       "name": "Proofpoint Essentials",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "vendor": "Veltrix",
       "description": "Manage Proofpoint Essentials email security configuration as code through the Essentials Interface API (v1). Covers protected domains and their inbound mail routing, the organization Safe and Blocked sender lists (organization, user or group scoped), the organization security features (URL Defense, Attachment Defense, DLP, Encryption, and more), organization-wide MFA and Login/SSO policy, SAML Identity Providers, and granular Email Warning/Subject Tag settings and their sender exemptions — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Objects are scoped to the organization named in the Organization (primary domain) setting.",
       "category": "NETWORK",
@@ -1232,17 +1232,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/proofpoint",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/proofpoint-v1.2.0/proofpoint.zip",
-      "sha256": "e58e144bf973b07aa415985c095eca7d3b342fe381cbbc224112153ade42639a",
-      "sizeBytes": 177596,
-      "publishedAt": "2026-08-06T02:31:35.584Z",
-      "releaseNotes": "## 1.2.0 — 2026-08-04\n\nConfig-as-code write-surface exhaustion pass, re-audited against the live\nEssentials Interface API OpenAPI document (fetched directly from a running\nstack, `/apidocs/apidocs/docs`, linked from `/api/v1/docs/specification.php`).\nSee the README's [Coverage](README.md#coverage-v120) section for the full\naudit, including what was intentionally left out and why (Users, DKIM private\nkeys, Azure AD sync secrets, Package/Licensing billing actions, and every\nother Proofpoint product — TAP, TRAP/Threat Response, the Protection Server,\nNPRE, Isolation, PSAT, CASB, ITM, ET Intelligence — which are separate\nproducts with their own consoles/auth outside this app's Essentials scope).\n\n### Fixed\n\n- **`pp-sender-lists` (organization scope) was writing the wrong resource.**\n  The prior implementation reconciled the organization scope with a\n  read-modify-write `PUT /orgs/{org}` using field names `allow_list`/\n  `block_list`. The live API's `Organization` resource actually names those\n  fields `safe_list_senders`/`block_list_senders`, and `/orgs/{org}` no longer\n  documents a `PUT` method at all (only `GET`/`DELETE`/`PATCH`) —\n  `allow_list`/`block_list` belong to the dedicated `/orgs/{org}/sender-lists`\n  resource, which is what deploy/rollback/driftDetect/healthCheck now use.\n\n### Added\n\n- **`pp-sender-lists`** extended from organization-only to also cover **user**\n  and **group** scoped Safe/Blocked sender overrides, via the same\n  sender-lists resource addressed at `/orgs/{org}/users/{email}/sender-lists`\n  and `/orgs/{org}/groups/{id}/sender-lists`. A new \"Scope\" field group\n  (`scope`: org/user/group, `scope_id`) selects the target; reconciliation\n  identity is now the (scope, scope_id, sender) tuple. Rollback now PATCHes\n  the exact prior list array back per scope instead of computing a removal\n  set, eliminating any dependency on the vendor API's undocumented `DELETE`\n  request-body shape for this resource.\n- **Proofpoint Authentication Settings** (`pp-authentication-settings`) —\n  manage the organization-wide MFA policy (`is_mfa_enabled`,\n  `mfa_admins_only`) and Login/SSO policy (`allow_local_login`,\n  `allow_azure_login`, `force_azure_login`, `idp_for_forced_login`) via\n  `/orgs/{org}/authentication/settings/{mfa,login}`. Organization-wide\n  singleton; validation rejects a configuration that would disable every\n  login method (local + Azure + no forced SSO IDP), which would lock the\n  organization out.\n- **Proofpoint Identity Providers** (`pp-identity-providers`) — full SAML SSO\n  Identity Provider CRUD via `/orgs/{org}/authentication/settings/idps`.\n  Reconciled by IDP name (upsert: PUT an existing IDP by its server-assigned\n  UUID, POST a new one). Every managed field is public SAML metadata (entity\n  id, login/logout URLs, the IDP's own verification certificate) — no secret\n  is ever sent or stored by this config type.\n- **Proofpoint Email Tagging** (`pp-email-tagging`) — the granular Email\n  Warning Tag settings (DMARC-failure/domain-age/geo-IP conditions, the\n  \"Learn more\" action, a custom banner) and Email Subject Tag settings (a\n  subject-line prefix) via `/orgs/{org}/email-tagging`. Organization-wide\n  singleton, more detailed than the on/off `email_warning_tags` toggle\n  `pp-org-features` already manages (which remains a simple master switch).\n- **Proofpoint Email Tagging Exemptions** (`pp-email-tagging-exemptions`) —\n  the sender allow-list that Email Tagging never tags, via\n  `/orgs/{org}/email-tagging/exemptions`. Reconciled additively by sender\n  value, same shape as `pp-sender-lists`.",
-      "releasedAt": "2026-08-04T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/proofpoint-v1.2.1/proofpoint.zip",
+      "sha256": "e207f4310ea64bd212d8880f64ea742d3056b1a6ec004ecf0eb4e3fd6dea03d8",
+      "sizeBytes": 178099,
+      "publishedAt": "2026-09-17T13:35:53.718Z",
+      "releaseNotes": "## 1.2.1 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "qualys",
       "name": "Qualys",
-      "version": "1.3.1",
+      "version": "1.3.2",
       "vendor": "Veltrix",
       "description": "Manage Qualys VMDR configuration as code. Covers asset groups, static and dynamic search lists (QID sets), scheduled VM scans, VM option profiles, asset tags / tag rules, authentication records for trusted scanning, custom networks, user accounts and VM report templates — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Uses the classic v2 API (HTTP Basic + the required X-Requested-With header), the Asset Management & Tagging QPS REST API (JSON, for asset tags), the `/msp/user*.php` user-administration API, and the Report Template API's literal-XML-document write endpoints. The component hostname is your Qualys platform API server (Help > About).",
       "category": "COMPLIANCE",
@@ -1252,17 +1252,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/qualys",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/qualys-v1.3.1/qualys.zip",
-      "sha256": "9748c9ce2b795fcd34d82aea2eb5cab5de5f3cd373f56ba20cc91d5687f15bd6",
-      "sizeBytes": 263955,
-      "publishedAt": "2026-09-17T02:46:17.339Z",
-      "releaseNotes": "## 1.3.1 — 2026-09-16\n\n### Fixed — the documented alternative credential field was dead code\n\nThe resolver read `credential.password ?? credential.apiToken`. `CredentialRef.password` is a\nnon-optional `string` and the platform supplies it as `''` rather than null, so\n`??` never fell through: the alternative field this app's own\n`MISSING_CREDENTIAL_MESSAGE` tells the operator they may use was never read.\n\nA tenant that stored its secret where the documentation said got a silent, total\nrefusal from every handler — and because `driftDetect` reports `checked: false`\nwithout a usable credential, nothing ever alarmed about it either. The operator\nsees a connection that simply does not work, with no indication why.\n\n`||` is the right operator here: an empty credential field means \"not set\".",
-      "releasedAt": "2026-09-16T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/qualys-v1.3.2/qualys.zip",
+      "sha256": "5edcc6528847e519f89cd6c6356175164702a1c1cf36046e491467ad57e428e3",
+      "sizeBytes": 264480,
+      "publishedAt": "2026-09-17T13:35:53.719Z",
+      "releaseNotes": "## 1.3.2 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "rapid7",
       "name": "Rapid7 InsightVM",
-      "version": "1.3.1",
+      "version": "1.3.2",
       "vendor": "Veltrix",
       "description": "Manage Rapid7 configuration as code. On the on-prem Security Console API (v3): scan sites, asset groups, tags, scan templates, scan engine pools, shared and site credentials, scan schedules, vulnerability exceptions, policy (compliance) overrides, report configurations, Sonar discovery queries and console users (console host:3780, HTTP Basic auth). On the InsightIDR cloud (Insight Platform Detection Rules API v1, region-scoped, X-Api-Key auth): detection rule exceptions and detection rule settings (action/priority). Validation, drift detection and rollback are handled by the Security-as-Code pipeline.",
       "category": "COMPLIANCE",
@@ -1272,12 +1272,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/rapid7",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/rapid7-v1.3.1/rapid7.zip",
-      "sha256": "2343a645f53b66a25874ac3a4ade3e3bdca93c37d18d52fafa08db7a968e02af",
-      "sizeBytes": 345022,
-      "publishedAt": "2026-09-17T02:46:17.340Z",
-      "releaseNotes": "## 1.3.1 — 2026-09-16\n\n### Fixed — the documented alternative credential field was dead code\n\nThe resolver read `credential.password ?? credential.apiToken`. `CredentialRef.password` is a\nnon-optional `string` and the platform supplies it as `''` rather than null, so\n`??` never fell through: the alternative field this app's own\n`MISSING_CREDENTIAL_MESSAGE` tells the operator they may use was never read.\n\nA tenant that stored its secret where the documentation said got a silent, total\nrefusal from every handler — and because `driftDetect` reports `checked: false`\nwithout a usable credential, nothing ever alarmed about it either. The operator\nsees a connection that simply does not work, with no indication why.\n\n`||` is the right operator here: an empty credential field means \"not set\".",
-      "releasedAt": "2026-09-16T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/rapid7-v1.3.2/rapid7.zip",
+      "sha256": "87d9e849dd41a136acda1b5d0a0600a23c64a5804909e352e90255ab78078d9c",
+      "sizeBytes": 345668,
+      "publishedAt": "2026-09-17T13:35:53.720Z",
+      "releaseNotes": "## 1.3.2 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "recorded-future",
@@ -1391,7 +1391,7 @@
     {
       "appId": "sentinelone",
       "name": "SentinelOne",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "vendor": "Veltrix",
       "description": "Manage SentinelOne endpoint security configuration as code through the SentinelOne Management API (v2.1). Covers exclusions, blocklist and allowlist hashes, STAR custom detection rules, the per-scope agent policy, agent groups, Firewall Control and Device Control rules, notification recipients, and RBAC custom roles — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Objects are scoped across the Account/Site/Group hierarchy via the Scope + Scope ID settings.",
       "category": "EDR",
@@ -1401,12 +1401,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sentinelone",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/sentinelone-v1.2.1/sentinelone.zip",
-      "sha256": "53f5551798870964170a93af164f4420f125aef7a7fb720b6d7e2070e787d566",
-      "sizeBytes": 251125,
-      "publishedAt": "2026-09-17T02:46:17.346Z",
-      "releaseNotes": "## 1.2.1 — 2026-09-16\n\n### Fixed — drift no longer claims \"in sync\" from a run that could not look\n\n`driftDetect` returned `{ hasDrift: false, diffs: [] }` when it had no usable\ncredential, and again when the vendor refused the read. That is not \"I checked\nand found nothing\" — it is \"I never looked\". The platform cannot tell the\ndifference: it treats `hasDrift: false` as a positive assurance and resolves the\ncomponent's outstanding drift record with `drift_cleared`.\n\nSo a rotated credential, a de-scoped API user or a vendor maintenance window\nsilently wiped real drift on the next scheduled run, and the console showed a\nclean estate.\n\nThose paths now return `checked: false` (`DriftResult.checked`, SDK 3.9.0), on\nwhich the platform records nothing and clears nothing. Where a handler loops\nover several objects and skips the ones it could not read, the run reports\n`checked: false` too, rather than \"in sync\" from a partial view. A return that\ngenuinely established \"nothing is deployed, so there is no drift\" is unchanged.\n\n`veltrix validate` now rejects the bare form, so it cannot come back.",
-      "releasedAt": "2026-09-16T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/sentinelone-v1.2.2/sentinelone.zip",
+      "sha256": "485a00a426c593c17d15e82944a7141924c28cf2c424678ccca9c936c125485f",
+      "sizeBytes": 251300,
+      "publishedAt": "2026-09-17T13:35:53.724Z",
+      "releaseNotes": "## 1.2.2 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "servicenow",
@@ -1600,7 +1600,7 @@
     {
       "appId": "teleport",
       "name": "Teleport",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "vendor": "Veltrix",
       "description": "Manage Teleport (Gravitational) infrastructure access & privileged access management configuration as code through the Teleport Proxy's web API - the same JSON+YAML surface the Teleport Web UI itself uses. Covers RBAC roles, GitHub SSO auth connectors, trusted cluster federation, Machine ID bot identities, dynamic database resource registrations, and cloud auto-discovery configs - with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -1609,12 +1609,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/teleport",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/teleport-v0.1.0/teleport.zip",
-      "sha256": "108e1d4818f9dab960b0cb9ef7f5d9877e482c4e2f7b9cafd2f788de212d6ef7",
-      "sizeBytes": 167054,
-      "publishedAt": "2026-08-06T02:31:35.602Z",
-      "releaseNotes": "## 0.1.0 — 2026-08-05\n\n### Added — initial release\n\nFirst release of the Teleport (Gravitational) config-as-code app, built research-first directly\nagainst [`gravitational/teleport@master`](https://github.com/gravitational/teleport) source — the\nroute table in `lib/web/apiserver.go` and the handler files it dispatches to, not documentation\nassumptions.\n\nSix configuration types, covering Teleport's clearest declarative, round-trippable surface reachable\nthrough the Teleport **Proxy web API** (the same JSON+YAML surface the Teleport Web UI itself calls —\nsee README.md for why this app deliberately does not use the gRPC/mTLS transport\n`terraform-provider-teleport` and `tctl` use):\n\n- **Roles** (`config-types/roles`) — RBAC roles (`kind: role`) via `/v1/webapi/roles`. Author only the\n  role's `spec:` body; the app wraps it into the full resource envelope.\n- **GitHub Connectors** (`config-types/github-connectors`) — GitHub SSO auth connectors\n  (`kind: github`) via `/v1/webapi/github`. `client_secret` is sensitive — see README's Coverage notes.\n- **Trusted Clusters** (`config-types/trusted-clusters`) — cluster federation (`kind: trusted_cluster`)\n  via `/v1/webapi/trustedcluster`. The join `token` is sensitive.\n- **Machine ID Bots** (`config-types/machine-id-bots`) — bot identities (roles, traits, max session\n  TTL) via `/v1/webapi/sites/{site}/machine-id/bot`.\n- **Databases** (`config-types/databases`) — dynamic database resource registrations (protocol,\n  connection URI, labels, optional AWS RDS metadata) via `/v1/webapi/sites/{site}/databases`. No\n  rollback-delete is possible — the web API has no DELETE route for this resource (see README).\n- **Discovery Config** (`config-types/discovery-config`) — AWS/Azure/GCP/Kubernetes auto-discovery\n  matchers for the Discovery Service via `/v1/webapi/sites/{site}/discoveryconfig`.\n\nAuthentication is a local Teleport user's username/password logged in via\n`POST /v1/webapi/sessions/web` (the Teleport Web UI's own login call), with the TOTP second factor\ncomputed locally via a zero-dependency RFC 6238 implementation (`lib/totp.ts`) from a base32 seed\nbundled into the credential's secret field alongside the password.\n\nSee **Coverage** in `README.md` for the full breakdown of what's covered in this release versus\ndeferred (OIDC/SAML connectors, Access Lists, Login Rules, Access Monitoring Rules, Device Trust,\ncluster-wide singleton configs, Locks, Git Servers, and why).",
-      "releasedAt": "2026-08-05T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/teleport-v0.1.1/teleport.zip",
+      "sha256": "c5cee6db1c49e338f4296162fe61ae42aea40700e4dcb953bc09f4a0f6b3a394",
+      "sizeBytes": 167541,
+      "publishedAt": "2026-09-17T13:35:53.732Z",
+      "releaseNotes": "## 0.1.1 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "tenable-vm",
@@ -1694,7 +1694,7 @@
     {
       "appId": "twingate",
       "name": "Twingate",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "vendor": "Veltrix",
       "description": "Manage Twingate (ZTNA / Zero Trust Network Access) configuration as code through the Twingate GraphQL API. Covers Resources — the private applications, hosts and subnets a Remote Network exposes through Twingate Connectors — with name, address, remote network, TCP/UDP/ICMP protocol policy and Group-based access; Remote Networks (name, location, network type); Groups (MANUAL groups only, with Resource access); and Service Accounts (name — keys are managed directly in Twingate) — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Authenticates with a Twingate API key against the tenant's network-scoped GraphQL endpoint.",
       "category": "NETWORK",
@@ -1704,12 +1704,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/twingate",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/twingate-v0.3.0/twingate.zip",
-      "sha256": "84b1668fb3ce30901f8e7fc07733951e299134dbbc5847b6c2951138acd1cd8b",
-      "sizeBytes": 193266,
-      "publishedAt": "2026-08-06T02:31:35.607Z",
-      "releaseNotes": "## 0.3.0 — 2026-08-04\n\n### Added\n- **Connectors (`connectors`, group \"Network\").** Declarative Connector\n  registration, rename/delete, immutable Remote Network placement and status\n  notification preference through `connectorCreate` / `connectorUpdate` /\n  `connectorDelete`. A Connector's Remote Network is set on create only\n  (`connectorUpdate` has no such argument) — a declared move fails closed\n  rather than being silently ignored or attempted via an unsupported mutation.\n- **DNS Filtering Profiles (`dns-filtering-profiles`, group \"Security\").**\n  Manage Twingate DNS Filtering Profiles as code through\n  `dnsFilteringProfileCreate` / `dnsFilteringProfileUpdate` /\n  `dnsFilteringProfileDelete`, reconciled by name. `dnsFilteringProfileCreate`\n  accepts only `name` — creating a new profile always create-then-immediately-\n  updates to apply the rest of the declared spec (priority, fallback method,\n  allow/deny domain lists, every content/security/privacy category flag, and\n  Group assignment matched by name, full-replacement).\n- A schema/provider-source **Coverage** section in the README documenting\n  every managed Twingate mutation family and every intentionally EXCLUDED\n  surface with its reason (one-time credentials, IdP-owned identity,\n  externally-managed groups, read-only objects, runtime/telemetry state).\n\n### Fixed\n- Corrected a prior (incorrect) Coverage note claiming DNS Filtering Profiles\n  had no stable, documented CRUD mutations — `dnsFilteringProfileCreate` /\n  `Update` / `Delete` are confirmed via terraform-provider-twingate's tested\n  Go GraphQL client and are now managed (see above).\n\n### Security\n- Connector token generation and DNS Filtering Profile category content\n  remain the only two write paths this app touches for these objects; Connector\n  runtime tokens are explicitly EXCLUDED (see README Coverage) — they are\n  one-time bearer credentials with no declarative desired state to diff or\n  safely roll back.",
-      "releasedAt": "2026-08-04T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/twingate-v0.3.1/twingate.zip",
+      "sha256": "34adf1d5b9c4eff4e39df10aba4dea9e164b4a238e2659a180db30823b86f8b0",
+      "sizeBytes": 193753,
+      "publishedAt": "2026-09-17T13:35:53.734Z",
+      "releaseNotes": "## 0.3.1 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "vectra-ai",
@@ -1768,7 +1768,7 @@
     {
       "appId": "wiz",
       "name": "Wiz",
-      "version": "1.3.0",
+      "version": "1.3.1",
       "vendor": "Veltrix",
       "description": "Manage Wiz (CNAPP / cloud security) configuration as code through the Wiz GraphQL API. Covers service accounts (createServiceAccount — the generated client secret is a write-only output and is never captured), custom cloud and host configuration (CSPM) rules, custom Controls, automation rules (notification / remediation), integrations (Webhook/Slack/Jira/ServiceNow/ PagerDuty/...), graph-query reports, custom security frameworks (compliance policies), SAML SSO identity providers and Projects — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Authenticates as a Wiz service account via OAuth2 client credentials against the tenant's regional API host.",
       "category": "CLOUD",
@@ -1778,17 +1778,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/wiz",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/wiz-v1.3.0/wiz.zip",
-      "sha256": "625b005f805034bd08b58150d3ca4e62f5636d391bddce78b6060d80273fd0f5",
-      "sizeBytes": 296395,
-      "publishedAt": "2026-08-06T02:31:35.612Z",
-      "releaseNotes": "## 1.3.0 — 2026-08-04\n\n### Added — five new configuration types, exhausting the Wiz GraphQL config-as-code surface\n\nResearched against the generated Wiz GraphQL SDK type surface\n(terraform-provider-wiz's `internal/wiz` Go package,\ngithub.com/AxtonGrams/terraform-provider-wiz — the only publicly available,\nschema-derived reference for Wiz's write API) and, where the reference\nprovider ships a working resource, the literal GraphQL query/mutation text it\nsends. See the README's **Coverage** section for the full audit, including\nwhat was verified vs. inferred and what was intentionally left out.\n\n- **Controls (`wiz-controls`).** Manage Wiz custom Controls — a Security Graph\n  query + severity that opens an Issue per matching result — through\n  `createControl` / `updateControl` / `deleteControl`, reconciled by name.\n  `createControl` does not accept `enabled` (a documented defect in the\n  reference provider); deploy issues an immediate follow-up `updateControl`\n  when a new control declares `enabled: false`. A control's project scope is\n  create-time only — `UpdateControlPatch` has no project field — so a changed\n  `project_id` is reported as drift but never auto-corrected.\n- **Host Configuration Rules (`wiz-host-config-rules`).** Manage Wiz custom\n  host/OS-assessment rules — the OVAL-based host counterpart to Cloud\n  Configuration Rules — through `createHostConfigurationRule` /\n  `updateHostConfigurationRule` / `deleteHostConfigurationRule`, reconciled by\n  name against non-builtin rules. The `hostConfigurationRules` list query is\n  directly verified (it backs the reference provider's shipped data source);\n  the create/update/delete mutations are verified by input/output type shape\n  only — that provider defines the Go types but never wired them into a\n  working resource.\n- **Integrations (`wiz-integrations`).** Manage the 11 API-manageable Wiz\n  integration types — Webhook, Slack, Slack Bot, AWS SNS, Azure Service Bus,\n  GCP Pub/Sub, PagerDuty, Jira, ServiceNow, Opsgenie, ClickUp — through one\n  generic `createIntegration` / `updateIntegration` / `deleteIntegration`\n  mutation set (verified: Wiz's actual schema is one generic mutation keyed by\n  a `type` enum + `params` union, not one mutation per vendor), reconciled by\n  name. These are the objects `wiz-automation-rules`' action `integration_id`\n  references — closing a gap where that type could previously only point at\n  an integration created by hand in the Wiz console. Every vendor credential\n  (Jira password/PAT, ServiceNow password/OAuth secret, a Slack webhook URL,\n  a PagerDuty key, ...) is a `password`-typed, write-only field — never read\n  back, never compared by drift, matching this app's established secret\n  convention. Rollback of an updated integration restores from\n  `ctx.previousConfig` (what this app itself last declared) rather than a\n  live API read, since Wiz's `params` cannot be safely assumed to echo\n  secrets back.\n- **SAML Identity Providers (`wiz-saml-identity-providers`).** Manage Wiz SAML\n  SSO identity providers and their group-to-role mappings through\n  `createSAMLIdentityProvider` / `updateSAMLIdentityProvider` /\n  `deleteSAMLIdentityProvider` (all three verified verbatim against the\n  reference provider), reconciled by name. The signing certificate is the\n  IdP's *public* key — not a secret — and is diffed by drift like any other\n  field.\n- **Projects (`wiz-projects`).** Manage Wiz Projects — the grouping construct\n  for cloud accounts/organizations/Kubernetes clusters, owners and a risk\n  profile — through `createProject` / `updateProject` (verified verbatim\n  against the reference provider, including its `override` full-replace\n  update semantics), reconciled by name. Wiz has **no `deleteProject`\n  mutation** (verified absent) — only `archived: true`. Rollback of a\n  project this app created therefore archives it and renames it to its own\n  slug, the exact verified pattern the reference provider itself uses to\n  \"delete\" a project (project names are unique tenant-wide, so an archived\n  project must free its name for reuse). `is_folder` is create-time only.\n- All five types ship the full handler set (validate, deploy, rollback,\n  healthCheck, driftDetect, getStatus), reuse the shared `WizClient` GraphQL\n  client, and extend the audit-log **drift attribution** (\"who changed it +\n  when\") introduced in 1.1.0 to every new type (except Integrations, whose\n  params are intentionally never read back to correlate against).\n- **Intentionally excluded** (see README Coverage): cloud-account connectors\n  (`createConnector` — vendor-varying secret material belongs to a dedicated\n  cloud-credential onboarding flow, not a canvas secret field), the\n  `*_associations` resources (redundant with the `security_sub_categories`\n  field already inline on Controls/Cloud/Host Configuration Rules), issue\n  exceptions and saved filters (verified absent from the schema — no\n  `Exception`/`Exclusion`/`SavedFilter` mutation exists), CI/CD scan policies\n  and Wiz platform users (out of this pass's scope; documented as valid\n  future additions).",
-      "releasedAt": "2026-08-04T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/wiz-v1.3.1/wiz.zip",
+      "sha256": "2f01c95f517b2f0b904a854242a107ef0d7574bbe602a9243e4f839393174da2",
+      "sizeBytes": 296972,
+      "publishedAt": "2026-09-17T13:35:53.737Z",
+      "releaseNotes": "## 1.3.1 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "zscaler",
       "name": "Zscaler",
-      "version": "1.4.3",
+      "version": "1.4.4",
       "vendor": "Veltrix",
       "description": "Manage Zscaler Internet Access (ZIA) and Zscaler Private Access (ZPA) configuration as code through the Zscaler OneAPI. Covers URL filtering, cloud firewall, DLP, SSL inspection, forwarding control, locations and admin config on ZIA, and application segments, server/segment groups, connectors and access policy on ZPA - with validation, drift detection and rollback handled by the Security-as-Code pipeline. ZIA changes are staged and activated as a batch; ZPA changes apply immediately.",
       "category": "NETWORK",
@@ -1798,12 +1798,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/zscaler",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/zscaler-v1.4.3/zscaler.zip",
-      "sha256": "8c1da1ba477b6913f7aa4f95b57765e990a604a6eccf264fa372412847194af4",
-      "sizeBytes": 757546,
-      "publishedAt": "2026-09-17T03:19:06.298Z",
-      "releaseNotes": "## 1.4.3 — 2026-09-16\n\n### Fixed — drift now compares the three fields that decide what a rule DOES\n\nThree drift handlers compared presence, order and state, and stopped there — so\nthe setting each config type exists to manage could be changed in the console and\nevery scheduled run still reported the estate in sync:\n\n- **`zia-sandbox-rules`** did not compare `ba_rule_action`. A rule flipped from\n  BLOCK to ALLOW stops quarantining malware.\n- **`zia-ssl-inspection-rules`** did not compare the action type. A rule switched\n  from DECRYPT to DO_NOT_DECRYPT silently stops inspecting TLS for everything it\n  matches.\n- **`zia-admin-users`** did not compare the role, though deploy writes it and\n  rollback restores it. A managed analyst account escalated to Super Admin read\n  as healthy.\n\nEach is now compared, at `critical` severity, and only where the canvas actually\ndeclares the value — a rule left on the tenant default is not managed here and\ncannot drift. A value the tenant no longer reports reads as `not set` rather than\nbeing skipped, because \"I could not read it\" is not \"it matches\".\n\nThe surrounding rule_json body is still deliberately not deep-diffed: ZIA\nnormalises references and echoes defaults, so comparing it produces phantom\ndrift. These are single un-normalised scalars, which is what makes them the\nexception.",
-      "releasedAt": "2026-09-16T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/zscaler-v1.4.4/zscaler.zip",
+      "sha256": "83492ae19efe4177e8ec80336c88296fbb2787e9d2fb85e58319961b6acbaaf7",
+      "sizeBytes": 758229,
+      "publishedAt": "2026-09-17T13:35:53.740Z",
+      "releaseNotes": "## 1.4.4 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     }
   ]
 }
