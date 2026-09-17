@@ -19,6 +19,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   const specs = extractRemoteNetworkSpecs(ctx.deployedConfig).filter((s) => s.name)
   const live = await listRemoteNetworks(client)
+  // An unreadable console is not an empty one. Reporting every declared
+  // object as critically absent because one read failed pages somebody for
+  // deletions that never happened.
+  if (live === null) return { hasDrift: false, diffs: [], checked: false }
   const byName = new Map(live.filter((n) => n.name).map((n) => [String(n.name).toLowerCase(), n]))
 
   const diffs: Diffs = []

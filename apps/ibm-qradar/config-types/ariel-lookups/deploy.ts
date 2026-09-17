@@ -22,9 +22,16 @@ export interface RollbackEntry {
   priorEntries?: LookupEntry[]
 }
 
-export async function listLookups(client: QRadarClient): Promise<LiveArielLookup[]> {
+/**
+ * The live Ariel lookups, or null when the console could not be read.
+ *
+ * NOT an empty array on failure: this listing decides create-vs-update, so
+ * one 500 used to make the deploy create objects that already exist, and
+ * make drift report every declared object as critically deleted.
+ */
+export async function listLookups(client: QRadarClient): Promise<LiveArielLookup[] | null> {
   const res = await client.request('GET', PATH, { range: 'items=0-9999' })
-  if (!res.ok) return []
+  if (!res.ok) return null
   const parsed = parseJson<LiveArielLookup[]>(res.body)
   return Array.isArray(parsed) ? parsed : []
 }
@@ -64,6 +71,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const prior = await loadPriorEntries(ctx)
 
   const live = await listLookups(client)
+  if (live === null) {
+    return {
+      success: false,
+      message:
+        'Could not read the existing Ariel lookups, so nothing was written. ' +
+        'Treating an unreadable console as an empty one would create duplicates of objects that already exist.',
+      rollbackData: { entries: [] },
+    }
+  }
   const byName = new Map(live.filter((l) => l.name).map((l) => [String(l.name).toLowerCase(), l]))
 
   const entries: RollbackEntry[] = []

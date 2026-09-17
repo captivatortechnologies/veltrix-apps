@@ -13,6 +13,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   const specs = extractClosingReasonSpecs(ctx.deployedConfig).filter((s) => s.text)
   const live = await listClosingReasons(client)
+  // An unreadable console is not an empty one. Reporting every declared
+  // object as critically absent because one read failed pages somebody for
+  // deletions that never happened.
+  if (live === null) return { hasDrift: false, diffs: [], checked: false }
   const byText = new Set(live.filter((r) => r.text).map((r) => String(r.text).toLowerCase()))
 
   const diffs: Diffs = []

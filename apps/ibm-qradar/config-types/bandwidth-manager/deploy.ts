@@ -28,9 +28,16 @@ export interface RollbackEntry {
   prior?: BandwidthConfigState
 }
 
-export async function listBandwidthConfigs(client: QRadarClient): Promise<LiveBandwidthConfig[]> {
+/**
+ * The live bandwidth configurations, or null when the console could not be read.
+ *
+ * NOT an empty array on failure: this listing decides create-vs-update, so
+ * one 500 used to make the deploy create objects that already exist, and
+ * make drift report every declared object as critically deleted.
+ */
+export async function listBandwidthConfigs(client: QRadarClient): Promise<LiveBandwidthConfig[] | null> {
   const res = await client.request('GET', PATH, { range: 'items=0-9999' })
-  if (!res.ok) return []
+  if (!res.ok) return null
   const parsed = parseJson<LiveBandwidthConfig[]>(res.body)
   return Array.isArray(parsed) ? parsed : []
 }
@@ -83,6 +90,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const priorByName = new Map(prior.map((p) => [p.name.toLowerCase(), p]))
 
   const live = await listBandwidthConfigs(client)
+  if (live === null) {
+    return {
+      success: false,
+      message:
+        'Could not read the existing bandwidth configurations, so nothing was written. ' +
+        'Treating an unreadable console as an empty one would create duplicates of objects that already exist.',
+      rollbackData: { entries: [] },
+    }
+  }
   const byId = new Map(live.filter((c) => typeof c.id === 'number').map((c) => [c.id as number, c]))
   const byName = new Map(live.filter((c) => c.name).map((c) => [String(c.name).toLowerCase(), c]))
 

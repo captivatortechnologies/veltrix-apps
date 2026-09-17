@@ -29,9 +29,16 @@ export interface RollbackEntry {
   prior?: RestrictionState
 }
 
-export async function listResourceRestrictions(client: QRadarClient): Promise<LiveResourceRestriction[]> {
+/**
+ * The live resource restrictions, or null when the console could not be read.
+ *
+ * NOT an empty array on failure: this listing decides create-vs-update, so one
+ * 500 used to make the deploy create objects that already exist, and make drift
+ * report every declared object as critically deleted.
+ */
+export async function listResourceRestrictions(client: QRadarClient): Promise<LiveResourceRestriction[] | null> {
   const res = await client.request('GET', PATH, { range: 'items=0-9999' })
-  if (!res.ok) return []
+  if (!res.ok) return null
   const parsed = parseJson<LiveResourceRestriction[]>(res.body)
   return Array.isArray(parsed) ? parsed : []
 }
@@ -92,6 +99,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const prior = await loadPriorEntries(ctx)
 
   const [tenants, roles, live] = await Promise.all([listTenantRefs(client), listUserRoles(client), listResourceRestrictions(client)])
+  if (live === null) {
+    return {
+      success: false,
+      message:
+        'Could not read the existing resource restrictions, so nothing was written. ' +
+        'Treating an unreadable console as an empty one would create duplicates of objects that already exist.',
+      rollbackData: { entries: [] },
+    }
+  }
   const tenantByName = indexByLowerName(tenants.filter((t) => !t.deleted))
   const roleByName = indexByLowerName(roles)
   const liveByKey = new Map<string, LiveResourceRestriction>()

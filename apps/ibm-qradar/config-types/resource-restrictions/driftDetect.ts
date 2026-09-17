@@ -14,6 +14,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   const specs = extractResourceRestrictionSpecs(ctx.deployedConfig).filter((s) => s.targetName)
   const [tenants, roles, live] = await Promise.all([listTenantRefs(client), listUserRoles(client), listResourceRestrictions(client)])
+  // An unreadable console is not an empty one. Reporting every declared object
+  // as critically absent because one read failed pages somebody for deletions
+  // that never happened.
+  if (live === null) return { hasDrift: false, diffs: [], checked: false }
   const tenantByName = indexByLowerName(tenants.filter((t) => !t.deleted))
   const roleByName = indexByLowerName(roles)
   const liveByKey = new Map<string, (typeof live)[number]>()

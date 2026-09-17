@@ -20,9 +20,16 @@ export interface RollbackEntry {
   id?: number
 }
 
-export async function listFlowVlans(client: QRadarClient): Promise<LiveFlowVlan[]> {
+/**
+ * The live flow VLANs, or null when the console could not be read.
+ *
+ * NOT an empty array on failure: this listing decides create-vs-update, so
+ * one 500 used to make the deploy create objects that already exist, and
+ * make drift report every declared object as critically deleted.
+ */
+export async function listFlowVlans(client: QRadarClient): Promise<LiveFlowVlan[] | null> {
   const res = await client.request('GET', PATH, { range: 'items=0-9999' })
-  if (!res.ok) return []
+  if (!res.ok) return null
   const parsed = parseJson<LiveFlowVlan[]>(res.body)
   return Array.isArray(parsed) ? parsed : []
 }
@@ -54,6 +61,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const prior = await loadPriorEntries(ctx)
 
   const live = await listFlowVlans(client)
+  if (live === null) {
+    return {
+      success: false,
+      message:
+        'Could not read the existing flow VLANs, so nothing was written. ' +
+        'Treating an unreadable console as an empty one would create duplicates of objects that already exist.',
+      rollbackData: { entries: [] },
+    }
+  }
   const byPair = new Map(live.map((v) => [liveKey(v), v]))
 
   const entries: RollbackEntry[] = []

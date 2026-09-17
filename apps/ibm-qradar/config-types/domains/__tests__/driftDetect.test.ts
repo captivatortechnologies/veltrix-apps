@@ -15,6 +15,7 @@ import {
   list,
   pathOf,
   recordFetch,
+  serverError,
   writeCalls,
 } from '../../../lib/__tests__/fakeQRadar'
 import { registerDriftGuardContract } from '../../../lib/__tests__/qradarContracts'
@@ -85,6 +86,23 @@ test('domains driftDetect: reports a domain missing from the live list as critic
 
     assert.equal(result.hasDrift, true)
     assert.deepEqual(result.diffs, [{ field: 'Corp', expected: 'present', actual: 'absent', severity: 'critical' }])
+  } finally {
+    restore()
+  }
+})
+
+test('domains driftDetect: an unreadable console is not reported as every domain deleted', async () => {
+  // The listing used to return [] on any non-2xx, so a transient 500 emitted
+  // `actual: 'absent', severity: 'critical'` for every declared domain — paging
+  // somebody for deletions that never happened, whose obvious remedy is a
+  // redeploy of things that were never gone.
+  const { restore } = recordFetch([serverError('Console is restarting')])
+  try {
+    const result = await driftDetect(driftContext([CORP]))
+
+    assert.equal(result.hasDrift, false)
+    assert.deepEqual(result.diffs, [])
+    assert.equal(result.checked, false, 'a run that could not look must say so')
   } finally {
     restore()
   }

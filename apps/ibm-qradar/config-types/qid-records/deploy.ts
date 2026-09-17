@@ -92,9 +92,15 @@ function isCollision(v: LiveQidRecord | NameCollision | undefined | null): v is 
   return !!v && 'collision' in v
 }
 
-async function listMappingsFor(client: QRadarClient, qidRecordId: number): Promise<LiveEventMapping[]> {
+/**
+ * This record's live event mappings, or null when they could not be read.
+ *
+ * NOT an empty array on failure: this listing decides which mappings to create,
+ * so a refused read used to add a duplicate of one that already exists.
+ */
+async function listMappingsFor(client: QRadarClient, qidRecordId: number): Promise<LiveEventMapping[] | null> {
   const res = await client.request('GET', `${MAP_PATH}?filter=${enc(`qid_record_id=${qidRecordId}`)}`, { range: 'items=0-9999' })
-  if (!res.ok) return []
+  if (!res.ok) return null
   const parsed = parseJson<LiveEventMapping[]>(res.body)
   return Array.isArray(parsed) ? parsed : []
 }
@@ -217,6 +223,14 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     const { mappings } = parseMappings(spec.mappingsRaw)
     if (recordId !== undefined && mappings.length > 0) {
       const liveMappings = await listMappingsFor(client, recordId)
+      if (liveMappings === null) {
+        // Unreadable is not empty. Creating from an unknown state would add a
+        // duplicate mapping; the record itself is already written, so this is
+        // reported rather than thrown.
+        failures.push(`${spec.name}: could not read the existing event mappings, so none were changed`)
+        entries.push({ itemId: spec.itemId, name: spec.name, existed, id: recordId, priorState, mappings: [] })
+        continue
+      }
       const liveByKey = new Map(liveMappings.map((m) => [mappingKey(m.log_source_event_id ?? '', m.log_source_event_category ?? ''), m]))
       for (const m of mappings) {
         const key = mappingKey(m.eventId, m.eventCategory)

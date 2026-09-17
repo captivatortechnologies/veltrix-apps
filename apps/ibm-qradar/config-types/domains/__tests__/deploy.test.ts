@@ -22,6 +22,7 @@ import {
   list,
   pathOf,
   qradarError,
+  serverError,
   recordFetch,
   routeFetch,
   writeCalls,
@@ -164,6 +165,22 @@ test('domains deploy: a soft-deleted domain is not treated as existing', async (
     const entries = (result.rollbackData as { entries: Array<Record<string, unknown>> }).entries
     assert.equal(entries[0].existed, false)
     assert.equal(entries[0].id, 42)
+  } finally {
+    restore()
+  }
+})
+
+test('domains deploy: refuses to write when it could not read what already exists', async () => {
+  // The listing used to return [] on any non-2xx, so a transient 500 made the
+  // deploy take the CREATE branch for domains that already exist. For the
+  // append-only QRadar types that is permanent — there is no delete endpoint.
+  const { calls, restore } = recordFetch([serverError('Console is restarting')])
+  try {
+    const result = await deploy(deployContext([CORP]))
+
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /Could not read the existing domains/)
+    assert.equal(writeCalls(calls).length, 0, 'an unreadable console is not an empty one')
   } finally {
     restore()
   }

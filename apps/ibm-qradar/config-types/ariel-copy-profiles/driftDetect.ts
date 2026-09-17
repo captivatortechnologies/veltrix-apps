@@ -22,6 +22,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     listFlowRetentionBuckets(client),
     listProfiles(client),
   ])
+  // An unreadable console is not an empty one. Reporting every declared profile
+  // as critically absent because one read failed pages somebody for deletions
+  // that never happened.
+  if (live === null) return { hasDrift: false, diffs: [], checked: false }
   const eventBucketByName = indexByLowerName(eventBuckets)
   const flowBucketByName = indexByLowerName(flowBuckets)
   const byHostId = new Map(live.filter((p) => typeof p.host_id === 'number').map((p) => [p.host_id as number, p]))

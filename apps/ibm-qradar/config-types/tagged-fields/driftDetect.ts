@@ -14,6 +14,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   const specs = extractTaggedFieldSpecs(ctx.deployedConfig).filter((s) => s.name)
   const [categories, live] = await Promise.all([listTaggedFieldCategories(client), listTaggedFields(client)])
+  // An unreadable console is not an empty one. Reporting every declared object
+  // as critically absent because one read failed pages somebody for deletions
+  // that never happened.
+  if (live === null) return { hasDrift: false, diffs: [], checked: false }
   const categoryByName = indexByLowerName(categories)
   const byName = new Map(live.filter((f) => f.name).map((f) => [String(f.name).toLowerCase(), f]))
 

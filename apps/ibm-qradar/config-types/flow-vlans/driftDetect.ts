@@ -13,6 +13,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   const specs = extractFlowVlanSpecs(ctx.deployedConfig).filter((s) => s.label)
   const live = await listFlowVlans(client)
+  // An unreadable console is not an empty one. Reporting every declared
+  // object as critically absent because one read failed pages somebody for
+  // deletions that never happened.
+  if (live === null) return { hasDrift: false, diffs: [], checked: false }
   const livePairs = new Set(live.map((v) => `${v.enterprise_vlan_id ?? 0}:${v.customer_vlan_id ?? 0}`))
 
   const diffs: Diffs = []

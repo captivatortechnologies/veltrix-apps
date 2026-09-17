@@ -35,9 +35,16 @@ export interface RollbackEntry {
   prior?: LogSourceBody
 }
 
-export async function listLogSources(client: QRadarClient): Promise<LiveLogSource[]> {
+/**
+ * The live log sources, or null when the console could not be read.
+ *
+ * NOT an empty array on failure: this listing decides create-vs-update, so one
+ * 500 used to make the deploy create objects that already exist, and make drift
+ * report every declared object as critically deleted.
+ */
+export async function listLogSources(client: QRadarClient): Promise<LiveLogSource[] | null> {
   const res = await client.request('GET', '/config/event_sources/log_source_management/log_sources', { range: 'items=0-9999' })
-  if (!res.ok) return []
+  if (!res.ok) return null
   const parsed = parseJson<LiveLogSource[]>(res.body)
   return Array.isArray(parsed) ? parsed : []
 }
@@ -115,6 +122,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const priorByName = new Map(prior.map((p) => [p.name.toLowerCase(), p]))
 
   const [types, protocols, live] = await Promise.all([listLogSourceTypes(client), listProtocolTypes(client), listLogSources(client)])
+  if (live === null) {
+    return {
+      success: false,
+      message:
+        'Could not read the existing log sources, so nothing was written. ' +
+        'Treating an unreadable console as an empty one would create duplicates of objects that already exist.',
+      rollbackData: { entries: [] },
+    }
+  }
   const typeByName = indexByLowerName(types)
   const protocolByName = indexByLowerName(protocols)
   const protocolById = new Map(protocols.filter((p) => typeof p.id === 'number').map((p) => [p.id as number, p]))

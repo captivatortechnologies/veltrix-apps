@@ -34,9 +34,16 @@ export interface RollbackEntry {
   prior?: ProfileState
 }
 
-export async function listProfiles(client: QRadarClient): Promise<LiveArielCopyProfile[]> {
+/**
+ * The live Ariel copy profiles, or null when the console could not be read.
+ *
+ * NOT an empty array on failure: this listing decides create-vs-update, so one
+ * 500 used to make the deploy create profiles that already exist, and make
+ * drift report every declared profile as critically deleted.
+ */
+export async function listProfiles(client: QRadarClient): Promise<LiveArielCopyProfile[] | null> {
   const res = await client.request('GET', PATH, { range: 'items=0-9999' })
-  if (!res.ok) return []
+  if (!res.ok) return null
   const parsed = parseJson<LiveArielCopyProfile[]>(res.body)
   return Array.isArray(parsed) ? parsed : []
 }
@@ -124,6 +131,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     listFlowRetentionBuckets(client),
     listProfiles(client),
   ])
+  if (live === null) {
+    return {
+      success: false,
+      message:
+        'Could not read the existing Ariel copy profiles, so nothing was written. ' +
+        'Treating an unreadable console as an empty one would create duplicates of profiles that already exist.',
+      rollbackData: { entries: [] },
+    }
+  }
   const eventBucketByName = indexByLowerName(eventBuckets)
   const flowBucketByName = indexByLowerName(flowBuckets)
   const byHostId = new Map(live.filter((p) => typeof p.host_id === 'number').map((p) => [p.host_id as number, p]))

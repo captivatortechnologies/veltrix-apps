@@ -20,9 +20,16 @@ export interface RollbackEntry {
   id?: number
 }
 
-export async function listClosingReasons(client: QRadarClient): Promise<LiveClosingReason[]> {
+/**
+ * The live offense closing reasons, or null when the console could not be read.
+ *
+ * NOT an empty array on failure: this listing decides create-vs-update, so
+ * one 500 used to make the deploy create objects that already exist, and
+ * make drift report every declared object as critically deleted.
+ */
+export async function listClosingReasons(client: QRadarClient): Promise<LiveClosingReason[] | null> {
   const res = await client.request('GET', PATH, { range: 'items=0-9999' })
-  if (!res.ok) return []
+  if (!res.ok) return null
   const parsed = parseJson<LiveClosingReason[]>(res.body)
   return Array.isArray(parsed) ? parsed.filter((r) => !r.is_deleted) : []
 }
@@ -47,6 +54,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   await loadPriorEntries(ctx)
 
   const live = await listClosingReasons(client)
+  if (live === null) {
+    return {
+      success: false,
+      message:
+        'Could not read the existing offense closing reasons, so nothing was written. ' +
+        'Treating an unreadable console as an empty one would create duplicates of objects that already exist.',
+      rollbackData: { entries: [] },
+    }
+  }
   const byText = new Map(live.filter((r) => r.text).map((r) => [String(r.text).toLowerCase(), r]))
 
   const entries: RollbackEntry[] = []

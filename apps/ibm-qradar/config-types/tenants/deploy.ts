@@ -26,9 +26,16 @@ export interface RollbackEntry {
   prior?: TenantState
 }
 
-export async function listTenants(client: QRadarClient): Promise<LiveTenant[]> {
+/**
+ * The live tenants, or null when the console could not be read.
+ *
+ * NOT an empty array on failure: this listing decides create-vs-update, so
+ * one 500 used to make the deploy create objects that already exist, and
+ * make drift report every declared object as critically deleted.
+ */
+export async function listTenants(client: QRadarClient): Promise<LiveTenant[] | null> {
   const res = await client.request('GET', '/config/access/tenant_management/tenants', { range: 'items=0-9999' })
-  if (!res.ok) return []
+  if (!res.ok) return null
   const parsed = parseJson<LiveTenant[]>(res.body)
   return Array.isArray(parsed) ? parsed.filter((t) => !t.deleted) : []
 }
@@ -82,6 +89,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const priorByName = new Map(prior.map((p) => [p.name.toLowerCase(), p]))
 
   const live = await listTenants(client)
+  if (live === null) {
+    return {
+      success: false,
+      message:
+        'Could not read the existing tenants, so nothing was written. ' +
+        'Treating an unreadable console as an empty one would create duplicates of objects that already exist.',
+      rollbackData: { entries: [] },
+    }
+  }
   const byId = new Map(live.filter((t) => typeof t.id === 'number').map((t) => [t.id as number, t]))
   const byName = new Map(live.filter((t) => t.name).map((t) => [String(t.name).toLowerCase(), t]))
 

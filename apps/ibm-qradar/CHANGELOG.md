@@ -8,6 +8,26 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.4 — 2026-09-17
+
+### Fixed — a refused listing is no longer read as an empty console
+
+Fourteen configuration types listed their objects with `if (!res.ok) return []`,
+so any non-2xx read as "the console holds none of these". That one line produced
+two wrong outcomes:
+
+- **deploy took the CREATE branch for objects that already exist.** For the
+  append-only types — which have no delete endpoint — those duplicates are
+  permanent.
+- **drift reported every declared object `severity: 'critical', actual:
+  'absent'`.** Somebody is paged for deletions that never happened, and the
+  obvious remedy is to redeploy things that were never gone.
+
+Each listing now returns null when it could not read. Deploy refuses before
+writing anything and says why; drift reports `checked: false` rather than
+inventing deletions. The same fix is applied to `qid-records`' nested event
+mappings, where an unreadable read used to add a duplicate mapping.
+
 ## 0.6.3 — 2026-09-16
 
 ### Fixed — the documented alternative credential field was dead code
