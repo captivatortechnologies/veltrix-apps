@@ -2,7 +2,7 @@
 
 > How a request is routed through the system — from the moment you act to when it reaches completion. **Auto-generated** from `manifest.yaml` (regenerate via `scripts/dataflow/generate.mjs`).
 
-**App:** `netskope` · **Category:** NETWORK · **Version:** 0.6.2  
+**App:** `netskope` · **Category:** NETWORK · **Version:** 0.6.3  
 **Operations:** Deploy a configuration · Detect drift · Roll back · Test connection  
 Talks to **Netskope API** · credentials via the Credential Vault (`ctx.resolveConnection`).
 

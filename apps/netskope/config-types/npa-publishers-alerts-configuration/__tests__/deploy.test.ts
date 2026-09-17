@@ -25,6 +25,7 @@ import {
   npaData,
   ok,
   routeFetch,
+  serverError,
   writeCalls,
 } from '../../../lib/__tests__/fakeNetskope'
 import { registerDeployGuardContract } from '../../../lib/__tests__/netskopeContracts'
@@ -109,6 +110,27 @@ test('npa-publishers-alerts-configuration deploy: treats a 404 as "never configu
     assert.equal(writeCalls(calls).length, 1, 'the policy is still applied')
   } finally {
     restore()
+  }
+})
+
+test('npa-publishers-alerts-configuration deploy: refuses when the read failed for any reason but 404', async () => {
+  // The 404 reading above is right, and it used to be applied to EVERY failed
+  // read: `current.ok ? … : null`. So a 403 or a 500 recorded `existed: false`
+  // and the PUT replaced the tenant-wide publisher alerting policy with no
+  // record of what it had been — after which rollback said "Nothing to restore"
+  // and made no call. Nobody is paged for a publisher upgrade again, and the
+  // only copy is gone.
+  for (const refusal of [forbidden(), serverError('Internal server error')]) {
+    const { calls, restore } = routeFetch([{ url: BASE_RE, method: 'GET', respond: refusal }])
+    try {
+      const result = await deploy(deployContext([alerts()]))
+
+      assert.equal(result.success, false)
+      assert.match(String(result.message), /Could not read the current publisher alerts configuration/)
+      assert.equal(writeCalls(calls).length, 0, 'the live policy must not be replaced unrecorded')
+    } finally {
+      restore()
+    }
   }
 })
 

@@ -26,8 +26,24 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const spec = extractPublisherAlertsSpec(ctx.canvas)
 
   const current = await client.get(BASE)
-  // A tenant that has never configured this endpoint returns 404 — treat as
-  // "not yet configured" rather than a failure.
+  // A tenant that has never configured this endpoint returns 404 — a KNOWN
+  // answer, treated as "not yet configured".
+  //
+  // Any other failure is not. `current.ok ? … : null` applied the 404 reading to
+  // a 403, a 500 and a transport error too, so a transient blip recorded
+  // `existed: false` and the PUT below replaced the tenant-wide publisher
+  // alerting policy with no record of what it had been. Rollback then said
+  // "Nothing to restore" and made no call: nobody is paged for a publisher
+  // upgrade or a connection failure again, and the only copy is gone.
+  if (!current.ok && current.status !== 404) {
+    return {
+      success: false,
+      message:
+        `Could not read the current publisher alerts configuration, so it was not replaced: ${netskopeErrorMessage(current)}. ` +
+        'Overwriting it without capturing what was there would leave nothing to roll back to.',
+      rollbackData: { existed: false },
+    }
+  }
   const priorLive = current.ok ? extractNpaObject<LivePublisherAlertsConfig>(current.body) : null
   const rollbackData: RollbackData = priorLive
     ? { existed: true, prior: { adminUsers: priorLive.adminUsers ?? [], eventTypes: priorLive.eventTypes ?? [], selectedUsers: priorLive.selectedUsers ?? '' } }

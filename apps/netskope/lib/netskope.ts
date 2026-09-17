@@ -144,6 +144,11 @@ export class NetskopeClient {
       const sep = path.includes('?') ? '&' : '?'
       const res = await this.get(`${path}${sep}limit=${pageLimit}&offset=${offset}`)
       if (!res.ok) return { ok: false, items, lastError: res }
+      // A 200 carrying { status: 'error' } is a refusal, not an empty page.
+      const envelopeFailure = envelopeError(res.body)
+      if (envelopeFailure) {
+        return { ok: false, items, lastError: { ...res, ok: false, body: res.body } }
+      }
       const arr = extractArray<T>(res.body)
       if (arr.length === 0) break
       items.push(...arr)
@@ -162,6 +167,11 @@ export class NetskopeClient {
       const sep = path.includes('?') ? '&' : '?'
       const res = await this.get(`${path}${sep}limit=${pageLimit}&offset=${offset}`)
       if (!res.ok) return { ok: false, items, lastError: res }
+      // A 200 carrying { status: 'error' } is a refusal, not an empty page.
+      const envelopeFailure = envelopeError(res.body)
+      if (envelopeFailure) {
+        return { ok: false, items, lastError: { ...res, ok: false, body: res.body } }
+      }
       const arr = extractNpaList<T>(res.body, listKey)
       if (arr.length === 0) break
       items.push(...arr)
@@ -181,6 +191,23 @@ export function parseJson<T>(body: string): T | null {
   } catch {
     return null
   }
+}
+
+/**
+ * The message from a Netskope error delivered inside an HTTP 200, or null.
+ *
+ * Netskope answers some endpoints `{ "status": "error", "message": "..." }` with
+ * a 200, so `res.ok` is true and the extractors below simply find no array and
+ * return `[]`. That made a refused read indistinguishable from an empty tenant:
+ * deploy re-created every declared object, and drift reported them all deleted.
+ */
+export function envelopeError(body: string): string | null {
+  const parsed = parseJson<{ status?: unknown; message?: unknown }>(body)
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
+  if (typeof parsed.status === 'string' && parsed.status.toLowerCase() === 'error') {
+    return typeof parsed.message === 'string' && parsed.message ? parsed.message : 'Netskope reported an error'
+  }
+  return null
 }
 
 /** Netskope list endpoints usually return a bare array, but tolerate a

@@ -8,6 +8,34 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.3 — 2026-09-17
+
+### Fixed — an error delivered inside an HTTP 200 is no longer an empty tenant
+
+Netskope answers some endpoints `{ "status": "error", "message": … }` with a
+200, so `res.ok` was true, the list extractors found no array and returned `[]`,
+and every collection-backed configuration type concluded the tenant held none of
+these. Deploy re-created every declared object — with the rollback record then
+pointing at the duplicate rather than the original — and drift reported them all
+as critically deleted. Both pagers now treat the envelope as the refusal it is.
+
+### Fixed — two tenant-wide singletons could be overwritten unrecorded
+
+- **`npa-publishers-alerts-configuration`** treated ANY failed read as "never
+  configured". The comment justified only the 404, but the code applied it to a
+  403, a 500 and a transport error too — so a transient blip recorded
+  `existed: false`, the PUT replaced the tenant-wide publisher alerting policy,
+  and the rollback that followed said "Nothing to restore" and made no call.
+  Nobody is paged for a publisher upgrade or connection failure again, and the
+  only copy of the policy is gone. The 404 reading is kept; everything else now
+  refuses before writing.
+
+- **`npa-local-broker-config`** recorded an empty prior from a 200 error
+  envelope, and its rollback wrote `hostname: ''` whenever nothing had been
+  recorded — clearing the tenant-wide broker hostname in the name of an undo.
+  A hostname that was genuinely empty before the deploy is still restored as
+  empty; the difference between that and "nothing was captured" is now kept.
+
 ## 0.6.2 — 2026-09-16
 
 ### Fixed — the documented alternative credential field was dead code

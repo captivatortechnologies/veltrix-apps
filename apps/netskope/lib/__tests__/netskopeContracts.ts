@@ -52,6 +52,7 @@ import {
   bodyOf,
   created,
   deployContext,
+  errorEnvelope,
   deploymentSummary,
   driftContext,
   forbidden,
@@ -419,6 +420,29 @@ export function registerDeployGuardContract(c: DeployGuardContract): void {
             .join(', ')}`,
         )
         assert.equal(leaksToken(result), false, 'the failure message must not echo the API token')
+      } finally {
+        restore()
+      }
+    })
+
+    test(`${c.label} deploy: an error delivered inside an HTTP 200 is not an empty tenant`, async () => {
+      // Netskope answers some endpoints `{ status: 'error', message }` with a
+      // 200, so `res.ok` was true, the extractor found no array and returned [],
+      // and the handler concluded the tenant held none of these — re-creating
+      // every declared object, with the rollback record then pointing at the
+      // duplicate rather than the original.
+      const { calls, restore } = routeFetch([...extra, { url: listRe, method: 'GET', respond: errorEnvelope() }])
+      try {
+        const result = await c.handler(deployContext(c.items))
+
+        assert.equal(result.success, false)
+        assert.equal(
+          writeCalls(calls).length,
+          0,
+          `a refused read is not an empty tenant: ${writeCalls(calls)
+            .map((x) => `${x.method} ${x.url}`)
+            .join(', ')}`,
+        )
       } finally {
         restore()
       }

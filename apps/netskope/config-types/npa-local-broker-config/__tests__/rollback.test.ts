@@ -4,11 +4,11 @@
 // hostname to put back. What matters is that the value written is the one deploy
 // recorded, and that a rejected write is reported rather than thrown.
 //
-// NOTE: the case where deploy recorded NOTHING is deliberately not asserted. The
-// handler treats a missing recording as `priorHostname: ''` and PUTs it, which
-// clears the tenant-wide broker hostname — a write of an invented value where
-// the only safe action is to make no call at all. See the report accompanying
-// these tests.
+// The distinction that matters most here is between a hostname that was
+// genuinely empty before the deploy — a real prior state, correctly restored by
+// writing '' — and NOTHING having been recorded at all, where the only safe
+// action is to make no call. The handler used to collapse both to `?? ''` and
+// PUT it, clearing the tenant-wide broker hostname in the name of an undo.
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -84,6 +84,24 @@ test('npa-local-broker-config rollback: restores a hostname that was genuinely e
     assert.match(String(result.message), /none/)
   } finally {
     restore()
+  }
+})
+
+test('npa-local-broker-config rollback: writes nothing when the deploy recorded no hostname', async () => {
+  // Not the same as a recorded empty string above. Nothing was captured, so
+  // there is nothing to put back — and writing '' would clear a tenant-wide
+  // setting rather than undo the deploy.
+  for (const data of [undefined, {}, { priorHostname: null }, { priorHostname: 42 }]) {
+    const { calls, restore } = recordFetch([])
+    try {
+      const result = await rollback(rollbackContext(data))
+
+      assert.equal(result.success, false)
+      assert.match(String(result.message), /No prior local broker hostname was recorded/)
+      assert.equal(calls.length, 0, 'an invented hostname is a change, not a rollback')
+    } finally {
+      restore()
+    }
   }
 })
 

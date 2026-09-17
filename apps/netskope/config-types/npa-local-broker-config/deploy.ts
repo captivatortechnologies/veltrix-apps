@@ -1,6 +1,7 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import {
   buildNetskopeClient,
+  envelopeError,
   extractNpaObject,
   netskopeErrorMessage,
   readNetskopeSettings,
@@ -26,6 +27,19 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
   const current = await client.get(BASE)
   if (!current.ok) return { success: false, message: `Failed to read local broker config: ${netskopeErrorMessage(current)}` }
+  // `current.ok` is true for a 200 carrying { status: 'error' }, and
+  // extractNpaObject then returns the error object — whose `hostname` is
+  // undefined, so the prior was recorded as ''. Rolling that deploy back CLEARS
+  // the tenant-wide local-broker hostname instead of restoring it.
+  const envelopeFailure = envelopeError(current.body)
+  if (envelopeFailure) {
+    return {
+      success: false,
+      message:
+        `Could not read the current local broker config, so it was not replaced: ${envelopeFailure}. ` +
+        'Recording an empty hostname as the prior state would make a rollback clear it.',
+    }
+  }
   const priorHostname = extractNpaObject<LiveLocalBrokerConfig>(current.body)?.hostname ?? ''
 
   const resp = await client.put(BASE, { hostname: spec.hostname })

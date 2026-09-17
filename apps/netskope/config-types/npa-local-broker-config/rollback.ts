@@ -17,7 +17,21 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   const client = buildNetskopeClient(cred, settings)
 
   const data = ctx.rollbackData as RollbackData | undefined
-  const priorHostname = data?.priorHostname ?? ''
+  const priorHostname = typeof data?.priorHostname === 'string' ? data.priorHostname : null
+
+  // Nothing recorded means nothing to restore. `?? ''` followed by an
+  // unconditional PUT blanked the tenant-wide local-broker hostname whenever the
+  // record was missing — writing an invented value in the name of an undo. The
+  // other configuration types guard this with `if (!e.id) continue`; this one is
+  // a singleton, so there was no per-entry loop to carry the rule.
+  if (priorHostname === null) {
+    return {
+      success: false,
+      message:
+        'No prior local broker hostname was recorded, so nothing was restored. ' +
+        'Writing an empty hostname would clear the tenant-wide setting rather than undo the deploy.',
+    }
+  }
 
   const resp = await client.put(BASE, { hostname: priorHostname })
   if (!resp.ok) {
