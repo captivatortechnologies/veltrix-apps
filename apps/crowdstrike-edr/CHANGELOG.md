@@ -3,6 +3,31 @@
 All notable changes to the CrowdStrike Falcon app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.13.7 — 2026-09-17
+
+### Fixed — two rollbacks that changed configuration instead of restoring it
+
+- **`cloud-compliance-controls` no longer un-assigns every rule from a control
+  it merely updated.** `readAssignedRuleIds` returned `[]` when the control's
+  coordinates were incomplete — deploy recorded that as the prior rule set, and
+  rollback WROTE it. `createControl` does not send `requirement`, so for any
+  control this app created the read is incomplete by construction: the
+  destructive path was the default case, not an edge one. The read now returns
+  null, rollback restores the description but leaves the assignment alone, and
+  says which controls it could not put back. Drift reports the same state as
+  unreadable rather than comparing against an empty set.
+
+- **`cloud-iom-custom-rules` rollback now clears an optional field the deploy
+  added.** Every field was guarded on `prior.X !== undefined`, and `capturePrior`
+  records an absent live value as exactly that — so a field the deploy
+  introduced survived the rollback. The worst case is `logic`: a rule that had
+  inherited its Rego policy from its parent kept the Veltrix-authored one in
+  force while the rollback reported success. `description`, `logic` and
+  `parent_rule_id` are now always re-sent, empty when there was no prior value,
+  matching what `controls` already did. The intrinsic fields (cloud provider,
+  resource type, severity) stay guarded: a live rule always carries them, so an
+  absent one means the capture was incomplete rather than the field being unset.
+
 ## 1.13.6 — 2026-09-17
 
 ### Fixed — an Identity Protection rule is no longer deleted just because a name matched

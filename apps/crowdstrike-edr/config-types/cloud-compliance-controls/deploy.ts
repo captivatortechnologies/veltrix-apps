@@ -21,7 +21,12 @@ export interface ControlRollbackEntry {
   uuid?: string
   prior?: {
     description?: string
-    ruleIds: string[]
+    /**
+     * The rule ids assigned before this deploy, or null when they could not be
+     * read. NOT an empty array: rollback WRITES this set, so recording [] for an
+     * unreadable assignment un-assigns every rule from the control.
+     */
+    ruleIds: string[] | null
   }
 }
 
@@ -68,7 +73,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       })
 
       let uuid: string
-      let priorRuleIds: string[]
+      let priorRuleIds: string[] | null
 
       if (existing && controlId(existing)) {
         uuid = controlId(existing) as string
@@ -92,6 +97,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
           section: spec.section,
           description: spec.description,
         })
+        // A control this deploy just created genuinely had no rules before.
         priorRuleIds = []
         rollbackState.push({
           name: spec.name,
@@ -103,8 +109,10 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         })
       }
 
-      // Converge rule assignments to exactly the declared set.
-      if (!sameSet(priorRuleIds, spec.ruleIds)) {
+      // Converge rule assignments to exactly the declared set. An unreadable
+      // prior is still written to — the canvas says what the assignment should
+      // be — it is only the ROLLBACK that must not act on what it never read.
+      if (priorRuleIds === null || !sameSet(priorRuleIds, spec.ruleIds)) {
         await replaceControlRules(client, uuid, spec.ruleIds)
       }
 

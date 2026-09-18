@@ -183,14 +183,23 @@ export async function replaceControlRules(
  * Read the rule IDs currently assigned to a control. The control entity does
  * not carry them, so query the Cloud Security rules collection by the control's
  * framework name, section and requirement (the same filter the console/TF
- * provider use). Returns [] when the coordinates are incomplete.
+ * provider use).
+ *
+ * Returns NULL when the coordinates are incomplete: the assignment cannot be
+ * read, which is not the same as there being none. It used to return [], which
+ * deploy recorded as the prior rule set and rollback then WROTE — un-assigning
+ * every rule from a control it had merely updated.
+ *
+ * `createControl` does not send `requirement`, so for any control this app
+ * created the read is incomplete by construction unless Falcon backfills it
+ * server-side. That made the destructive path the default case, not an edge one.
  */
 export async function readAssignedRuleIds(
   client: FalconClient,
   coords: { frameworkName?: string; section?: string; requirement?: string },
-): Promise<string[]> {
+): Promise<string[] | null> {
   const { frameworkName, section, requirement } = coords
-  if (!frameworkName || !section || !requirement) return []
+  if (!frameworkName || !section || !requirement) return null
 
   const filter =
     `rule_compliance_benchmark:'${fqlEscape(frameworkName)}'` +

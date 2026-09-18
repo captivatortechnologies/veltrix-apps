@@ -99,9 +99,19 @@ async function diffControl(
     })
   }
 
-  // Assigned rule IDs — read from the rules collection and compare sets.
+  // Assigned rule IDs — read from the rules collection and compare sets. A null
+  // read means the control does not carry the coordinates to look them up, so
+  // the assignment is reported as unreadable rather than compared against an
+  // empty set — which would claim every rule had been un-assigned.
   const liveRuleIds = await readAssignedRuleIds(client, ruleReadCoords(live))
-  if (!sameSet(liveRuleIds, spec.ruleIds)) {
+  if (liveRuleIds === null) {
+    diffs.push({
+      field: `${label}.ruleIds`,
+      expected: spec.ruleIds.join(', ') || 'none',
+      actual: 'unreadable (the control does not carry the coordinates to look them up)',
+      severity: 'warning',
+    })
+  } else if (!sameSet(liveRuleIds, spec.ruleIds)) {
     diffs.push({
       field: `${label}.ruleIds`,
       expected: spec.ruleIds.join(', ') || 'none',

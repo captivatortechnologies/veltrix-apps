@@ -135,6 +135,55 @@ test('cloud-iom-custom-rules rollback: clears compliance controls the deploy add
   }
 })
 
+test('cloud-iom-custom-rules rollback: clears an optional field the deploy added', async () => {
+  // `capturePrior` records an absent live value as `undefined`, and the restore
+  // used to guard every field on that — so a field the deploy ADDED was never
+  // cleared. The worst case is `logic`: a rule that had inherited its Rego
+  // policy from its parent kept the Veltrix-authored one in force while the
+  // rollback reported success.
+  const addedFields = {
+    id: 'rule-live-2',
+    name: 'block-public-s3',
+    existed: true,
+    prior: { cloud_provider: 'aws', resource_type: 'AWS::S3::Bucket', severity: 'high', controls: [] },
+  }
+  const { calls, restore } = routeFetch([{ url: ENTITY, method: 'PATCH', respond: ok() }])
+  try {
+    const result = await rollback(rollbackContext({ previousState: [addedFields] }))
+
+    assert.equal(result.success, true)
+    const body = bodyOf(callsOfMethod(calls, 'PATCH')[0])
+    assert.equal(body?.logic, '', 'an inherited policy is restored by clearing the one that was added')
+    assert.equal(body?.description, '')
+    assert.equal(body?.parent_rule_id, '')
+  } finally {
+    restore()
+  }
+})
+
+test('cloud-iom-custom-rules rollback: does not invent values for the fields a rule always carries', async () => {
+  // cloud_provider, resource_type and severity are intrinsic: a live rule always
+  // has them, so an absent one means the capture was incomplete rather than the
+  // field being unset. Sending '' would be rejected, or corrupt the rule.
+  const partial = {
+    id: 'rule-live-3',
+    name: 'block-public-s3',
+    existed: true,
+    prior: { description: 'kept', controls: [] },
+  }
+  const { calls, restore } = routeFetch([{ url: ENTITY, method: 'PATCH', respond: ok() }])
+  try {
+    await rollback(rollbackContext({ previousState: [partial] }))
+
+    const body = bodyOf(callsOfMethod(calls, 'PATCH')[0]) ?? {}
+    assert.equal('cloud_provider' in body, false)
+    assert.equal('resource_type' in body, false)
+    assert.equal('severity' in body, false)
+  } finally {
+    restore()
+  }
+})
+
 test('cloud-iom-custom-rules rollback: writes nothing for an updated entry whose prior state was never captured', async () => {
   // Deploy overwrote a live rule but recorded no prior body. Restoring an
   // invented default here is strictly worse than leaving the rule alone.

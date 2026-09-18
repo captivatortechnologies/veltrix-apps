@@ -29,6 +29,9 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   }
 
   const reverted: string[] = []
+  // Controls whose rule assignment could not be put back because the deploy
+  // never managed to read it.
+  const unrestoredRules: string[] = []
 
   try {
     for (const entry of previousState) {
@@ -53,15 +56,26 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
           name: entry.name,
           description: entry.prior.description,
         })
-        await replaceControlRules(client, entry.uuid, entry.prior.ruleIds)
+        // Only when the prior assignment was actually READ. It used to be
+        // recorded as [] whenever the coordinates were incomplete, and writing
+        // that un-assigned every rule from a control this deploy had merely
+        // updated — turning an undo into a destructive change.
+        if (entry.prior.ruleIds === null) {
+          unrestoredRules.push(entry.name)
+        } else {
+          await replaceControlRules(client, entry.uuid, entry.prior.ruleIds)
+        }
       }
 
       reverted.push(entry.name)
     }
 
+    const note = unrestoredRules.length
+      ? ` Rule assignments NOT restored (the deploy could not read them): ${unrestoredRules.join(', ')}.`
+      : ''
     return {
-      success: true,
-      message: `Rolled back ${reverted.length} compliance control(s): ${reverted.join(', ')}`,
+      success: unrestoredRules.length === 0,
+      message: `Rolled back ${reverted.length} compliance control(s): ${reverted.join(', ')}.${note}`,
     }
   } catch (error) {
     return {

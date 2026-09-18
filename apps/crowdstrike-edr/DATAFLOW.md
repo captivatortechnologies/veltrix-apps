@@ -2,7 +2,7 @@
 
 > How a request is routed through the system — from the moment you act to when it reaches completion. **Auto-generated** from `manifest.yaml` (regenerate via `scripts/dataflow/generate.mjs`).
 
-**App:** `crowdstrike-edr` · **Category:** EDR · **Version:** 1.13.6  
+**App:** `crowdstrike-edr` · **Category:** EDR · **Version:** 1.13.7  
 **Operations:** Deploy a configuration · Detect drift · Roll back · Test connection  
 Talks to **CrowdStrike Falcon API** · credentials via the Credential Vault (`ctx.resolveConnection`).
 

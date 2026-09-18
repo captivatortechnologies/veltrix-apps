@@ -144,6 +144,41 @@ test('cloud-compliance-controls rollback: restores the recorded prior descriptio
   }
 })
 
+test('cloud-compliance-controls rollback: never un-assigns rules it could not read', async () => {
+  // `readAssignedRuleIds` used to return [] when the control's coordinates were
+  // incomplete, and rollback WROTE that set — un-assigning every rule from a
+  // control this deploy had merely updated. `createControl` does not send
+  // `requirement`, so for any control this app created the read is incomplete by
+  // construction: the destructive path was the default case, not an edge one.
+  const unknownRules = {
+    name: 'CIS 2.1.5',
+    frameworkId: 'fw-1',
+    section: '2.1',
+    existed: true,
+    uuid: 'ctl-live-1',
+    prior: { description: 'legacy description nobody updated', ruleIds: null },
+  }
+  const { calls, restore } = routeFetch([
+    { url: CONTROL_ENTITY, method: 'PATCH', respond: ok() },
+    { url: ASSIGNMENTS, method: 'PUT', respond: ok() },
+  ])
+  try {
+    const result = await rollback(rollbackContext({ previousState: [unknownRules] }))
+
+    assert.equal(
+      callsOfMethod(calls, 'PUT').length,
+      0,
+      'writing an empty set would strip every rule from the control',
+    )
+    assert.equal(callsOfMethod(calls, 'PATCH').length, 1, 'the description is still restored')
+    assert.equal(result.success, false, 'a rollback that could not restore everything is not clean')
+    assert.match(String(result.message), /Rule assignments NOT restored/)
+    assert.match(String(result.message), /CIS 2\.1\.5/)
+  } finally {
+    restore()
+  }
+})
+
 test('cloud-compliance-controls rollback: writes nothing for an updated entry whose prior state was never captured', async () => {
   // Deploy overwrote a live control but recorded no prior body. Restoring an
   // invented default here — above all an empty rule set — is strictly worse than

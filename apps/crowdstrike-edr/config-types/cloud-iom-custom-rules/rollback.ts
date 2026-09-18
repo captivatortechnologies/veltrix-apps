@@ -37,13 +37,26 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
         // are always re-sent so a compliance pair the deployment added is removed.
         const prior = entry.prior
         const restore: Record<string, unknown> = { id: entry.id, name: entry.name }
-        if (prior.description !== undefined) restore.description = prior.description
+
+        // The OPTIONAL fields are always re-sent, empty when the live rule had
+        // no value. `capturePrior` records an absent value as `undefined`, and
+        // guarding on that meant a field the deploy ADDED was never cleared — a
+        // rule that had inherited its Rego policy from a parent kept the
+        // Veltrix-authored `logic` in force after a rollback reported success.
+        // `controls` already worked this way; these now match it, and so does
+        // the equivalent in ioa-exclusions and cloud-suppression-rules.
+        restore.description = prior.description ?? ''
+        restore.logic = prior.logic ?? ''
+        restore.parent_rule_id = prior.parent_rule_id ?? ''
+        restore.controls = prior.controls ?? []
+
+        // The INTRINSIC fields stay guarded. A live rule always carries them, so
+        // an absent one means the capture was incomplete rather than the field
+        // being unset — and sending '' would be rejected, or would corrupt the
+        // rule's identity.
         if (prior.cloud_provider !== undefined) restore.cloud_provider = prior.cloud_provider
         if (prior.resource_type !== undefined) restore.resource_type = prior.resource_type
         if (prior.severity !== undefined) restore.severity = prior.severity
-        if (prior.logic !== undefined) restore.logic = prior.logic
-        if (prior.parent_rule_id !== undefined) restore.parent_rule_id = prior.parent_rule_id
-        restore.controls = prior.controls ?? []
 
         await updateEntity(client, CLOUD_IOM_RULE_ENDPOINTS, restore)
       }
