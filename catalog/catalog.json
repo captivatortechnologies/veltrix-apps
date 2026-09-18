@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-09-17T22:06:00.800Z",
+  "generatedAt": "2026-09-18T00:14:44.415Z",
   "apps": [
     {
       "appId": "akamai",
@@ -415,7 +415,7 @@
     {
       "appId": "crowdstrike-edr",
       "name": "CrowdStrike Falcon",
-      "version": "1.13.6",
+      "version": "1.13.7",
       "vendor": "Veltrix",
       "description": "Manage CrowdStrike Falcon configurations as code through the Falcon APIs. Covers Endpoint Policies (prevention, sensor update, response, USB device control, content update, custom IOA rule groups), Exclusions (ML, IOA, sensor visibility), host groups, and custom IOCs — with validation, drift detection, and rollback handled by the Security-as-Code pipeline. Configuration types are grouped by Falcon API family in the sidebar.",
       "category": "EDR",
@@ -425,11 +425,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.13.6/crowdstrike-edr.zip",
-      "sha256": "01d7762e1c840ee2833f09d2b414581bf9e66c4df098e88cadefc708964e762b",
-      "sizeBytes": 1113773,
-      "publishedAt": "2026-09-17T22:06:00.737Z",
-      "releaseNotes": "## 1.13.6 — 2026-09-17\n\n### Fixed — an Identity Protection rule is no longer deleted just because a name matched\n\n`idp-policy-rules` converges a changed rule by delete-then-recreate, and there\nwas NO guard on it: any live rule whose name matched a canvas item was deleted\nand replaced — including one CrowdStrike ships. `toCreateBody` keeps only the\nmanaged scalars plus five condition keys, so even the rollback path would put\nback a stripped-down copy of a built-in.\n\nThe converge now refuses when the rule cannot be faithfully put back, for either\nreason:\n\n- it carries a built-in marker (`system`, `isDefault`, `predefined`, `readOnly`\n  and the usual variants). Identity Protection does not document one today, so\n  this fires only when a flag is actually present and true — it costs nothing\n  now and starts working the day the API surfaces one;\n- it carries any field this app cannot recreate, which deleting would discard\n  permanently. The message names the fields.\n\nThe asymmetry decides the default: refusing leaves a rule the operator can\nrename or remove by hand, and says which one. Proceeding destroys an\nauthentication rule and cannot be undone from here. Server-assigned and\naudit-only keys are still dropped on purpose and do not trigger the refusal.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.13.7/crowdstrike-edr.zip",
+      "sha256": "6bdfe92915625cd3d21e57673d2fb50e3bd722934f79c32f8e25a191fcadb355",
+      "sizeBytes": 1115760,
+      "publishedAt": "2026-09-18T00:14:44.345Z",
+      "releaseNotes": "## 1.13.7 — 2026-09-17\n\n### Fixed — two rollbacks that changed configuration instead of restoring it\n\n- **`cloud-compliance-controls` no longer un-assigns every rule from a control\n  it merely updated.** `readAssignedRuleIds` returned `[]` when the control's\n  coordinates were incomplete — deploy recorded that as the prior rule set, and\n  rollback WROTE it. `createControl` does not send `requirement`, so for any\n  control this app created the read is incomplete by construction: the\n  destructive path was the default case, not an edge one. The read now returns\n  null, rollback restores the description but leaves the assignment alone, and\n  says which controls it could not put back. Drift reports the same state as\n  unreadable rather than comparing against an empty set.\n\n- **`cloud-iom-custom-rules` rollback now clears an optional field the deploy\n  added.** Every field was guarded on `prior.X !== undefined`, and `capturePrior`\n  records an absent live value as exactly that — so a field the deploy\n  introduced survived the rollback. The worst case is `logic`: a rule that had\n  inherited its Rego policy from its parent kept the Veltrix-authored one in\n  force while the rollback reported success. `description`, `logic` and\n  `parent_rule_id` are now always re-sent, empty when there was no prior value,\n  matching what `controls` already did. The intrinsic fields (cloud provider,\n  resource type, severity) stay guarded: a live rule always carries them, so an\n  absent one means the capture was incomplete rather than the field being unset.",
       "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
@@ -997,7 +997,7 @@
     {
       "appId": "netskope",
       "name": "Netskope",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "vendor": "Veltrix",
       "description": "Manage Netskope configuration as code through the Netskope REST API v2 — URL Lists, Custom Categories, Service Objects, Device Classification Tags, RBAC Labels, NPA Publishers and Private Apps, NPA Policy Groups and Rules, NPA Local Broker Config, NPA Publisher Alerts, DNS and Destination Profiles, GRE and IPSec Tunnels, Publisher Upgrade Profiles, NPA Local Brokers, and AI Gateway providers, MCP servers, rate limits, token groups and appliances — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "NETWORK",
@@ -1006,12 +1006,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/netskope",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/netskope-v0.6.2/netskope.zip",
-      "sha256": "ea24f50bd870f8f9eda14e5df2e9fa77fad489fe670272484bdc03c7d9a692e6",
-      "sizeBytes": 416067,
-      "publishedAt": "2026-09-17T02:46:17.324Z",
-      "releaseNotes": "## 0.6.2 — 2026-09-16\n\n### Fixed — the documented alternative credential field was dead code\n\nThe resolver read `credential.password ?? credential.apiToken`. `CredentialRef.password` is a\nnon-optional `string` and the platform supplies it as `''` rather than null, so\n`??` never fell through: the alternative field this app's own\n`MISSING_CREDENTIAL_MESSAGE` tells the operator they may use was never read.\n\nA tenant that stored its secret where the documentation said got a silent, total\nrefusal from every handler — and because `driftDetect` reports `checked: false`\nwithout a usable credential, nothing ever alarmed about it either. The operator\nsees a connection that simply does not work, with no indication why.\n\n`||` is the right operator here: an empty credential field means \"not set\".",
-      "releasedAt": "2026-09-16T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/netskope-v0.6.3/netskope.zip",
+      "sha256": "a60580a8839eec42f84d9dedf40e9d792e0f2b441fdec19844b37ad6682b4a18",
+      "sizeBytes": 418542,
+      "publishedAt": "2026-09-18T00:14:44.380Z",
+      "releaseNotes": "## 0.6.3 — 2026-09-17\n\n### Fixed — an error delivered inside an HTTP 200 is no longer an empty tenant\n\nNetskope answers some endpoints `{ \"status\": \"error\", \"message\": … }` with a\n200, so `res.ok` was true, the list extractors found no array and returned `[]`,\nand every collection-backed configuration type concluded the tenant held none of\nthese. Deploy re-created every declared object — with the rollback record then\npointing at the duplicate rather than the original — and drift reported them all\nas critically deleted. Both pagers now treat the envelope as the refusal it is.\n\n### Fixed — two tenant-wide singletons could be overwritten unrecorded\n\n- **`npa-publishers-alerts-configuration`** treated ANY failed read as \"never\n  configured\". The comment justified only the 404, but the code applied it to a\n  403, a 500 and a transport error too — so a transient blip recorded\n  `existed: false`, the PUT replaced the tenant-wide publisher alerting policy,\n  and the rollback that followed said \"Nothing to restore\" and made no call.\n  Nobody is paged for a publisher upgrade or connection failure again, and the\n  only copy of the policy is gone. The 404 reading is kept; everything else now\n  refuses before writing.\n\n- **`npa-local-broker-config`** recorded an empty prior from a 200 error\n  envelope, and its rollback wrote `hostname: ''` whenever nothing had been\n  recorded — clearing the tenant-wide broker hostname in the name of an undo.\n  A hostname that was genuinely empty before the deploy is still restored as\n  empty; the difference between that and \"nothing was captured\" is now kept.",
+      "releasedAt": "2026-09-17T00:00:00.000Z"
     },
     {
       "appId": "okta-identity",
