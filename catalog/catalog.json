@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-09-18T00:14:44.415Z",
+  "generatedAt": "2026-10-01T14:06:39.508Z",
   "apps": [
     {
       "appId": "akamai",
@@ -350,9 +350,9 @@
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloudflare",
       "available": true,
       "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.5.1/cloudflare.zip",
-      "sha256": "69bc28fddd68feb113eb4c9f911e0bd717cdf7783fba7774411141cdd4793500",
-      "sizeBytes": 466048,
-      "publishedAt": "2026-09-17T13:35:53.674Z",
+      "sha256": "bbd52f49b9a6b046ea9b75c7a17e80e09a86f35abb4eec49543b126a1d4ebe83",
+      "sizeBytes": 466041,
+      "publishedAt": "2026-10-01T14:06:39.435Z",
       "releaseNotes": "## 1.5.1 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
       "releasedAt": "2026-09-17T00:00:00.000Z"
     },
@@ -1027,9 +1027,9 @@
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity",
       "available": true,
       "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.12.2/okta-identity.zip",
-      "sha256": "3ad4558716977593f572ddaff5551d6dfdc14fd1a0745da5028cff3521a6a968",
-      "sizeBytes": 896866,
-      "publishedAt": "2026-09-17T13:35:53.710Z",
+      "sha256": "21ea76f71edc95bab5735b4959d368cda31721fa83e33c66733ef2f98efda445",
+      "sizeBytes": 897420,
+      "publishedAt": "2026-10-01T14:06:39.473Z",
       "releaseNotes": "## 1.12.2 — 2026-09-17\n\n### Fixed — drift stops claiming \"in sync\" from a run that could not look\n\n`driftDetect` returned a bare `{ hasDrift: false, diffs: [] }` when the client\ncould not be built — no usable credential, no tenant host. That is not \"I checked\nand it matches\": the platform treats `hasDrift: false` as a positive assurance\nand resolves the component's outstanding drift record with `drift_cleared`, so a\nrotated or revoked credential silently wiped real drift on the next scheduled\nrun.\n\nThose paths now return `checked: false`, on which the platform records nothing\nand clears nothing. An earlier catalog-wide pass fixed the single-line spelling\nof this guard; this is the braced form it did not match, and `veltrix validate`\nnow rejects both.",
       "releasedAt": "2026-09-17T00:00:00.000Z"
     },
@@ -1517,9 +1517,9 @@
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
       "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.21.4/splunk-enterprise.zip",
-      "sha256": "27718bc26197c90ccd9ae5ac77c81fefd7f34a69831d4f7bfa2f82fd0d694d07",
-      "sizeBytes": 550729,
-      "publishedAt": "2026-09-17T02:46:17.351Z",
+      "sha256": "4751f79c9f65d845eddcce2c261e5fe99e93498200c98f9634660398b6b212a8",
+      "sizeBytes": 550782,
+      "publishedAt": "2026-10-01T14:06:39.489Z",
       "releaseNotes": "## 1.21.4 — 2026-09-16\n\n### Fixed — drift no longer claims \"in sync\" from a run that could not look\n\n`driftDetect` returned `{ hasDrift: false, diffs: [] }` when it had no usable\ncredential, and again when the vendor refused the read. That is not \"I checked\nand found nothing\" — it is \"I never looked\". The platform cannot tell the\ndifference: it treats `hasDrift: false` as a positive assurance and resolves the\ncomponent's outstanding drift record with `drift_cleared`.\n\nSo a rotated credential, a de-scoped API user or a vendor maintenance window\nsilently wiped real drift on the next scheduled run, and the console showed a\nclean estate.\n\nThose paths now return `checked: false` (`DriftResult.checked`, SDK 3.9.0), on\nwhich the platform records nothing and clears nothing. Where a handler loops\nover several objects and skips the ones it could not read, the run reports\n`checked: false` too, rather than \"in sync\" from a partial view. A return that\ngenuinely established \"nothing is deployed, so there is no drift\" is unchanged.\n\n`veltrix validate` now rejects the bare form, so it cannot come back.",
       "releasedAt": "2026-09-16T00:00:00.000Z"
     },
