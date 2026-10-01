@@ -33,6 +33,7 @@ describe('app-group-assignments driftDetect', () => {
   it('reports no drift without touching the org when no credential is configured', async () => {
     await withFetch([], async (calls) => {
       const result = await driftDetect(driftContext({ sections: [assignment()], credential: null }))
+      expect(result.checked).toBe(false)
 
       expect(result.hasDrift).toBe(false)
       expect(result.diffs).toEqual([])
@@ -43,6 +44,7 @@ describe('app-group-assignments driftDetect', () => {
   it('reports no drift without touching the org when no org is registered', async () => {
     await withFetch([], async (calls) => {
       const result = await driftDetect(driftContext({ sections: [assignment()], hostname: '' }))
+      expect(result.checked).toBe(false)
       expect(result.hasDrift).toBe(false)
       expect(calls).toHaveLength(0)
     })

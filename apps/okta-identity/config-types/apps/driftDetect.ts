@@ -35,7 +35,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const built = buildOktaClient(ctx.component.hostname, ctx.credential, ctx.settings)
   if ('error' in built) {
     // Without credentials there is nothing to compare against.
-    return { hasDrift: false, diffs: [] }
+    return { hasDrift: false, diffs: [], checked: false }
   }
   const { client } = built
 

@@ -27,7 +27,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   // Account-scoped: without a resolvable account id there is nothing to compare.
   if (!(await client.hasAccount())) {
-    return { hasDrift: false, diffs: [] }
+    return { hasDrift: false, diffs: [], checked: false }
   }
 
   const specs = extractAccessGroupSpecs(ctx.deployedConfig).filter((s) => s.name && s.includeJson.trim())

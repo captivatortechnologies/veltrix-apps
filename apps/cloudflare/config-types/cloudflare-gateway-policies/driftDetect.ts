@@ -19,7 +19,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   }
   const { client } = built
 
-  if (!(await client.hasAccount())) return { hasDrift: false, diffs: [] }
+  if (!(await client.hasAccount())) return { hasDrift: false, diffs: [], checked: false }
 
   const specs = extractGatewayPolicySpecs(ctx.deployedConfig).filter((s) => s.name && s.action && s.traffic)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }

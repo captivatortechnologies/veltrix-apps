@@ -64,6 +64,7 @@ describe('event-hooks driftDetect', () => {
   it('reports no drift without touching the org when no credential is configured', async () => {
     await withFetch([], async (calls) => {
       const result = await driftDetect(driftContext({ sections: [hook()], credential: null }))
+      expect(result.checked).toBe(false)
 
       expect(result.hasDrift).toBe(false)
       expect(result.diffs).toEqual([])
@@ -74,6 +75,7 @@ describe('event-hooks driftDetect', () => {
   it('reports no drift without touching the org when no org is registered', async () => {
     await withFetch([], async (calls) => {
       const result = await driftDetect(driftContext({ sections: [hook()], hostname: '' }))
+      expect(result.checked).toBe(false)
 
       expect(result.hasDrift).toBe(false)
       expect(calls).toHaveLength(0)

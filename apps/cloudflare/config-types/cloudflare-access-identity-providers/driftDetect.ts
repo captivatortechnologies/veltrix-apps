@@ -26,7 +26,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { client } = built
 
   if (!(await client.hasAccount())) {
-    return { hasDrift: false, diffs: [] }
+    return { hasDrift: false, diffs: [], checked: false }
   }
 
   const specs = extractIdentityProviderSpecs(ctx.deployedConfig).filter((s) => s.name)

@@ -41,6 +41,7 @@ describe('custom-domains driftDetect', () => {
   it('reports no drift without touching the org when no credential is configured', async () => {
     await withFetch([], async (calls) => {
       const result = await driftDetect(driftContext({ sections: [domain()], credential: null }))
+      expect(result.checked).toBe(false)
 
       expect(result.hasDrift).toBe(false)
       expect(result.diffs).toEqual([])
@@ -51,6 +52,7 @@ describe('custom-domains driftDetect', () => {
   it('reports no drift without touching the org when no org hostname is registered', async () => {
     await withFetch([], async (calls) => {
       const result = await driftDetect(driftContext({ sections: [domain()], hostname: '' }))
+      expect(result.checked).toBe(false)
 
       expect(result.hasDrift).toBe(false)
       expect(calls).toHaveLength(0)

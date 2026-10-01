@@ -32,7 +32,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const componentRoles = component.type ?? []
   const targetTypes = new Set(deployedConfig.sections.flatMap((s) => toStringArray(fieldOf(s, 'targetTypes'))))
   if (targetTypes.size > 0 && !componentRoles.some((r) => targetTypes.has(r))) {
-    return { hasDrift: false, diffs: [] }
+    return { hasDrift: false, diffs: [], checked: false }
   }
 
   const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)

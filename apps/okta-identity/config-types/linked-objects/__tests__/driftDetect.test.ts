@@ -54,6 +54,7 @@ describe('linked-objects driftDetect', () => {
   it('reports no drift without touching the org when no org is registered', async () => {
     await withFetch([], async (calls) => {
       const result = await driftDetect(driftContext({ sections: [linkedObject()], hostname: '' }))
+      expect(result.checked).toBe(false)
       expect(result.hasDrift).toBe(false)
       expect(calls).toHaveLength(0)
     })

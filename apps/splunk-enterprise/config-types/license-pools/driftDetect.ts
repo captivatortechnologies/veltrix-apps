@@ -24,7 +24,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { component, credential, connectivity, connectivityProvider, deployedConfig } = ctx
   const diffs: DriftDiff[] = []
 
-  if (!credential || (!connectivity && !connectivityProvider)) return { hasDrift: false, diffs: [] }
+  if (!credential || (!connectivity && !connectivityProvider)) return { hasDrift: false, diffs: [], checked: false }
 
   const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
   const auth = buildAuthHeader(credential)

@@ -36,6 +36,7 @@ describe('sms-templates driftDetect', () => {
   it('reports no drift without touching the org when no credential is configured', async () => {
     await withFetch([], async (calls) => {
       const result = await driftDetect(driftContext({ sections: [template()], credential: null }))
+      expect(result.checked).toBe(false)
 
       expect(result.hasDrift).toBe(false)
       expect(result.diffs).toEqual([])
@@ -46,6 +47,7 @@ describe('sms-templates driftDetect', () => {
   it('reports no drift without touching the org when no org hostname is registered', async () => {
     await withFetch([], async (calls) => {
       const result = await driftDetect(driftContext({ sections: [template()], hostname: '' }))
+      expect(result.checked).toBe(false)
 
       expect(result.hasDrift).toBe(false)
       expect(calls).toHaveLength(0)
