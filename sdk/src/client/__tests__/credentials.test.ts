@@ -33,6 +33,7 @@ describe('listCredentials', () => {
           name: 'idx1.splunk.internal',
           username: 'svc_veltrix',
           type: 'password',
+          environmentType: 'Production',
           toolId: 'tool-1',
           // Secret material that MUST NOT survive redaction:
           password: 'super-secret',
@@ -47,7 +48,7 @@ describe('listCredentials', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('/api/tools/tool-1/credentials')
     // Summary carries no secret fields, only `hasSecret`.
     expect(creds).toEqual([
-      { id: 'c1', name: 'idx1.splunk.internal', username: 'svc_veltrix', type: 'password', endpoint: null, toolId: 'tool-1', hasSecret: true, tags: [] },
+      { id: 'c1', name: 'idx1.splunk.internal', username: 'svc_veltrix', type: 'password', endpoint: null, environmentType: 'Production', toolId: 'tool-1', hasSecret: true, tags: [] },
     ])
     const serialized = JSON.stringify(creds)
     expect(serialized).not.toContain('super-secret')
@@ -82,7 +83,7 @@ describe('listCredentials', () => {
   it('unwraps a paginated { data } response', async () => {
     mockFetch({ jsonBody: { data: [{ id: 'c3', name: 'n', username: 'u', toolId: 't' }], pagination: {} } })
     const creds = await listCredentials('t')
-    expect(creds).toEqual([{ id: 'c3', name: 'n', username: 'u', type: null, endpoint: null, toolId: 't', hasSecret: false, tags: [] }])
+    expect(creds).toEqual([{ id: 'c3', name: 'n', username: 'u', type: null, endpoint: null, environmentType: null, toolId: 't', hasSecret: false, tags: [] }])
   })
 
   it('throws the platform error message on a non-2xx response', async () => {
@@ -115,6 +116,7 @@ describe('createCredential', () => {
       apiToken: 'hec-token',
       type: 'token',
       toolId: 'tool-1',
+      environmentType: null,
       tagIds: [],
     })
   })

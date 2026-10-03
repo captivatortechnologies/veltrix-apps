@@ -3,6 +3,15 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.21.6 — 2026-10-03
+
+### Fixed — Connections and Access Servers
+
+Bundle SDK 3.9.1 so shared pages use the platform's typed host helpers for
+inventory, credentials, environments and connectivity providers. Connections
+can load and save without sending forbidden platform routes through the scoped
+app fetch. Environment metadata and credential redaction remain intact.
+
 ## 1.21.5 — 2026-10-02
 
 ### Fixed — platform installation package

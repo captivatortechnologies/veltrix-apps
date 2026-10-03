@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.9.1 — 2026-10-03
+
+Bundled Connections and BYOL pages delegate platform API calls to the host's
+typed capabilities. Standalone clients retain their fetch fallback. Generic
+app fetch remains restricted to permitted routes.
+
 ## 3.9.0 — 2026-09-16
 
 ### `HealthCheckResult.score` — the scale is 0–100, and now says so

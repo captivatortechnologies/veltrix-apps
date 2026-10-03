@@ -12,6 +12,7 @@
 
 import type { EnvironmentRef } from '../types/pipeline'
 import { authFetch } from './index'
+import { hostHelper } from './host-helper'
 
 /** Base route for the platform's environments API. */
 const ENVIRONMENTS_API = '/api/environments'
@@ -45,6 +46,8 @@ async function environmentError(res: Response): Promise<Error> {
  * or Access Server to that environment.
  */
 export async function listEnvironments(): Promise<EnvironmentRef[]> {
+  const host = hostHelper('listEnvironments', listEnvironments)
+  if (host) return host()
   const res = await authFetch(ENVIRONMENTS_API)
   if (!res.ok) throw await environmentError(res)
   const body = (await res.json()) as unknown

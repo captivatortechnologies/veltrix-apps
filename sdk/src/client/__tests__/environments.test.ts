@@ -21,21 +21,21 @@ describe('listEnvironments', () => {
   it('GETs /api/environments and normalizes to {id, name}', async () => {
     const fetchMock = mockFetch({
       jsonBody: [
-        { id: 'env-1', name: 'Production', extra: 'drop-me' },
-        { id: 'env-2', name: 'Staging' },
+        { id: 'env-1', name: 'Production', environmentTypes: ['Production'], extra: 'drop-me' },
+        { id: 'env-2', name: 'Staging', environmentTypes: [] },
       ],
     })
     const envs = await listEnvironments()
     expect(fetchMock.mock.calls[0][0]).toBe('/api/environments')
     expect(envs).toEqual([
-      { id: 'env-1', name: 'Production' },
-      { id: 'env-2', name: 'Staging' },
+      { id: 'env-1', name: 'Production', environmentTypes: ['Production'] },
+      { id: 'env-2', name: 'Staging', environmentTypes: [] },
     ])
   })
 
   it('unwraps a paginated { data } response and defaults a missing name', async () => {
     mockFetch({ jsonBody: { data: [{ id: 'env-3' }], pagination: {} } })
-    expect(await listEnvironments()).toEqual([{ id: 'env-3', name: '' }])
+    expect(await listEnvironments()).toEqual([{ id: 'env-3', name: '', environmentTypes: [] }])
   })
 
   it('throws the platform error message on a non-2xx response', async () => {

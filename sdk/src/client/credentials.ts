@@ -22,6 +22,7 @@
 import type { CredentialInput, CredentialSummary } from '../types/platform'
 import type { TestConnectionResult } from '../types/pipeline'
 import { authFetch } from './index'
+import { hostHelper } from './host-helper'
 
 /** Base route for the platform's credentials API. */
 const CREDENTIALS_API = '/api/credentials'
@@ -102,6 +103,8 @@ function toCredentialSummary(raw: RawCredential): CredentialSummary {
  * module's SECURITY note. Returns an empty array when the tool has none.
  */
 export async function listCredentials(toolId: string): Promise<CredentialSummary[]> {
+  const host = hostHelper('listCredentials', listCredentials)
+  if (host) return host(toolId)
   const res = await authFetch(`/api/tools/${encodeURIComponent(toolId)}/credentials`)
   if (!res.ok) throw await credentialError(res)
   const data = (await res.json()) as unknown
@@ -120,6 +123,8 @@ export async function listCredentials(toolId: string): Promise<CredentialSummary
  * secret travels in `apiToken`). Returns the new credential's id.
  */
 export async function createCredential(input: CredentialInput): Promise<{ id: string }> {
+  const host = hostHelper('createCredential', createCredential)
+  if (host) return host(input)
   const res = await authFetch(CREDENTIALS_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -148,6 +153,8 @@ export async function updateCredential(
   id: string,
   input: Partial<CredentialInput>,
 ): Promise<{ id: string }> {
+  const host = hostHelper('updateCredential', updateCredential)
+  if (host) return host(id, input)
   const body: Record<string, unknown> = {}
   if (input.name !== undefined) body.name = input.name
   if (input.username !== undefined) body.username = input.username
@@ -169,6 +176,8 @@ export async function updateCredential(
 
 /** Remove a credential. DELETE /api/credentials/:id. */
 export async function removeCredential(id: string): Promise<void> {
+  const host = hostHelper('removeCredential', removeCredential)
+  if (host) return host(id)
   const res = await authFetch(`${CREDENTIALS_API}/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   })

@@ -15,6 +15,7 @@
 
 import type { InventoryItem, InventoryItemInput } from '../types/platform'
 import { authFetch } from './index'
+import { hostHelper } from './host-helper'
 
 /** Base route for the platform's components (inventory) API. */
 const INVENTORY_API = '/api/components'
@@ -99,6 +100,8 @@ export interface Tool {
  * contains match, so we still exact-match `tool.name === name` on the result.
  */
 export async function resolveTool(name: string): Promise<Tool | null> {
+  const host = hostHelper('resolveTool', resolveTool)
+  if (host) return host(name)
   const res = await authFetch(`/api/tools?search=${encodeURIComponent(name)}&limit=100`)
   if (!res.ok) throw await inventoryError(res)
   const body = (await res.json()) as unknown
@@ -112,6 +115,8 @@ export async function resolveTool(name: string): Promise<Tool | null> {
 
 /** List the customer's inventory (deployment targets). GET /api/components */
 export async function listInventory(): Promise<InventoryItem[]> {
+  const host = hostHelper('listInventory', listInventory)
+  if (host) return host()
   const res = await authFetch(INVENTORY_API)
   if (!res.ok) throw await inventoryError(res)
   const data = (await res.json()) as RawInventoryItem[]
@@ -120,6 +125,8 @@ export async function listInventory(): Promise<InventoryItem[]> {
 
 /** Add a new inventory item (deployment target). POST /api/components */
 export async function addInventoryItem(input: InventoryItemInput): Promise<InventoryItem> {
+  const host = hostHelper('addInventoryItem', addInventoryItem)
+  if (host) return host(input)
   const res = await authFetch(INVENTORY_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -134,6 +141,8 @@ export async function updateInventoryItem(
   id: string,
   input: InventoryItemInput,
 ): Promise<InventoryItem> {
+  const host = hostHelper('updateInventoryItem', updateInventoryItem)
+  if (host) return host(id, input)
   const res = await authFetch(`${INVENTORY_API}/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -145,6 +154,8 @@ export async function updateInventoryItem(
 
 /** Remove an inventory item. DELETE /api/components/:id */
 export async function removeInventoryItem(id: string): Promise<void> {
+  const host = hostHelper('removeInventoryItem', removeInventoryItem)
+  if (host) return host(id)
   const res = await authFetch(`${INVENTORY_API}/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   })

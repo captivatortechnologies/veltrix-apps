@@ -10,6 +10,7 @@
 
 import type { ConnectivityProviderRef } from '../types/platform'
 import { authFetch } from './index'
+import { hostHelper } from './host-helper'
 
 /** Base route for the platform's connectivity-providers API. */
 const CONNECTIVITY_PROVIDERS_API = '/api/connectivity-providers'
@@ -43,6 +44,8 @@ async function providerError(res: Response): Promise<Error> {
  * a bare array or a paginated `{ data, ... }` shape — both are handled).
  */
 export async function listConnectivityProviders(): Promise<ConnectivityProviderRef[]> {
+  const host = hostHelper('listConnectivityProviders', listConnectivityProviders)
+  if (host) return host()
   const res = await authFetch(CONNECTIVITY_PROVIDERS_API)
   if (!res.ok) throw await providerError(res)
   const body = (await res.json()) as unknown
