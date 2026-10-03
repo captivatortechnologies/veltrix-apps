@@ -3,6 +3,17 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.21.5 — 2026-10-02
+
+### Fixed — platform installation package
+
+Release archives exclude the standalone `infra/` provisioning tools. These
+worker/CI tools spawn processes and must stay outside the in-process app package.
+The platform validator now accepts item-based canvases and their supported field
+types, matching the authoring validator and canvas renderer.
+Client vetting checks the shipped browser bundle, so installing the package
+does not require the build-time SDK components on the API server.
+
 ## 1.21.4 — 2026-09-16
 
 ### Fixed — drift no longer claims "in sync" from a run that could not look

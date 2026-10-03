@@ -30,7 +30,10 @@ function collectFilesSorted(dir, out = []) {
   return out
 }
 
-function shouldCopy(src) {
+function shouldCopy(src, appRoot) {
+  // Standalone provisioning tools run in a worker/CI, never in the API app.
+  // Keep them in the source checkout, outside the in-process release archive.
+  if (path.relative(appRoot, src) === 'infra') return false
   const base = path.basename(src)
   if (EXCLUDED_DIRS.has(base)) return false
   if (EXCLUDED_FILES.includes(base)) return false
@@ -59,7 +62,7 @@ function collectTsFiles(dir, appRoot, out = []) {
 export async function packageApp(appDir, outDir, manifest) {
   const staging = fs.mkdtempSync(path.join(os.tmpdir(), 'veltrix-pkg-'))
   try {
-    fs.cpSync(appDir, staging, { recursive: true, filter: shouldCopy })
+    fs.cpSync(appDir, staging, { recursive: true, filter: (src) => shouldCopy(src, appDir) })
 
     const tsFiles = collectTsFiles(staging, staging)
     if (tsFiles.length > 0) {

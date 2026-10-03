@@ -107,6 +107,7 @@ jobs:
             rsync -a \
               --exclude node_modules --exclude .git --exclude __tests__ \
               --exclude '*.test.*' --exclude .DS_Store --exclude __pycache__ \
+              --exclude '/infra/' \
               "apps/$APP/" "$STAGING/"
             TS_FILES=$(find "$STAGING" -name '*.ts' -not -path '*/client/*')
             if [ -n "$TS_FILES" ]; then

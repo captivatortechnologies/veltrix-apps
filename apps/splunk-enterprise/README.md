@@ -5,6 +5,10 @@ type flows through the Veltrix pipeline (`validate → deploy → rollback →
 healthCheck → driftDetect → getStatus`) against the Splunk management REST API
 (port 8089 by default).
 
+Runtime release packages exclude `infra/`, which contains standalone worker/CI
+provisioning tools. Run those tools from the source checkout; they cannot be
+imported by the app's in-process handlers.
+
 The app also tracks the current Splunk Enterprise release lines
 (9.4.x–10.4.x, seeded by `hooks/onInstall.ts`) for BYOL upgrade planning.
 

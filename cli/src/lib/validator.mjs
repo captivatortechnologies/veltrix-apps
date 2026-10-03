@@ -174,6 +174,10 @@ export function validateApp(appDirArg) {
       err(`${label} must not contain '..' path segments: "${rel}"`)
       return
     }
+    if (/^infra[\\/]/.test(rel.replace(/^\.\//, ''))) {
+      err(`${label} references standalone infra tooling, which is excluded from runtime packages`)
+      return
+    }
     if (!fileExists(rel)) err(`${label} points to a missing file: "${rel}"`)
   }
 
@@ -623,13 +627,13 @@ export function validateApp(appDirArg) {
   // treated the way AppInspect treats them for Splunk Cloud vetting.
   //
   // EXCEPTION — apps/<app>/infra/** is out-of-process BYOI provisioning tooling
-  // (the app's InfraSpec bring-up: OpenTofu drivers, ansible runners, health
-  // gates). The platform's provisioning WORKER spawns these as child processes /
-  // CI steps — exactly like it spawns tofu and ansible themselves — so they are
-  // NOT in-process app code and are exempt from the spawn / process.exit /
-  // node:fs rules. The genuine safety rules (no directory escape, no
+  // (OpenTofu drivers, ansible runners, health gates). This directory stays in
+  // the source checkout for workers/CI and is excluded from runtime archives.
+  // Runtime handlers and imports may not reference it. Source-only tooling is
+  // exempt from the spawn / process.exit / node:fs rules, but the other rules
+  // (no directory escape, no
   // @prisma/client, no eval/new Function, no shipped secrets) still apply.
-  const IMPORT_RE = /(?:from\s+|require\(\s*|import\(\s*)['"]([^'"]+)['"]/g
+  const IMPORT_RE = /(?:from\s+|require\(\s*|import\(\s*|import\s+)['"]([^'"]+)['"]/g
   for (const file of codeFiles) {
     const relFile = path.relative(appDir, file)
     const isTestFile = /(^|[\\/])__tests__[\\/]/.test(relFile) || /\.test\.[a-z]+$/.test(relFile)
@@ -640,6 +644,9 @@ export function validateApp(appDirArg) {
       const spec = match[1]
       if (spec.startsWith('.')) {
         const resolved = path.resolve(path.dirname(file), spec)
+        if (!isProvisioning && /^infra[\\/]/.test(path.relative(appDir, resolved))) {
+          err(`${relFile} imports "${spec}" from standalone infra tooling, which is excluded from runtime packages`)
+        }
         if (!resolved.startsWith(appDir + path.sep) && resolved !== appDir) {
           err(
             `${relFile} imports "${spec}" which escapes the app directory — ` +

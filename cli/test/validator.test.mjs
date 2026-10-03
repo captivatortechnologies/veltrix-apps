@@ -154,6 +154,22 @@ test('valid fixture app passes with no errors', () => {
   assert.deepEqual(result.errors, [])
 })
 
+test('runtime code cannot import excluded standalone provisioning tooling', () => {
+  const result = validateApp(makeApp({
+    'server/index.ts': "import '../infra/bringup.mjs'\n" + HANDLER,
+    'infra/bringup.mjs': 'process.exit(0)\n',
+  }))
+  assert.equal(errorsMatching(result, /imports .*standalone infra tooling/).length, 1)
+})
+
+test('manifest cannot register standalone provisioning tooling as a runtime handler', () => {
+  const result = validateApp(makeApp({
+    'manifest.yaml': MANIFEST.replace('server/index', 'infra/bringup'),
+    'infra/bringup.mjs': 'process.exit(0)\n',
+  }))
+  assert.equal(errorsMatching(result, /references standalone infra tooling/).length, 1)
+})
+
 test('package.json version must match manifest.version', () => {
   const result = validateApp(
     makeApp({ 'package.json': JSON.stringify({ name: 'x', version: '2.0.0' }) }),
