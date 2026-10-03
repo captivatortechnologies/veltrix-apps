@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-10-03T02:49:30.456Z",
+  "generatedAt": "2026-10-03T20:16:24.626Z",
   "apps": [
     {
       "appId": "akamai",
@@ -1506,7 +1506,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.21.5",
+      "version": "1.21.6",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, license pools, API access tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -1516,12 +1516,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.21.5/splunk-enterprise.zip",
-      "sha256": "a11cdb8c364ca43d17242761151e806b99f300cc49d59208870585ce559a21d2",
-      "sizeBytes": 501278,
-      "publishedAt": "2026-10-03T02:49:30.437Z",
-      "releaseNotes": "## 1.21.5 — 2026-10-02\n\n### Fixed — platform installation package\n\nRelease archives exclude the standalone `infra/` provisioning tools. These\nworker/CI tools spawn processes and must stay outside the in-process app package.\nThe platform validator now accepts item-based canvases and their supported field\ntypes, matching the authoring validator and canvas renderer.\nClient vetting checks the shipped browser bundle, so installing the package\ndoes not require the build-time SDK components on the API server.",
-      "releasedAt": "2026-10-02T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.21.6/splunk-enterprise.zip",
+      "sha256": "dde9c124f43ef03e76cadb64106b55e08f70ca5322d14c1dd1be3f6590001b20",
+      "sizeBytes": 501634,
+      "publishedAt": "2026-10-03T20:16:24.607Z",
+      "releaseNotes": "## 1.21.6 — 2026-10-03\n\n### Fixed — Connections and Access Servers\n\nBundle SDK 3.9.1 so shared pages use the platform's typed host helpers for\ninventory, credentials, environments and connectivity providers. Connections\ncan load and save without sending forbidden platform routes through the scoped\napp fetch. Environment metadata and credential redaction remain intact.",
+      "releasedAt": "2026-10-03T00:00:00.000Z"
     },
     {
       "appId": "splunk-soar",
