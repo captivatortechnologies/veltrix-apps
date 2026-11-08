@@ -284,6 +284,7 @@ export function renderStandalone(model) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="Request flows for the ${esc(model.name)} Veltrix app — how a request routes through the platform, the app, and the ${esc(model.name)} API to completion.">
+<link rel="canonical" href="https://captivatortechnologies.github.io/veltrix-apps/dataflow/${esc(model.id)}.html">
 <style>body{margin:0;background:#f6f8fc}@media(prefers-color-scheme:dark){body{background:#0a0f1c}}</style>
 </head>
 <body>
@@ -304,6 +305,8 @@ export function renderIndex(models) {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Veltrix Apps — Request Flows</title>
+<meta name="description" content="Request-flow diagrams for every Veltrix app: how a request routes through the platform, the app, and the vendor API to completion.">
+<link rel="canonical" href="https://captivatortechnologies.github.io/veltrix-apps/dataflow/">
 <style>
   :root{--bg:#f6f8fc;--surface:#fff;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--brand:#2563eb}
   @media(prefers-color-scheme:dark){:root{--bg:#0a0f1c;--surface:#111a2e;--border:#1e293b;--text:#e6edf6;--muted:#94a3b8;--brand:#60a5fa}}
