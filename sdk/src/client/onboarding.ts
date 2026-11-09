@@ -39,6 +39,8 @@ export interface AppOnboardingDescriptor {
   requiredSettings?: string[]
   /** Labels for `requiredSettings`, when the app declares a setting for the key. */
   requiredSettingLabels?: Record<string, string>
+  /** Component type a connection from this provider is registered as (the deploy target). */
+  componentType?: string
 }
 
 /**
@@ -48,21 +50,50 @@ export interface AppOnboardingDescriptor {
  * onboarding (its connections stay credential-only).
  */
 export async function fetchAppOnboarding(appId: string): Promise<AppOnboardingDescriptor | null> {
+  return (await fetchAppOnboardings(appId))[0] ?? null
+}
+
+/** The `/apps/enabled` connection block an app advertises. */
+export interface EnabledAppConnection {
+  onboarding?: AppOnboardingDescriptor
+  /** Every declared provider (platforms that support several per app). */
+  onboardings?: AppOnboardingDescriptor[]
+}
+
+/**
+ * Every onboarding provider an enabled app declares, in declaration order:
+ * `connection.onboardings` when the platform advertises the list, else the
+ * single `connection.onboarding` older platforms send.
+ */
+export function onboardingsOf(connection: EnabledAppConnection | undefined | null): AppOnboardingDescriptor[] {
+  if (!connection) return []
+  if (Array.isArray(connection.onboardings) && connection.onboardings.length) return connection.onboardings
+  return connection.onboarding ? [connection.onboarding] : []
+}
+
+/**
+ * Fetch every onboarding descriptor an app declares from GET /api/apps/enabled,
+ * so the Connections UI can offer one connect button per provider. Empty when
+ * the app declares none (its connections stay credential-only).
+ */
+export async function fetchAppOnboardings(appId: string): Promise<AppOnboardingDescriptor[]> {
   try {
     const res = await authFetch('/api/apps/enabled', { method: 'GET' })
-    if (!res.ok) return null
+    if (!res.ok) return []
     const data = (await res.json()) as unknown
     const list = Array.isArray(data) ? data : ((data as { data?: unknown[] })?.data ?? [])
-    const app = (list as Array<{ appId?: string; id?: string; connection?: { onboarding?: AppOnboardingDescriptor } }>).find(
+    const app = (list as Array<{ appId?: string; id?: string; connection?: EnabledAppConnection }>).find(
       (a) => a.appId === appId || a.id === appId,
     )
-    return app?.connection?.onboarding ?? null
+    return onboardingsOf(app?.connection)
   } catch {
-    return null
+    return []
   }
 }
 
 export interface StartOnboardingInput {
+  /** Which declared provider to use; required when the app declares several. */
+  provider?: string
   /** The deployment scope (environment) the new connection belongs to. */
   environmentId: string
   /** Display name for the new connection. */
@@ -141,6 +172,7 @@ export async function startOnboarding(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        ...(input.provider ? { provider: input.provider } : {}),
         environmentId: input.environmentId,
         connectionName: input.connectionName,
         settings: input.settings ?? {},

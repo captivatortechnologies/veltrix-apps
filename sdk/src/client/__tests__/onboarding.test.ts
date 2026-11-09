@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { completeOnboarding, fetchAppOnboarding, startOnboarding } from '../onboarding'
+import { completeOnboarding, fetchAppOnboarding, fetchAppOnboardings, onboardingsOf, startOnboarding } from '../onboarding'
 
 function mockFetch(response: { ok?: boolean; status?: number; jsonBody?: unknown; textBody?: string }) {
   const fetchMock = vi.fn(async () => ({
@@ -62,5 +62,26 @@ describe('fetchAppOnboarding', () => {
     })
     expect(await fetchAppOnboarding('cloud-governance')).toMatchObject({ provider: 'aws-assume-role', description: 'Create a role.', requiredSettingLabels: { aws_account_id: 'AWS account id' } })
     expect(await fetchAppOnboarding('other')).toBeNull()
+  })
+})
+
+describe('fetchAppOnboardings / onboardingsOf', () => {
+  const aws = { provider: 'aws-assume-role', label: 'Connect AWS account', componentType: 'aws-account' }
+  const azure = { provider: 'entra-admin-consent', label: 'Connect Azure subscription', componentType: 'azure-subscription' }
+
+  it('prefers the full list, falls back to the single descriptor, and is empty without either', () => {
+    expect(onboardingsOf({ onboarding: aws, onboardings: [aws, azure] })).toEqual([aws, azure])
+    expect(onboardingsOf({ onboarding: aws })).toEqual([aws])
+    expect(onboardingsOf({ onboardings: [] })).toEqual([])
+    expect(onboardingsOf(undefined)).toEqual([])
+  })
+
+  it('reads every provider from /apps/enabled and names the provider on start', async () => {
+    mockFetch({ jsonBody: [{ appId: 'cloud-governance', connection: { onboarding: aws, onboardings: [aws, azure] } }] })
+    expect(await fetchAppOnboardings('cloud-governance')).toEqual([aws, azure])
+    const fetchMock = mockFetch({ jsonBody: { authorizeUrl: 'https://login', provider: 'entra-admin-consent' } })
+    await startOnboarding('cloud-governance', { provider: 'entra-admin-consent', environmentId: 'env', connectionName: 'Sub', settings: {} })
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(JSON.parse(String(init.body)).provider).toBe('entra-admin-consent')
   })
 })

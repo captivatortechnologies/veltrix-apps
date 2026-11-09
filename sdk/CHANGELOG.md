@@ -1,5 +1,28 @@
 # Changelog
 
+## 3.14.0 — 2026-11-09
+
+### One connect button per onboarding provider
+
+An app may declare `connection.onboarding` as a list (one entry per provider:
+an AWS account AND an Azure subscription for the same app). The manifest type
+accepts both shapes. `ConnectionsManager` renders one connect button per
+descriptor (new `onboardings` prop, else `/apps/enabled`'s
+`connection.onboardings`, else the single `onboarding`) and names the provider
+on `startOnboarding`. New client helpers: `fetchAppOnboardings`,
+`onboardingsOf`.
+
+### Onboarded connections become deploy targets
+
+A connection created through onboarding used to be a credential only. The
+manager now registers its component (hostname = the connection endpoint,
+linked to the credential and environment) after a pending flow completes and
+when the provider's redirect brings the page back, typed by the descriptor's
+new `componentType` (falls back to the page's `componentType`). Manifest
+descriptors also gain `capture.endpoint` and per-step scope setting names for
+role assignments (`subscriptionSetting`, `resourceGroupSetting`,
+`workspaceSetting`).
+
 ## 3.13.0 — 2026-11-09
 
 ### Pending (polled) connection onboarding

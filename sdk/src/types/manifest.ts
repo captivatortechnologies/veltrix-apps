@@ -139,7 +139,8 @@ export interface AppManifest {
 
 /** App-declared connection lifecycle capabilities. */
 export interface AppConnectionDeclaration {
-  onboarding?: ConnectionOnboardingDescriptor
+  /** One provider, or several when the app connects more than one kind of target (AWS accounts and Azure subscriptions). */
+  onboarding?: ConnectionOnboardingDescriptor | ConnectionOnboardingDescriptor[]
 }
 
 /**
@@ -154,6 +155,12 @@ export interface ConnectionOnboardingDescriptor {
   label: string
   /** One sentence shown in the connect dialog instead of the generic sign-in text. */
   description?: string
+  /**
+   * Component type the Connections page registers for a connection made
+   * through this provider (its deploy target), e.g. `azure-subscription`.
+   * Defaults to the page's `componentType`.
+   */
+  componentType?: string
   params?: ConnectionOnboardingParams
   /**
    * Optional app-provided finalize hook (extensionless path). Run in-process
@@ -214,6 +221,12 @@ export interface OnboardingCapture {
    * named app setting (the app libs read it as their `tenant_id`).
    */
   tenantId?: string
+  /**
+   * `setting:<key>`: the up-front setting whose value becomes the connection's
+   * endpoint (e.g. an Azure subscription id), kept per connection rather than
+   * copied into the installation settings.
+   */
+  endpoint?: string
 }
 
 /** A post-consent provisioning step. Only ARM role assignment exists today. */
@@ -223,6 +236,10 @@ export interface OnboardingProvisioningStep {
   role: string
   /** ARM scope granularity for the assignment. */
   scope: 'resourceGroup' | 'subscription'
+  /** Up-front setting keys the scope is read from (defaults: subscription_id, resource_group, workspace_name). */
+  subscriptionSetting?: string
+  resourceGroupSetting?: string
+  workspaceSetting?: string
   /**
    * How the ARM token for the assignment is obtained:
    *   - `manual` (default): show a portal deep-link/CLI + a verify probe. No

@@ -382,9 +382,10 @@ events: [ some.platform.event ]     # optional — platform events the app subsc
 connectivity:
   testHandler: handlers/testConnection   # backs the "Test" button on a Connection
 
-connection:                         # optional — one-click connection onboarding
+connection:                         # optional — one-click connection onboarding (one descriptor, or a list: one per provider)
   onboarding:
     provider: entra-admin-consent   # entra-admin-consent | oauth2-auth-code | aws-assume-role
+    componentType: azure-subscription   # optional — the deploy-target type registered for these connections
     label: Connect Microsoft Defender
     description: Approve Veltrix in your tenant.   # optional dialog text
     params: { brokered: true, capture: { tenantId: "setting:tenant_id" }, requiredSettings: [tenant_id] }
@@ -518,7 +519,7 @@ the item), `lockKeys` (keyvalue only). `veltrix validate` checks all of these ag
 | `@veltrixsecops/app-sdk` | **React-free.** All types (handler contexts/results, manifest, platform refs, hook contexts), `APP_LAYOUT`/`HANDLER_NAMES`/`conventionalPaths()` — safe to load in a bare Node process, which is what the sandbox runner does |
 | `@veltrixsecops/app-sdk/pipeline` | `defineValidator`, `defineDeployer`, `defineRollbackHandler`, `defineHealthChecker`, `defineDriftDetector`, `defineConnectionTester` |
 | `@veltrixsecops/app-sdk/hooks` | React hooks for app client pages — `useAppContext`, `usePipelineStatus`, `useAppBranding`, `usePermissions` (requires `react`) |
-| `@veltrixsecops/app-sdk/client` | Browser client contract: `authFetch`, `getHostRuntime`/`requireHostRuntime`, `AppClientModule`/`AppSidebarItem`, tenant-data helpers (`listEnvironments`, `listConnectivityProviders`), connection ops (`runOperation`), and the connection-onboarding helpers (`startOnboarding`/`completeOnboarding`/`getOnboardingStatus`/`revokeOnboarding`/`fetchAppOnboarding`) |
+| `@veltrixsecops/app-sdk/client` | Browser client contract: `authFetch`, `getHostRuntime`/`requireHostRuntime`, `AppClientModule`/`AppSidebarItem`, tenant-data helpers (`listEnvironments`, `listConnectivityProviders`), connection ops (`runOperation`), and the connection-onboarding helpers (`startOnboarding`/`completeOnboarding`/`getOnboardingStatus`/`revokeOnboarding`/`fetchAppOnboarding`/`fetchAppOnboardings`) |
 | `@veltrixsecops/app-sdk/ui` | Platform design-system components + hooks for app client pages (requires `react`; renders richly inside the platform, degrades to a minimal accessible fallback outside it) |
 | `@veltrixsecops/app-sdk/connections` | `ConnectionsManager` — the shared Settings → Connections page an app's `/connections` client page renders (requires `react`) |
 | `@veltrixsecops/app-sdk/byol` | Bring-Your-Own-Infra console — `ByolInfrastructureManager`/`ByolInfrastructureDetail` + plan helpers (`buildByolPlan`, `diffPlan`, `planHasChanges`) for apps that provision hosted infra (requires `react`) |

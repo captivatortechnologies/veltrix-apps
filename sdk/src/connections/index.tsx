@@ -11,7 +11,7 @@ import {
   listInventory,
   addInventoryItem,
   updateInventoryItem,
-  fetchAppOnboarding,
+  fetchAppOnboardings,
   type OnboardPending,
   type CredentialSummary,
   type EnvironmentRef,
@@ -87,6 +87,12 @@ export interface ConnectionsManagerProps {
    */
   onboarding?: OnboardingDescriptorSummary
   /**
+   * Every onboarding provider the app declares (one connect button each), for
+   * apps that connect several kinds of target. Overrides `onboarding`; when
+   * neither is passed the list is read from `/apps/enabled`.
+   */
+  onboardings?: OnboardingDescriptorSummary[]
+  /**
    * The platform component type this app deploys to (a config type's
    * `targets.componentTypes`, e.g. "okta-org"). When set, saving a connection
    * ALSO registers/updates a deploy-target Component — hostname taken from the
@@ -111,6 +117,8 @@ export interface OnboardingDescriptorSummary {
   requiredSettings: string[]
   /** Labels for `requiredSettings` (falls back to a humanised key). */
   requiredSettingLabels?: Record<string, string>
+  /** Component type connections from this provider become; defaults to the page's `componentType`. */
+  componentType?: string
 }
 
 /** `aws_account_id` → "Aws account id" — the fallback label for an up-front setting. */
@@ -255,6 +263,7 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
   passwordUsernamePlaceholder = 'e.g. svc_veltrix',
   usernameOptionalForToken = true,
   onboarding,
+  onboardings,
   componentType,
 }) => {
   const { confirm } = useConfirmDialog()
@@ -295,13 +304,23 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
   const [onboardError, setOnboardError] = useState<string | null>(null)
   // A pending (polled) flow: the admin does a step elsewhere while we verify.
   const [pendingFlow, setPendingFlow] = useState<{ pending: OnboardPending; authorizeUrl: string } | null>(null)
+  // A connection the provider's redirect just brought us back with, whose
+  // deploy target still has to be registered once the descriptors are known.
+  const [returnedConnection, setReturnedConnection] = useState<{ connectionId: string; provider: string | null } | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  // The OAuth "Connect …" option is offered on every app. The descriptor is the
-  // `onboarding` prop when the page passes it, else self-fetched from
-  // /apps/enabled. When absent, the option renders disabled (this provider is
-  // credential-only — username/password or API token).
-  const [fetchedOnboarding, setFetchedOnboarding] = useState<OnboardingDescriptorSummary | null>(null)
-  const effectiveOnboarding = onboarding ?? fetchedOnboarding
+  // The "Connect …" option is offered on every app, one button per declared
+  // provider. The list is the `onboardings`/`onboarding` prop when the page
+  // passes one, else self-fetched from /apps/enabled. When empty, a disabled
+  // button says this app is credential-only (username/password or API token).
+  const [fetchedOnboardings, setFetchedOnboardings] = useState<OnboardingDescriptorSummary[]>([])
+  const effectiveOnboardings = useMemo(
+    () => onboardings ?? (onboarding ? [onboarding] : fetchedOnboardings),
+    [onboardings, onboarding, fetchedOnboardings],
+  )
+  // The provider whose dialog is open (or whose pending flow is running).
+  const [activeProvider, setActiveProvider] = useState<string | null>(null)
+  const effectiveOnboarding =
+    effectiveOnboardings.find((d) => d.provider === activeProvider) ?? effectiveOnboardings[0] ?? null
 
   const load = useCallback(async () => {
     setIsLoading(true)
@@ -325,25 +344,28 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
     void load()
   }, [load])
 
-  // Self-resolve the onboarding descriptor when the page didn't pass one.
+  // Self-resolve the onboarding descriptors when the page didn't pass any.
   useEffect(() => {
-    if (onboarding) return
+    if (onboarding || onboardings) return
     let cancelled = false
-    void fetchAppOnboarding(appId).then((d) => {
-      if (cancelled || !d) return
-      setFetchedOnboarding({
-        provider: d.provider,
-        label: d.label,
-        description: d.description,
-        brokered: d.brokered ?? false,
-        requiredSettings: d.requiredSettings ?? [],
-        requiredSettingLabels: d.requiredSettingLabels,
-      })
+    void fetchAppOnboardings(appId).then((list) => {
+      if (cancelled) return
+      setFetchedOnboardings(
+        list.map((d) => ({
+          provider: d.provider,
+          label: d.label,
+          description: d.description,
+          brokered: d.brokered ?? false,
+          requiredSettings: d.requiredSettings ?? [],
+          requiredSettingLabels: d.requiredSettingLabels,
+          componentType: d.componentType,
+        })),
+      )
     })
     return () => {
       cancelled = true
     }
-  }, [appId, onboarding])
+  }, [appId, onboarding, onboardings])
 
   // Surface the result of a completed onboarding redirect
   // (`…/connections?onboarded=ok|error`) and strip the params from the URL.
@@ -358,6 +380,8 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
           ? 'Connection created. One manual step remains — see the connection to finish setup.'
           : 'Connection created successfully.',
       )
+      const connectionId = params.get('connectionId')
+      if (connectionId) setReturnedConnection({ connectionId, provider: params.get('provider') })
     } else {
       setError(`Onboarding failed: ${params.get('reason') || 'unknown error'}`)
     }
@@ -365,11 +389,13 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
     params.delete('pending')
     params.delete('reason')
     params.delete('connectionId')
+    params.delete('provider')
     const qs = params.toString()
     window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`)
   }, [])
 
-  const openOnboard = () => {
+  const openOnboard = (provider: string) => {
+    setActiveProvider(provider)
     setOnboardName('')
     setOnboardEnvironmentId('')
     setOnboardSettings({})
@@ -397,6 +423,7 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
     setOnboardError(null)
     try {
       const { authorizeUrl, pending } = await startOnboarding(appId, {
+        provider: effectiveOnboarding.provider,
         environmentId: onboardEnvironmentId,
         connectionName: name,
         settings: onboardSettings,
@@ -421,14 +448,56 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
     }
   }
 
+  // An onboarded connection is only a credential until it is also a deploy
+  // target: register the component for it the same way a manual add does,
+  // typed per provider (`componentType` on the descriptor, else the page's).
+  const registerOnboardedComponent = useCallback(
+    async (credentialId: string, provider: string | null): Promise<string | null> => {
+      const descriptor = effectiveOnboardings.find((d) => d.provider === provider)
+      const type = descriptor?.componentType ?? componentType
+      if (!type) return null
+      try {
+        const tool = await resolveTool(appName)
+        if (!tool) return null
+        const credential = (await listCredentials(tool.id)).find((c) => c.id === credentialId)
+        if (!credential) return null
+        await ensureConnectionComponent({
+          componentType: type,
+          toolId: tool.id,
+          credentialId,
+          endpoint: credential.endpoint ?? '',
+          environmentId: credential.tags?.[0]?.id ?? '',
+        })
+        return null
+      } catch (e) {
+        return `Connection created, but registering its deploy target failed: ${(e as Error).message}`
+      }
+    },
+    [appName, componentType, effectiveOnboardings],
+  )
+
   const completion = useOnboardingCompletion(appId, pendingFlow?.pending ?? null, (done) => {
-    setNotice(
-      done.manualStepsPending
-        ? `Connection "${done.connectionName}" created. One manual step remains — see the connection to finish setup.`
-        : `Connection "${done.connectionName}" created successfully.`,
-    )
-    void load()
+    void registerOnboardedComponent(done.connectionId, activeProvider).then((problem) => {
+      setNotice(
+        problem ??
+          (done.manualStepsPending
+            ? `Connection "${done.connectionName}" created. One manual step remains — see the connection to finish setup.`
+            : `Connection "${done.connectionName}" created successfully.`),
+      )
+      void load()
+    })
   })
+
+  useEffect(() => {
+    if (!returnedConnection) return
+    if (!effectiveOnboardings.length && !componentType) return
+    const { connectionId, provider } = returnedConnection
+    setReturnedConnection(null)
+    void registerOnboardedComponent(connectionId, provider).then((problem) => {
+      if (problem) setNotice(problem)
+      void load()
+    })
+  }, [returnedConnection, effectiveOnboardings, componentType, registerOnboardedComponent, load])
 
   const openCreate = () => {
     setEditing(null)
@@ -734,10 +803,12 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
             <Button variant="secondary" size="sm" onClick={() => void load()} isLoading={isLoading}>
               Refresh
             </Button>
-            {effectiveOnboarding ? (
-              <Button variant="primary" size="sm" onClick={openOnboard}>
-                {effectiveOnboarding.label}
-              </Button>
+            {effectiveOnboardings.length ? (
+              effectiveOnboardings.map((d, index) => (
+                <Button key={d.provider} variant={index === 0 ? 'primary' : 'secondary'} size="sm" onClick={() => openOnboard(d.provider)}>
+                  {d.label}
+                </Button>
+              ))
             ) : (
               <Button
                 variant="secondary"
@@ -748,7 +819,7 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
                 Integrate via OAuth
               </Button>
             )}
-            <Button variant={effectiveOnboarding ? 'secondary' : 'primary'} size="sm" onClick={openCreate}>
+            <Button variant={effectiveOnboardings.length ? 'secondary' : 'primary'} size="sm" onClick={openCreate}>
               Add connection
             </Button>
           </div>

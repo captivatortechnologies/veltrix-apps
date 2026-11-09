@@ -63,8 +63,8 @@ export type { OperationResult } from './credentials'
 
 // Connection onboarding — the one-click "Connect …" flow (consent + broker).
 // Framework-free; uses `authFetch`.
-export { startOnboarding, completeOnboarding, getOnboardingStatus, revokeOnboarding, fetchAppOnboarding } from './onboarding'
-export type { OnboardPending, CompleteOnboardingResult } from './onboarding'
+export { startOnboarding, completeOnboarding, getOnboardingStatus, revokeOnboarding, fetchAppOnboarding, fetchAppOnboardings, onboardingsOf } from './onboarding'
+export type { OnboardPending, CompleteOnboardingResult, EnabledAppConnection } from './onboarding'
 export type {
   StartOnboardingInput,
   StartOnboardingResult,
