@@ -16,6 +16,7 @@ import { PlanGroup } from './planLines'
 // =============================================================================
 
 export interface ByolPlanModalProps {
+  blockedReason?: string | null
   isOpen: boolean
   onClose: () => void
   /** The computed plan, or null while it is still loading. */
@@ -178,6 +179,7 @@ const PlanBody: React.FC<{
  * plan has no add/change/destroy.
  */
 export const ByolPlanModal: React.FC<ByolPlanModalProps> = ({
+  blockedReason,
   isOpen,
   onClose,
   plan,
@@ -189,7 +191,7 @@ export const ByolPlanModal: React.FC<ByolPlanModalProps> = ({
   allowApplyWithoutChanges,
 }) => {
   const noChanges = !plan || !planHasChanges(plan.summary)
-  const applyDisabled = loading || applying || (noChanges && !allowApplyWithoutChanges)
+  const applyDisabled = !!blockedReason || loading || applying || (noChanges && !allowApplyWithoutChanges)
 
   return (
     <Modal
@@ -210,6 +212,7 @@ export const ByolPlanModal: React.FC<ByolPlanModalProps> = ({
         </>
       }
     >
+      {blockedReason && <p role="alert" style={{ color: tokens.danger }}>{blockedReason}</p>}
       <PlanBody plan={plan} loading={loading} error={error} allowApplyWithoutChanges={allowApplyWithoutChanges} />
     </Modal>
   )

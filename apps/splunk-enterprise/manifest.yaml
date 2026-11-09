@@ -1,6 +1,6 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: "1.21.6"
+version: "1.22.0"
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
@@ -284,3 +284,8 @@ events:
   - component:created
   - component:deleted
   - credential:updated
+  - deployment.status
+  - deployment.step
+  - resource.status
+  - provisioning.reconcile
+  - provisioning.destroy.requested

@@ -98,6 +98,7 @@ export type {
   AppWebhookContext,
   AppEventContext,
   AppRouteContext,
+  AppProvisioningContext,
   AppEventPublisher,
   PermissionEntry,
   PermissionCheckOptions,

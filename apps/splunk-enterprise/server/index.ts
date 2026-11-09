@@ -8,11 +8,12 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import type { AppRouteContext, AppEventPublisher } from '@veltrixsecops/app-sdk'
-import { buildByolResourcePlan, DEPLOYMENT_STEPS } from '../lib/byolTopology'
+import { buildByolResourcePlan } from '../lib/byolTopology'
 import { readByol } from '../lib/byolInput'
 import { buildByolPlan } from '../lib/byolPlanDiff'
-import { resolvePlanNetwork, reserveDeployNetwork, NetworkAllocationConflictError } from '../lib/byolNetwork'
+import { resolvePlanNetwork, deriveProviderCode } from '../lib/byolNetwork'
 import * as store from '../lib/db'
+import { requestOperation, deleteRecord, atomic, lockInfrastructure, assertIdle, lifecycleError } from '../lib/byolLifecycle'
 import { collectForDate } from '../lib/usage/collector'
 import {
   packageKey,
@@ -44,13 +45,6 @@ function customerShortNameOf(request: FastifyRequest): string | null {
 function userOf(request: FastifyRequest): string | null {
   return (request as any).user?.id ?? null
 }
-
-/** Ordered steps a destroy run advances through (mirror of the deploy steps). */
-const DESTROY_STEPS: Array<{ key: string; title: string; detail: string }> = [
-  { key: 'plan', title: 'Teardown planned', detail: 'Destroy requested; resources marked for decommission.' },
-  { key: 'drain', title: 'Draining & decommissioning', detail: 'Stopping services and removing compute, storage and network.' },
-  { key: 'done', title: 'Resources destroyed', detail: 'All resources for this environment have been removed.' },
-]
 
 /** Parse a usage window (defaults to the last 30 days). */
 function parseUsageWindow(query: unknown): { from: Date; to: Date } {
@@ -166,10 +160,16 @@ export default async function registerRoutes(
       const { data, error } = readByol(request.body)
       if (error) return reply.status(400).send({ error })
 
-      const existing = await store.getByol(db, id, customerId)
-      if (!existing) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
-
-      const updated = await store.updateByol(db, id, data as unknown as store.ByolInput)
+      const updated = await atomic(db, async tx => {
+        const row = await lockInfrastructure(tx, id, customerId)
+        if (!row) throw lifecycleError('BYOL infrastructure not found', 404)
+        assertIdle(row)
+        // A live or partially applied stack retains its cloud identity until teardown.
+        if (row.applied_configuration || !['not_started', 'deprovisioned'].includes(row.status)) {
+          throw lifecycleError('Destroy infrastructure before editing its topology or deployment target.')
+        }
+        return store.updateByol(tx, id, data as unknown as store.ByolInput)
+      })
       reply.send(updated)
     },
   })
@@ -181,20 +181,15 @@ export default async function registerRoutes(
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
       const { id } = request.params as { id: string }
 
-      const existing = await store.getByol(db, id, customerId)
-      if (!existing) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
-
-      await store.deleteByol(db, id)
-      await emit(events, 'infrastructure.deleted', { infrastructureId: id, customerId })
+      await deleteRecord(ctx, customerId, id)
       reply.status(204).send()
     },
   })
 
-  // Lifecycle transitions. No real cloud orchestration exists for BYOL in the
-  // legacy platform, so these routes only record the DESIRED state on the
-  // record (start/restart -> running, stop -> stopped). Real provisioning is
-  // out of scope; the platform/UI reflect this status.
-  const registerLifecycle = (action: 'start' | 'stop' | 'restart', nextStatus: string) =>
+  // start/stop/restart used to flip the record's status without touching any
+  // cloud resource. The record must never claim a state the cloud is not in, so
+  // these answer 501 until a worker-backed implementation exists.
+  for (const action of ['start', 'stop', 'restart'] as const) {
     fastify.post(`/byol/:id/${action}`, {
       preHandler: [hasPermission('byol', 'write')],
       handler: async (request: FastifyRequest, reply: FastifyReply) => {
@@ -205,14 +200,10 @@ export default async function registerRoutes(
         const existing = await store.getByol(db, id, customerId)
         if (!existing) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
 
-        const updated = await store.setByolStatus(db, id, nextStatus)
-        reply.send(updated)
+        return reply.status(501).send({ error: 'This cloud lifecycle action is not implemented. Use Provision or Destroy; changing a record cannot start or stop cloud instances.' })
       },
     })
-
-  registerLifecycle('start', 'running')
-  registerLifecycle('stop', 'stopped')
-  registerLifecycle('restart', 'running')
+  }
 
   // --- BYOL end-to-end deployment (resource plan + run tracking) ---
   //
@@ -259,109 +250,37 @@ export default async function registerRoutes(
     },
   })
 
-  fastify.post('/byol/:id/deploy', {
-    preHandler: [hasPermission('byol', 'write')],
+  for (const action of ['deploy', 'destroy'] as const) {
+    fastify.post(`/byol/:id/${action}`, {
+      preHandler: [hasPermission('byol', 'write')],
+      handler: async (request: FastifyRequest, reply: FastifyReply) => {
+        const customerId = customerOf(request)
+        if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+        const { id } = request.params as { id: string }
+        const result = await requestOperation(ctx, customerId, id, action, userOf(request), (request as any).user?.email)
+        reply.status(202).send(result)
+      },
+    })
+  }
+
+  fastify.get('/byol/:id/readiness', {
+    preHandler: [hasPermission('byol', 'read')],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       const customerId = customerOf(request)
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
-      const { id } = request.params as { id: string }
-
-      const infra = await store.getByol(db, id, customerId)
+      const infra = await store.getByol(db, (request.params as { id: string }).id, customerId)
       if (!infra) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
-
-      const plan = buildByolResourcePlan(topologyInputFor(infra))
-
-      // Atomically reserve the stack's subnet + derive the tenant/cost tags
-      // before seeding, so both the persisted rows and the emitted event carry
-      // them. A subnet collision (the peeked block was taken between Plan and
-      // Apply) surfaces as a 409 so the modal re-plans; other allocator errors
-      // degrade to a tag-only result (the modeled apply still proceeds).
-      let deployNet
       try {
-        deployNet = await reserveDeployNetwork(infra, {
-          customerId,
-          appId: ctx.appId,
-          infrastructureId: id,
-          customerShortName: customerShortNameOf(request),
-        })
-      } catch (err) {
-        if (err instanceof NetworkAllocationConflictError) {
-          return reply.status(409).send({ error: 'Subnet allocation conflict — please re-plan and try again.' })
-        }
-        throw err
+        if (!ctx.provisioning) throw lifecycleError('Platform provisioning services are unavailable.', 503)
+        if (['provisioning', 'destroying'].includes(infra.status)) throw lifecycleError('An operation is already in progress.')
+        const provider = deriveProviderCode(infra)
+        if (!provider || !infra.region) throw lifecycleError('Select a cloud provider and region.', 400)
+        if (infra.networkMode === 'byoc' && !infra.cloudAccountConnectionId) throw lifecycleError('Select a verified cloud account for BYOC.', 400)
+        await ctx.provisioning.assertAllowed({ provider, cloudAccountConnectionId: infra.cloudAccountConnectionId })
+        reply.send({ allowed: true })
+      } catch (error) {
+        reply.send({ allowed: false, statusCode: (error as any).statusCode ?? 503, reason: (error as Error).message })
       }
-
-      const resources = await store.seedResources(db, id, customerId, plan)
-      // Stamp the allocated CIDR onto the foundation/network row so the console +
-      // provisioning worker see the exact subnet this stack was given.
-      if (deployNet.network) {
-        await store.setResourceExternalRef(db, id, 'foundation/network', deployNet.network.subnetCidr)
-      }
-      const deployment = await store.createDeployment(db, id, 'deploy', DEPLOYMENT_STEPS, userOf(request))
-      const updated = await store.setByolStatus(db, id, 'provisioning')
-
-      // Resolve the selected Splunk version (system or tenant-owned catalog entry)
-      // to its installer reference — an https:// URL or an s3://bucket/key URI
-      // (an uploaded package). Omitted when no version is selected or the
-      // resolved version has no download URL; the worker then uses its own
-      // default installer/version.
-      let splunkDownloadUrl: string | undefined
-      if (updated.versionId) {
-        const version = await store.getReadableVersion(db, updated.versionId, customerId)
-        if (version?.downloadUrl) splunkDownloadUrl = version.downloadUrl
-      }
-
-      await emit(events, 'infrastructure.deploy.requested', {
-        infrastructureId: id,
-        infrastructure: updated,
-        plan,
-        customerId,
-        // Deployment target for the worker's resolveProvider (hosted vs BYOC).
-        networkMode: updated.networkMode,
-        dnsMode: updated.dnsMode,
-        cloudAccountConnectionId: updated.cloudAccountConnectionId,
-        // The initiating admin — the activation hook emails them the one-time
-        // link when the environment is ready (see hooks/onEvent + lib/activation).
-        adminEmail: (request as any).user?.email ?? null,
-        // Tenant/cost-allocation tags + the reserved subnet, derived at Apply time.
-        tags: deployNet.tags,
-        ...(deployNet.network ? { network: deployNet.network } : {}),
-        ...(splunkDownloadUrl ? { splunkDownloadUrl } : {}),
-      })
-      reply.status(202).send({ infrastructure: updated, deployment, resources })
-    },
-  })
-
-  fastify.post('/byol/:id/destroy', {
-    preHandler: [hasPermission('byol', 'write')],
-    handler: async (request: FastifyRequest, reply: FastifyReply) => {
-      const customerId = customerOf(request)
-      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
-      const { id } = request.params as { id: string }
-
-      const infra = await store.getByol(db, id, customerId)
-      if (!infra) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
-
-      // tofu destroy still renders the config (validation + data sources + provider),
-      // so the destroy event must carry the SAME deploy config — plan, network mode,
-      // account, tags — or the worker re-renders an empty shared stack and fails.
-      const plan = buildByolResourcePlan(topologyInputFor(infra))
-      const destroyNet = await resolvePlanNetwork(infra, customerId, ctx.appId, customerShortNameOf(request))
-
-      const deployment = await store.createDeployment(db, id, 'destroy', DESTROY_STEPS, userOf(request))
-      const updated = await store.setByolStatus(db, id, 'destroying')
-      await emit(events, 'infrastructure.destroy.requested', {
-        infrastructureId: id,
-        infrastructure: updated,
-        plan,
-        customerId,
-        networkMode: updated.networkMode,
-        dnsMode: updated.dnsMode,
-        cloudAccountConnectionId: updated.cloudAccountConnectionId,
-        tags: destroyNet.tags,
-        ...(destroyNet.network ? { network: destroyNet.network } : {}),
-      })
-      reply.status(202).send({ infrastructure: updated, deployment })
     },
   })
 

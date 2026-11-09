@@ -1,5 +1,26 @@
 # Changelog
 
+## 3.10.0 — 2026-11-08
+
+### `AppProvisioningContext` and `PlatformDatabaseClient.transaction`
+
+Apps that provision cloud infrastructure get two host seams. `ctx.provisioning`
+(on route and event contexts) exposes `assertAllowed`, `reserveNetwork`,
+`lookupNetwork` and `releaseNetwork`, so an app never reaches billing or the
+network allocator directly. `db.transaction(work)` runs app SQL atomically under
+the app's own permissions; it is optional because older hosts lack it, so guard
+on it and fail with 503 rather than run a lifecycle step non-atomically.
+
+`AppEventContext` now carries `customerId`, `events` and `provisioning` so an
+event hook can perform the same operations as a route.
+
+### BYOL console: readiness gate and one-operation-at-a-time
+
+The Plan modal calls `GET <apiBase>/:id/readiness` when it opens and disables
+Apply with the returned reason when the app says no. A 404 means the app has no
+gate. Deploy, Re-provision, Edit, Destroy and Delete are disabled while a run is
+in flight; Stop and Restart are disabled until an app implements them.
+
 ## 3.9.1 — 2026-10-03
 
 Bundled Connections and BYOL pages delegate platform API calls to the host's

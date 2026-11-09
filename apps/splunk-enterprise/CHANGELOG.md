@@ -3,6 +3,38 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.22.0 — 2026-11-08
+
+### Changed — BYOL provisioning is a durable, single-writer lifecycle
+
+Deploy and Destroy now run inside one database transaction that locks the
+infrastructure row, so two requests cannot open overlapping runs. The run's
+command is persisted before it is published; a broker outage leaves it
+`running` with `dispatchPending: true`, and the host's per-minute
+`provisioning.reconcile` event re-dispatches anything undelivered for more
+than five minutes. Status, step and resource events are honoured only when
+they carry the run id the record is waiting on (`active_deployment_id`), so a
+late message from an older run can no longer flip a live environment.
+
+Destroy re-emits the configuration the stack was applied with
+(`applied_configuration`) rather than a freshly derived preview, so teardown
+renders the same provider, account and subnet. A confirmed teardown clears
+resource references, completes the run and releases the subnet reservation;
+a failed one keeps them, and the record cannot be deleted until a destroy has
+succeeded and network cleanup is done. Editing topology or deployment target
+is refused while a stack is applied.
+
+New `GET /byol/:id/readiness` reports whether an Apply may start (billing,
+cloud account, provider services); the console checks it when the Plan modal
+opens and disables Apply with the reason. `start`, `stop` and `restart` answer
+501 instead of rewriting the record's status without touching the cloud.
+GitHub deployment webhooks are no longer trusted as a provisioning signal.
+
+Migration `015_provisioning_lifecycle.sql` adds `active_deployment_id`,
+`applied_configuration`, `command_payload`, `dispatched_at` and tenant
+columns on runs and steps. Requires a host that provides
+`db.transaction` and `ctx.provisioning` (SDK 3.10.0).
+
 ## 1.21.6 — 2026-10-03
 
 ### Fixed — Connections and Access Servers

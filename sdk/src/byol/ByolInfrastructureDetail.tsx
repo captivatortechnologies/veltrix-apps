@@ -7,6 +7,7 @@ import {
   getResources,
   getDeployments,
   getPlan,
+  getReadiness,
   deployInfra,
   destroyInfra,
   lifecycleInfra,
@@ -130,6 +131,7 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
   const [planLoading, setPlanLoading] = useState(false)
   const [planError, setPlanError] = useState<string | null>(null)
   const [applying, setApplying] = useState(false)
+  const [applyBlocked, setApplyBlocked] = useState<string | null>(null)
 
   // --- Destroy plan modal state ---
   // Mirrors the Plan → Apply flow above: "Destroy infrastructure" opens a modal
@@ -232,8 +234,11 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
     setPlan(null)
     setPlanError(null)
     setPlanLoading(true)
-    getPlan(apiBase, id)
-      .then((p) => setPlan(p))
+    setApplyBlocked('Checking provisioning readiness…')
+    Promise.all([getPlan(apiBase, id), getReadiness(apiBase, id)]).then(([p, readiness]) => {
+      setPlan(p)
+      setApplyBlocked(readiness.allowed ? null : readiness.reason ?? 'Provisioning is unavailable')
+    })
       .catch((e) => setPlanError((e as Error).message))
       .finally(() => setPlanLoading(false))
   }, [apiBase, id])
@@ -244,6 +249,7 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
   }, [applying])
 
   const onApply = useCallback(async () => {
+    if (applying || applyBlocked) return
     setApplying(true)
     setPlanError(null)
     try {
@@ -256,7 +262,7 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
     } finally {
       setApplying(false)
     }
-  }, [apiBase, id, refresh])
+  }, [apiBase, id, refresh, applying, applyBlocked])
 
   // Destroy is a two-phase flow, mirroring Deploy: open the destroy-plan modal
   // (a fresh resource fetch so the preview reflects reality even if `resources`
@@ -341,11 +347,14 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
 
   const provider = infra.hosting_type || (infra.cloudProviderId ? 'Cloud' : SELF_HOSTED_LABEL)
 
+  // One operation at a time: no edits, deletes or new runs while a run is in flight.
+  const locked = busy || applying || destroying || provisioning
+
   const primaryAction = (() => {
-    if (notStarted) return <Button variant="primary" size="sm" onClick={openPlan} disabled={busy}>Deploy environment</Button>
-    if (deprovisioned) return <Button variant="primary" size="sm" onClick={openPlan} disabled={busy}>Re-provision</Button>
-    if (failedDestroy) return <Button variant="danger" size="sm" onClick={openDestroy} disabled={busy}>Retry Destroy</Button>
-    if (failed) return <Button variant="primary" size="sm" onClick={openPlan} disabled={busy}>Retry deployment</Button>
+    if (notStarted) return <Button variant="primary" size="sm" onClick={openPlan} disabled={locked}>Deploy environment</Button>
+    if (deprovisioned) return <Button variant="primary" size="sm" onClick={openPlan} disabled={locked}>Re-provision</Button>
+    if (failedDestroy) return <Button variant="danger" size="sm" onClick={openDestroy} disabled={locked}>Retry Destroy</Button>
+    if (failed) return <Button variant="primary" size="sm" onClick={openPlan} disabled={locked}>Retry deployment</Button>
     if (provisioning) return <Button variant="primary" size="sm" onClick={() => setSection('activity')}>View progress</Button>
     return null
   })()
@@ -366,7 +375,7 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
         return (
           <SettingsTab
             infra={infra}
-            busy={busy}
+            busy={locked}
             topology={topo}
             onEdit={() => onEdit(infra)}
             onDestroy={openDestroy}
@@ -421,11 +430,11 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               {running ? (
                 <>
-                  <Button variant="ghost" size="sm" onClick={() => onLifecycle('stop')} disabled={busy}>Stop</Button>
-                  <Button variant="ghost" size="sm" onClick={() => onLifecycle('restart')} disabled={busy}>Restart</Button>
+                  <Button title="Cloud stop is not available" variant="ghost" size="sm" onClick={() => onLifecycle('stop')} disabled={true}>Stop</Button>
+                  <Button variant="ghost" size="sm" onClick={() => onLifecycle('restart')} disabled={true}>Restart</Button>
                 </>
               ) : null}
-              <Button variant="ghost" size="sm" onClick={() => onEdit(infra)} disabled={busy}>Edit topology</Button>
+              <Button variant="ghost" size="sm" onClick={() => onEdit(infra)} disabled={locked}>Edit topology</Button>
               <Button variant="ghost" size="sm" onClick={() => void refresh()} disabled={busy}>Refresh</Button>
             </div>
           </div>
@@ -529,9 +538,10 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
         loading={planLoading}
         error={planError}
         applying={applying}
+        blockedReason={applyBlocked}
         onApply={onApply}
         infraName={infra.name}
-        allowApplyWithoutChanges={infra.status === 'failed' || infra.status === 'error' || infra.status === 'not_started'}
+        allowApplyWithoutChanges={infra.status === 'failed' || infra.status === 'error' || infra.status === 'not_started' || infra.status === 'deprovisioned'}
       />
 
       <DestroyPlanModal

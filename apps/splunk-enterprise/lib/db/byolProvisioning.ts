@@ -110,7 +110,7 @@ export async function seedResources(
   const keys = plan.map((p) => p.planKey)
   // Drop resources that are no longer part of the plan.
   await db.$executeRawUnsafe(
-    'DELETE FROM splunk_byol_resource WHERE infrastructure_id = $1::uuid AND NOT (plan_key = ANY($2::text[]))',
+    "UPDATE splunk_byol_resource SET message = 'Pending removal', updated_at = now() WHERE infrastructure_id = $1::uuid AND NOT (plan_key = ANY($2::text[]))",
     infrastructureId,
     keys,
   )
@@ -193,7 +193,7 @@ export async function setAllResourceStatuses(
   status: string,
 ): Promise<void> {
   await db.$executeRawUnsafe(
-    'UPDATE splunk_byol_resource SET status = $2, updated_at = now() WHERE infrastructure_id = $1::uuid',
+    "UPDATE splunk_byol_resource SET status = $2, external_ref = CASE WHEN $2 = 'not_started' THEN NULL ELSE external_ref END, message = NULL, updated_at = now() WHERE infrastructure_id = $1::uuid",
     infrastructureId,
     status,
   )
@@ -274,8 +274,8 @@ export async function createDeployment(
   initiatedByUserId?: string | null,
 ): Promise<ByolDeploymentDto> {
   const rows = await db.$queryRawUnsafe<Row[]>(
-    `INSERT INTO splunk_byol_deployment (infrastructure_id, action, status, initiated_by_user_id)
-     VALUES ($1::uuid, $2, 'running', $3::uuid)
+    `INSERT INTO splunk_byol_deployment (infrastructure_id, action, status, initiated_by_user_id, customer_id)
+     SELECT $1::uuid, $2, 'running', $3::uuid, customer_id FROM splunk_byol_infrastructure WHERE id = $1::uuid
      RETURNING *`,
     infrastructureId,
     action,
@@ -290,8 +290,8 @@ export async function createDeployment(
     const completedAt = i === 0 ? 'now()' : 'NULL'
     await db.$executeRawUnsafe(
       `INSERT INTO splunk_byol_deployment_step
-         (deployment_id, step_order, step_key, title, status, detail, started_at, completed_at)
-       VALUES ($1::uuid, $2, $3, $4, $5, $6, ${startedAt}, ${completedAt})
+         (deployment_id, step_order, step_key, title, status, detail, started_at, completed_at, customer_id)
+       SELECT $1::uuid, $2, $3, $4, $5, $6, ${startedAt}, ${completedAt}, customer_id FROM splunk_byol_deployment WHERE id = $1::uuid
        ON CONFLICT (deployment_id, step_key) DO NOTHING`,
       deployment.id,
       i,
@@ -319,7 +319,7 @@ export async function listDeployments(
   infrastructureId: string,
 ): Promise<ByolDeploymentDto[]> {
   const rows = await db.$queryRawUnsafe<Row[]>(
-    'SELECT * FROM splunk_byol_deployment WHERE infrastructure_id = $1::uuid ORDER BY started_at DESC',
+    'SELECT * FROM splunk_byol_deployment WHERE infrastructure_id = $1::uuid ORDER BY started_at DESC, id DESC',
     infrastructureId,
   )
   return Promise.all(rows.map((r) => attachSteps(db, mapDeployment(r))))
@@ -331,7 +331,7 @@ export async function getLatestDeployment(
   infrastructureId: string,
 ): Promise<ByolDeploymentDto | null> {
   const rows = await db.$queryRawUnsafe<Row[]>(
-    'SELECT * FROM splunk_byol_deployment WHERE infrastructure_id = $1::uuid ORDER BY started_at DESC LIMIT 1',
+    'SELECT * FROM splunk_byol_deployment WHERE infrastructure_id = $1::uuid ORDER BY started_at DESC, id DESC LIMIT 1',
     infrastructureId,
   )
   return rows[0] ? attachSteps(db, mapDeployment(rows[0])) : null
@@ -350,7 +350,7 @@ export async function advanceStep(
   const affected = await db.$executeRawUnsafe(
     `UPDATE splunk_byol_deployment_step
        SET status = $3, logs = COALESCE($4, logs), updated_at = now()${setStarted}${setCompleted}
-     WHERE deployment_id = $1::uuid AND step_key = $2`,
+     WHERE deployment_id = $1::uuid AND step_key = $2 AND (status NOT IN ('done', 'failed') OR status = $3)`,
     deploymentId,
     stepKey,
     status,

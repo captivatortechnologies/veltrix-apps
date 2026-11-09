@@ -42,6 +42,10 @@ const RUNNING: ByolInfrastructure = {
   region: 'us-east-1',
 }
 
+// Only a torn-down (or never-deployed) record may be deleted; a live one must be
+// destroyed first, and the server refuses otherwise.
+const DEPROVISIONED: ByolInfrastructure = { ...RUNNING, status: 'deprovisioned' }
+
 const RESOURCES: ByolResource[] = [
   {
     id: 'r1',
@@ -84,7 +88,7 @@ function uninstallHost() {
 }
 
 /** Routes GET (infra/resources/deployments) vs the destroy POST / delete DELETE, recording every call. */
-function stubFetch(calls: FetchCall[], resources: ByolResource[] = []) {
+function stubFetch(calls: FetchCall[], resources: ByolResource[] = [], infra: ByolInfrastructure = RUNNING) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: string, init?: RequestInit) => {
@@ -99,7 +103,7 @@ function stubFetch(calls: FetchCall[], resources: ByolResource[] = []) {
       }
       if (url.endsWith('/resources')) return { ok: true, status: 200, json: async () => resources }
       if (url.endsWith('/deployments')) return { ok: true, status: 200, json: async () => [] }
-      return { ok: true, status: 200, json: async () => RUNNING }
+      return { ok: true, status: 200, json: async () => infra }
     }) as unknown as typeof fetch,
   )
 }
@@ -228,12 +232,27 @@ describe('Danger zone — Destroy / Delete confirmation', () => {
     expect(windowConfirmSpy).not.toHaveBeenCalled()
   })
 
-  it('Delete: asks for confirmation with a danger variant, and only DELETEs the record when confirmed', async () => {
+  it('Delete: is disabled while the environment is live — destroy comes first', async () => {
     const calls: FetchCall[] = []
     stubFetch(calls)
-    const confirm = installFakeHostWithConfirm(async () => true)
+    installFakeHostWithConfirm(async () => true)
 
     const { onDeleted } = await renderOnSettings()
+    expect(screen.getByText('Delete record').closest('button')).toHaveProperty('disabled', true)
+    expect(screen.getByText('Destroy infrastructure successfully before deleting its record.')).toBeTruthy()
+    fireEvent.click(screen.getByText('Delete record'))
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+    expect(onDeleted).not.toHaveBeenCalled()
+  })
+
+  it('Delete: asks for confirmation with a danger variant, and only DELETEs the record when confirmed', async () => {
+    const calls: FetchCall[] = []
+    stubFetch(calls, [], DEPROVISIONED)
+    const confirm = installFakeHostWithConfirm(async () => true)
+
+    const { onDeleted } = await renderOnSettings({ initialInfra: DEPROVISIONED })
     fireEvent.click(screen.getByText('Delete record'))
 
     await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1))
@@ -250,10 +269,10 @@ describe('Danger zone — Destroy / Delete confirmation', () => {
 
   it('Delete: does NOT delete the record when the user cancels the confirmation', async () => {
     const calls: FetchCall[] = []
-    stubFetch(calls)
+    stubFetch(calls, [], DEPROVISIONED)
     installFakeHostWithConfirm(async () => false)
 
-    const { onDeleted } = await renderOnSettings()
+    const { onDeleted } = await renderOnSettings({ initialInfra: DEPROVISIONED })
     fireEvent.click(screen.getByText('Delete record'))
 
     await new Promise((resolve) => setTimeout(resolve, 0))
@@ -263,10 +282,10 @@ describe('Danger zone — Destroy / Delete confirmation', () => {
 
   it('Delete: fails closed outside the platform — no host confirmation dialog means Delete never proceeds', async () => {
     const calls: FetchCall[] = []
-    stubFetch(calls)
+    stubFetch(calls, [], DEPROVISIONED)
     // No fake host installed — useConfirmDialog() resolves to the fail-closed fallback.
 
-    await renderOnSettings()
+    await renderOnSettings({ initialInfra: DEPROVISIONED })
     fireEvent.click(screen.getByText('Delete record'))
 
     await new Promise((resolve) => setTimeout(resolve, 0))

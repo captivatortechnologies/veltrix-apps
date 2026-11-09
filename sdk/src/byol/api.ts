@@ -54,6 +54,25 @@ export function getPlan(apiBase: string, id: string): Promise<ByolPlan> {
   return authFetch(`${apiBase}/${id}/plan`).then((r) => json<ByolPlan>(r))
 }
 
+export interface ByolReadiness {
+  allowed: boolean
+  statusCode?: number
+  reason?: string
+}
+
+/**
+ * Ask the app whether an Apply may start (billing, cloud account, provider
+ * services). An app that exposes no readiness route answers 404, which means
+ * it has no gate — Apply proceeds. Any other failure blocks Apply, because an
+ * unverifiable gate must not be treated as open.
+ */
+export async function getReadiness(apiBase: string, id: string): Promise<ByolReadiness> {
+  const res = await authFetch(`${apiBase}/${id}/readiness`)
+  if (res.status === 404) return { allowed: true }
+  if (!res.ok) return { allowed: false, statusCode: res.status, reason: 'Unable to verify provisioning readiness' }
+  return json<ByolReadiness>(res)
+}
+
 /** Request an end-to-end deploy. Returns the updated infra + the new run. */
 export function deployInfra(
   apiBase: string,

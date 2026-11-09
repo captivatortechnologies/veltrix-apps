@@ -40,7 +40,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   onDelete,
 }) => {
   const provider = infra.hosting_type || (infra.cloudProviderId ? 'Cloud' : SELF_HOSTED_LABEL)
-  const neverDeployed = isNotStarted(infra.status)
+  const neverDeployed = infra.status === 'not_started'
+  const canDelete = neverDeployed || infra.status === 'deprovisioned'
   const tierSummary = topology.tiers.map((t, i) => `${tierValue(infra, t, i) ?? '—'} ${t.label}`).join(' · ')
 
   return (
@@ -48,7 +49,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       <Panel
         title="Topology"
         actions={
-          <Button variant="ghost" size="sm" onClick={onEdit} disabled={busy}>
+          <Button variant="ghost" size="sm" onClick={onEdit} disabled={busy || !canDelete}>
             Edit
           </Button>
         }
@@ -68,13 +69,14 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             ? 'This environment has not been deployed. Deleting removes the record and its plan.'
             : 'Destroy tears down every resource in the plan — instances, storage, network. This cannot be undone.'}
         </p>
+        {!canDelete && <p style={{ color: tokens.muted, fontSize: 13 }}>Destroy infrastructure successfully before deleting its record.</p>}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {!neverDeployed ? (
             <Button variant="ghost" size="sm" onClick={onDestroy} disabled={busy}>
               Destroy infrastructure
             </Button>
           ) : null}
-          <Button variant="danger" size="sm" onClick={onDelete} disabled={busy}>
+          <Button variant="danger" size="sm" onClick={onDelete} disabled={busy || !canDelete}>
             Delete record
           </Button>
         </div>

@@ -1,5 +1,6 @@
 import type { AppEventContext } from '@veltrixsecops/app-sdk'
 import * as store from '../lib/db'
+import { atomic, lockInfrastructure, dispatchCommand, requestOperation } from '../lib/byolLifecycle'
 import { issueActivation } from '../lib/activationFlow'
 
 /** Default platform console origin for activation links (overridable via the
@@ -78,72 +79,85 @@ const RESOURCE_STATUS_MAP: Record<string, string> = {
  *
  * Anything else is ignored.
  */
-export default async function onEvent({ db, topic, payload }: AppEventContext): Promise<void> {
+export default async function onEvent(ctx: AppEventContext): Promise<void> {
+  const { db, topic, payload, customerId } = ctx
+  if (!customerId) throw new Error('Provisioning events require a verified tenant')
+  if (topic === 'provisioning.reconcile') {
+    if (!ctx.events) throw new Error('Provisioning publisher unavailable')
+    const pending = await db.$queryRawUnsafe<any[]>(
+      "SELECT id FROM splunk_byol_deployment WHERE customer_id = $1::uuid AND status = 'running' AND command_payload IS NOT NULL AND (dispatched_at IS NULL OR dispatched_at < now() - interval '5 minutes') ORDER BY started_at LIMIT 50", customerId)
+    for (const row of pending) await dispatchCommand(db, ctx.events, row.id)
+    return
+  }
   const infrastructureId = payload?.infrastructureId
   if (!infrastructureId) return
-
-  if (topic === 'resource.status') {
-    const planKey = payload?.planKey
-    const rawStatus = payload?.status
-    if (!planKey || !rawStatus) return
-    const mapped = RESOURCE_STATUS_MAP[String(rawStatus).toLowerCase()] ?? String(rawStatus)
-    await store.setResourceStatus(db, infrastructureId, planKey, mapped, {
-      externalRef: payload?.externalRef ?? null,
-      message: payload?.message ?? null,
-    })
+  if (topic === 'provisioning.destroy.requested') {
+    // Only the host dispatches this scoped hook; it shares the API's atomic lifecycle.
+    const existing = await store.getByol(db, infrastructureId, customerId)
+    if (!existing || existing.status === 'deprovisioned' || existing.status === 'destroying') return
+    if (existing.status === 'provisioning') throw new Error('Wait for the current run before billing teardown')
+    if (!ctx.events) throw new Error('Provisioning publisher unavailable')
+    await requestOperation({ ...ctx, events: ctx.events }, customerId, infrastructureId, 'destroy')
     return
   }
-
-  if (topic === 'deployment.step') {
-    const stepKey = payload?.stepKey
-    const rawStatus = payload?.status
-    if (!stepKey || !rawStatus) return
-    const latest = await store.getLatestDeployment(db, infrastructureId)
-    if (!latest) return
-    const status = String(rawStatus).toLowerCase()
-    if (status === 'pending' || status === 'running' || status === 'done' || status === 'failed') {
-      await store.advanceStep(db, latest.id, stepKey, status, payload?.logs ?? null)
+  if (!payload?.deploymentId) {
+    console.warn('[splunk-enterprise] Ignoring uncorrelated provisioning status', { infrastructureId, topic })
+    return
+  }
+  let activate = false
+  let release = false
+  let activationPayload: any
+  await atomic(db, async tx => {
+    const row = await lockInfrastructure(tx, infrastructureId, customerId)
+    if (!row || row.active_deployment_id !== payload.deploymentId) return
+    const runs = await tx.$queryRawUnsafe<any[]>(
+      'SELECT * FROM splunk_byol_deployment WHERE id = $1::uuid AND infrastructure_id = $2::uuid', payload.deploymentId, infrastructureId)
+    const run = runs[0]
+    if (!run || (payload.action && payload.action !== run.action)) return
+    // Retry cleanup even if the terminal status was already committed.
+    if (run.status === 'succeeded' && run.action === 'destroy') { release = true; return }
+    if (run.status !== 'running') return
+    const raw = String(payload.status ?? '').toLowerCase()
+    if (topic === 'resource.status') {
+      const status = RESOURCE_STATUS_MAP[raw]
+      if (payload.planKey && status) await store.setResourceStatus(tx, infrastructureId, payload.planKey, status, {
+        externalRef: payload.externalRef, message: payload.message,
+      })
+      return
     }
-    return
+    if (topic === 'deployment.step') {
+      if (!payload.stepKey || !['pending', 'running', 'done', 'failed'].includes(raw)) return
+      // Bring-up phases are discovered by the worker; persist them in the same run.
+      await tx.$executeRawUnsafe(
+        `INSERT INTO splunk_byol_deployment_step (deployment_id, step_order, step_key, title, customer_id)
+         SELECT id, 100, $2, $2, customer_id FROM splunk_byol_deployment WHERE id = $1::uuid
+         ON CONFLICT (deployment_id, step_key) DO NOTHING`, run.id, payload.stepKey)
+      await store.advanceStep(tx, run.id, payload.stepKey, raw as any, payload.logs)
+      return
+    }
+    if (topic !== 'deployment.status' || !['completed', 'deprovisioned', 'failed', 'error'].includes(raw)) return
+    if (raw === 'deprovisioned' && run.action !== 'destroy') return
+    const failed = raw === 'failed' || raw === 'error'
+    const destroyed = !failed && run.action === 'destroy'
+    await store.setByolStatusIfExists(tx, infrastructureId, failed ? 'error' : destroyed ? 'deprovisioned' : 'active')
+    await store.reconcileTerminal(tx, infrastructureId, failed ? 'failed' : destroyed ? 'destroyed' : 'succeeded')
+    await store.setDeploymentStatus(tx, run.id, failed ? 'failed' : 'succeeded', payload.message)
+    if (!destroyed) await tx.$executeRawUnsafe(
+      'UPDATE splunk_byol_infrastructure SET active_deployment_id = NULL WHERE id = $1::uuid', infrastructureId)
+    if (!failed && !destroyed) {
+      const configuration = run.command_payload ?? row.applied_configuration
+      const keys = (configuration?.plan ?? []).map((r: any) => r.planKey)
+      await tx.$executeRawUnsafe('DELETE FROM splunk_byol_resource WHERE infrastructure_id = $1::uuid AND NOT (plan_key = ANY($2::text[]))', infrastructureId, keys)
+      activate = true
+      activationPayload = { ...configuration, ...payload }
+    }
+    release = destroyed
+  })
+  if (release) {
+    if (!ctx.provisioning) throw new Error('Network cleanup service unavailable')
+    await ctx.provisioning.releaseNetwork(infrastructureId)
+    await db.$executeRawUnsafe(
+      'UPDATE splunk_byol_infrastructure SET active_deployment_id = NULL, applied_configuration = NULL WHERE id = $1::uuid AND active_deployment_id = $2::uuid', infrastructureId, payload.deploymentId)
   }
-
-  if (topic !== 'deployment.status') return
-
-  const rawStatus = payload?.status
-  if (!rawStatus) return
-  const raw = String(rawStatus).toLowerCase()
-  const isFailure = raw === 'failed' || raw === 'error'
-
-  // A destroy terminal is ambiguous by status alone: the CI path (emit-status.mjs)
-  // publishes the same 'completed' for a successful deploy AND a successful destroy.
-  // Disambiguate via the latest run's action (plus the direct-apply worker's explicit
-  // 'deprovisioned') so a teardown NEVER maps to 'active', re-marks resources 'ready',
-  // or re-sends an activation email for infrastructure that was just torn down.
-  const latestRun = await store.getLatestDeployment(db, infrastructureId)
-  const isDestroy =
-    raw === 'deprovisioned' || payload?.action === 'destroy' || latestRun?.action === 'destroy'
-
-  const mapped = isDestroy
-    ? isFailure
-      ? 'error'
-      : 'deprovisioned'
-    : DEPLOY_STATUS_MAP[raw] ?? String(rawStatus)
-  const updated = await store.setByolStatusIfExists(db, infrastructureId, mapped)
-  if (!updated) {
-    console.warn(`[splunk-enterprise] onEvent: no BYOL infrastructure ${infrastructureId}; skipped`)
-    return
-  }
-
-  // Reconcile the persisted plan + run on terminal outcomes so the detail view
-  // stays coherent even from a single coarse worker signal.
-  if (isDestroy) {
-    await store.reconcileTerminal(db, infrastructureId, isFailure ? 'failed' : 'destroyed')
-    // No activation email on a teardown — the environment no longer exists.
-  } else if (mapped === 'active' || mapped === 'running') {
-    await store.reconcileTerminal(db, infrastructureId, 'succeeded')
-    // Environment is ready → hand the admin credential off via a one-time link.
-    await tryIssueActivation(db, infrastructureId, payload)
-  } else if (mapped === 'error' || mapped === 'failed') {
-    await store.reconcileTerminal(db, infrastructureId, 'failed')
-  }
+  if (activate) await tryIssueActivation(db, infrastructureId, activationPayload)
 }

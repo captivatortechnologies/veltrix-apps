@@ -249,6 +249,8 @@ export interface AppPermissionsApi {
  * runtime. It will be removed in the next major SDK version.
  */
 export interface PlatformDatabaseClient {
+  /** Atomic callback confined to the app's SQL permissions. Requires a current host. */
+  transaction?: <T>(work: (db: PlatformDatabaseClient) => Promise<T>) => Promise<T>
   /** Parameterised read against the app's own tables. */
   $queryRawUnsafe<T = unknown>(query: string, ...values: unknown[]): Promise<T>
   /** Parameterised write against the app's own tables. Returns rows affected. */
@@ -297,6 +299,9 @@ export interface AppWebhookContext {
 export interface AppEventContext {
   db: PlatformDatabaseClient
   appId: string
+  customerId?: string | null
+  events?: AppEventPublisher
+  provisioning?: AppProvisioningContext
   /** Event topic, e.g. 'deployment.status'. */
   topic: string
   /** Event payload. */
@@ -350,6 +355,7 @@ export interface AppRouteContext {
   db: PlatformDatabaseClient
   /** Publish events/messages from this app to the platform message bus. */
   events: AppEventPublisher
+  provisioning?: AppProvisioningContext
   /**
    * Returns a Fastify preHandler enforcing an app-scoped permission.
    * Typed `any` so the SDK does not depend on Fastify's hook types —
@@ -378,4 +384,11 @@ export interface AppRouteContext {
    * another tenant's credential.
    */
   resolveConnection: (customerId: string, credentialId: string) => Promise<ResolvedConnection | null>
+}
+
+export interface AppProvisioningContext {
+  assertAllowed(input: { cloudAccountConnectionId?: string | null; provider: string }): Promise<void>
+  reserveNetwork(input: { infrastructureId: string; provider: string; region: string }): Promise<{ allocationId: string; networkRef: string; subnetCidr: string }>
+  lookupNetwork(infrastructureId: string): Promise<{ allocationId: string; networkRef: string; subnetCidr: string } | null>
+  releaseNetwork(infrastructureId: string): Promise<void>
 }

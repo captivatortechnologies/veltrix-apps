@@ -47,14 +47,15 @@ const PLAN = [
 ] as any
 
 describe('seedResources', () => {
-  it('drops stale rows then upserts one row per plan item', async () => {
+  it('retains retiring rows then upserts one row per plan item', async () => {
     const db = new FakeDb()
     db.queue([]) // final listResources() SELECT
 
     await seedResources(db as any, 'infra-1', 'cust-1', PLAN)
 
-    const del = db.find(/DELETE FROM splunk_byol_resource/)
+    const del = db.find(/UPDATE splunk_byol_resource SET message = 'Pending removal'/)
     expect(del).toBeTruthy()
+    expect(db.find(/DELETE FROM splunk_byol_resource/)).toBeUndefined()
     // second param is the array of plan keys to keep
     expect(del?.params[1]).toEqual(['foundation/network', 'data/standalone'])
 
