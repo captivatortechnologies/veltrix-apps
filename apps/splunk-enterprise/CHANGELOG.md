@@ -3,6 +3,18 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.22.1 — 2026-11-09
+
+### Fixed — loads on a fresh platform database
+
+Migration `014_deployment_metadata_customer_scope.sql` adds a `customer_id`
+column (and index) to `splunk_deployment_metadata`, the one app table that
+carried neither a tenant column nor a foreign key to another app table. The
+platform's tenant-partition check refused to load the app on a database where
+its migrations had not already been applied; existing installations are
+unaffected beyond the additive column. The table is not written by the app
+today.
+
 ## 1.22.0 — 2026-11-08
 
 ### Fixed — colors on the Tailwind 4 host
