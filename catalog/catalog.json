@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-10-03T20:16:24.626Z",
+  "generatedAt": "2026-11-09T13:10:52.747Z",
   "apps": [
     {
       "appId": "akamai",
@@ -335,6 +335,25 @@
       "publishedAt": "2026-09-17T02:46:17.270Z",
       "releaseNotes": "## 0.3.1 — 2026-09-16\n\n### Fixed — drift no longer claims \"in sync\" from a run that could not look\n\n`driftDetect` returned `{ hasDrift: false, diffs: [] }` when it had no usable\ncredential, and again when the vendor refused the read. That is not \"I checked\nand found nothing\" — it is \"I never looked\". The platform cannot tell the\ndifference: it treats `hasDrift: false` as a positive assurance and resolves the\ncomponent's outstanding drift record with `drift_cleared`.\n\nSo a rotated credential, a de-scoped API user or a vendor maintenance window\nsilently wiped real drift on the next scheduled run, and the console showed a\nclean estate.\n\nThose paths now return `checked: false` (`DriftResult.checked`, SDK 3.9.0), on\nwhich the platform records nothing and clears nothing. Where a handler loops\nover several objects and skips the ones it could not read, the run reports\n`checked: false` too, rather than \"in sync\" from a partial view. A return that\ngenuinely established \"nothing is deployed, so there is no drift\" is unchanged.\n\n`veltrix validate` now rejects the bare form, so it cannot come back.",
       "releasedAt": "2026-09-16T00:00:00.000Z"
+    },
+    {
+      "appId": "cloud-governance",
+      "name": "Veltrix Cloud Governance",
+      "version": "0.2.0",
+      "vendor": "Veltrix",
+      "description": "Cloud governance policies as code. Author Cloud Custodian-compatible policies in a form (resource, filters, actions, enforcement), compile them through an admission compiler that refuses unsafe constructs and injects a resource cap, preview exactly which resources a run would touch, and only then enforce — every run correlated, capped and audited. Policies run in a sandboxed platform runner against your AWS accounts; this app never holds cloud credentials. Phase 0 is AWS, match preview, and enforcement of reversible and snapshot-backed actions under `auto`; `ask` and irreversible enforcement wait for the per-run approval gate.",
+      "category": "CLOUD",
+      "icon": "🛡",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJWZWx0cml4IENsb3VkIEdvdmVybmFuY2UiPgogIDxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgcng9IjE0IiBmaWxsPSIjMEYyQTNGIi8+CiAgPHBhdGggZD0iTTMyIDEwIEw1MCAxNyBWMzEgQzUwIDQyIDQyIDUwIDMyIDU0IEMyMiA1MCAxNCA0MiAxNCAzMSBWMTcgWiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMkRENEJGIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNMjIgMzMgQzIyIDI4IDI2IDI1IDMwIDI2IEMzMSAyMSAzOCAyMCA0MCAyNSBDNDQgMjUgNDYgMjkgNDQgMzIgQzQ2IDM0IDQ0IDM4IDQxIDM4IEgyNSBDMjIgMzggMjAgMzUgMjIgMzMgWiIgZmlsbD0iIzJERDRCRiIgb3BhY2l0eT0iMC45Ii8+CiAgPHBhdGggZD0iTTI3IDQyIEgzNyIgc3Ryb2tlPSIjRTZGRkZBIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloud-governance",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloud-governance-v0.2.0/cloud-governance.zip",
+      "sha256": "4c3cebaa01bc153499bf4abe331ecc1da947622d3c22b7172e75d624148fc210",
+      "sizeBytes": 226700,
+      "publishedAt": "2026-11-09T13:10:52.679Z",
+      "releaseNotes": "## 0.2.0 — 2026-11-09\n\n### Fixed — colors on the Tailwind 4 host\n\nTheme colors now read `rgb(var(--color-x-rgb, var(--color-x)))`, which\nrenders on hosts that ship bare RGB-triple tokens and on hosts that ship\nfull `rgb()` tokens (Veltrix Tailwind 4). Previously, on the new host,\nstatus dots, badges and panel colors fell back to defaults.\n\n### Added — schedules fire\n\nThe app now subscribes to the host's minute heartbeat\n(`governance.schedule.tick`) and fires its own schedules: a schedule stored\nwithout a due time is armed on its first tick, a due schedule is claimed\natomically and requests one run per registered account, and `next_run_at`\nmoves to the next UTC cron match. `auto` schedules request enforcement runs;\n`observe`, `notify` and (until the approval gate ships) `ask` schedules\nrequest previews. Deploying a schedule computes its first due time from the\ncron and keeps an armed due time when the cron is unchanged. Runs requested\nthis way carry `requestedBy: schedule:<policy>`.\n\nThe platform side of Phase 0 — `ctx.db` on pipeline handler contexts, the\nc7n runner worker, the credential broker and the heartbeat — shipped in the\nVeltrix repository, so deploy handlers and runs are no longer inert on an\nup-to-date host.",
+      "releasedAt": "2026-11-09T00:00:00.000Z"
     },
     {
       "appId": "cloudflare",
@@ -1486,7 +1505,7 @@
     {
       "appId": "splunk-cloud",
       "name": "Splunk Cloud Platform",
-      "version": "1.12.0",
+      "version": "1.12.1",
       "vendor": "Veltrix",
       "description": "Manage Splunk Cloud Platform configurations as code through the Admin Config Service (ACS) API. Includes index management, HTTP Event Collector (HEC) tokens, IPv4/IPv6 allow lists and outbound ports, and private + Splunkbase apps/add-ons (private apps are built to a .spl, vetted by AppInspect, and installed through ACS; Splunkbase apps are installed directly by catalog id — already vetted by Splunk). Roles now support an OPT-IN ACS-native transport (adminconfig/v2/roles) alongside the classic REST API (the unchanged default) — see the README \"Search-head targeting\" section before enabling it on a clustered stack. Users, SSO and token-auth settings remain on the Splunk Cloud Platform REST API on the stack's management port 8089 — see the README Coverage section for why.",
       "category": "SIEM",
@@ -1496,17 +1515,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.12.0/splunk-cloud.zip",
-      "sha256": "1410715bd793de7ef502b6a0b4508b201ef290aec22b4847c233a7f2938a579a",
-      "sizeBytes": 609143,
-      "publishedAt": "2026-08-06T02:31:35.596Z",
-      "releaseNotes": "## 1.12.0 — 2026-08-05\n\nDedicated design + build pass on the ACS-native identity migration the\n1.11.0 exhaustion pass deliberately deferred (see its \"Notes\" section below).\nResearch-first, grounded in Splunk's own `terraform-provider-scp` client\nsource (not just its docs) — see the README's new **Search-head targeting**\nsection for full citations.\n\n### Added\n- **Roles: opt-in ACS-native transport.** Each role item now carries a\n  **Transport** field — `REST` (the default; identical to pre-1.12.0\n  behavior) or `ACS` (`/adminconfig/v2/roles` — the same JWT this app already\n  requires for everything else, dropping the port-8089-open /\n  `search-api`-allow-list prerequisites for that role). See\n  `config-types/roles/acsRoles.ts` and `lib/acsIdentity.ts`.\n- **Search-head-cluster (SHC) targeting.** A new **Search Head Targets**\n  field (ACS transport only) lists search-head-cluster member instance ids\n  (e.g. `sh-i-0910d0dfdb9ed913a`) a role should be applied to. ACS role writes\n  are **not** replicated across SHC members the way this app's REST transport\n  already is (Splunk's own configuration replication) — declaring targets\n  here makes this app apply the role to each one explicitly, one write per\n  target. Splunk exposes no API to enumerate a stack's SHC members, so this\n  is a free-text field, not a live picker (confirmed by searching the entire\n  generated ACS OpenAPI client for any \"member\"/\"instance\"/\"search head\"\n  surface — none exists).\n- `driftDetect` and `healthCheck` now report per-search-head-target results\n  for an ACS-transport role with more than one declared target — a role\n  present on one cluster member and missing on another is now a visible,\n  attributable finding instead of an unchecked blind spot.\n- New shared transport module `lib/acsIdentity.ts` (SHC-targeting helpers,\n  generic ACS-identity CRUD) and `config-types/roles/acsRoles.ts` (the\n  ACS role schema/payload mapping) — see their file-header comments for the\n  full source trail.\n\n### Changed\n- `roles`' `rollbackData` shape is now transport- and target-aware\n  (`{ name, transport, targets: [...] }` instead of the old flat\n  `{ name, existed, prior }`). **Fully backward compatible**: `rollback.ts`\n  normalizes both shapes through `normalizeRoleRollbackEntry()`, so rolling\n  back a deployment made by the pre-1.12.0 code works exactly as before —\n  no data migration needed.\n- README: `roles` moves from a single-transport \"Managed (REST)\" listing to\n  documenting BOTH transports; the long-standing \"Future work\" ACS-identity-\n  migration item is resolved (for roles) and removed.\n\n### Potentially breaking (opt-in only — READ before switching an existing role to ACS)\n- **Default behavior is unchanged**: an existing canvas with no `transport`\n  field deploys exactly as it did in 1.11.0 and earlier (REST, whole\n  cluster). Nothing breaks by upgrading alone.\n- **Switching `transport` to `acs` on a role IS a real behavior change you\n  opt into**, not a transparent transport swap: ACS does not replicate to\n  other search-head-cluster members, and switching does NOT retroactively\n  move a role already created via REST — it only changes where FUTURE\n  deploys of that role land. On a clustered stack, deploying with `acs` and\n  an empty **Search Head Targets** list reaches exactly one search head\n  (whichever ACS's own default routes to), which most operators will not\n  expect coming from REST's whole-cluster behavior. `validate` warns loudly\n  (`untargeted_acs_write`) when this is the case; read the warning before\n  ignoring it.\n\n### Notes — `users` stays REST-only (evaluated, not skipped)\n- ACS's native `/adminconfig/v2/users` endpoint (also confirmed via\n  `terraform-provider-scp`) was evaluated for the same treatment and\n  deliberately NOT adopted this release: its schema has **no timezone\n  field**, and this type manages `tz` — a genuine feature gap, not a\n  transport nicety, and this app does not silently drop a declared field on\n  write anywhere else. Combined with the same SHC non-replication caveat\n  roles' ACS transport carries, and the fact that `authentication-tokens`\n  and `sso` stay REST-only regardless (no ACS equivalent exists for either),\n  migrating `users` would keep every REST prerequisite in place for a\n  typical deployment anyway — a materially smaller win than roles, for a\n  real regression. See the \"WHY THIS TYPE STAYS REST-ONLY\" note in\n  `config-types/users/validate.ts`. Revisit if ACS ever adds a timezone\n  attribute.",
-      "releasedAt": "2026-08-05T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.12.1/splunk-cloud.zip",
+      "sha256": "9eb1cd11dc39199a667c054aa4a0dd384a2c904fd1fdf56c31ab5709307425de",
+      "sizeBytes": 609562,
+      "publishedAt": "2026-11-09T13:10:52.728Z",
+      "releaseNotes": "## 1.12.1 — 2026-11-09\n\n### Fixed — colors on the Tailwind 4 host\n\nTheme colors now read `rgb(var(--color-x-rgb, var(--color-x)))`, which\nrenders on hosts that ship bare RGB-triple tokens and on hosts that ship\nfull `rgb()` tokens (Veltrix Tailwind 4). Previously, on the new host,\nstatus dots, badges and panel colors fell back to defaults.",
+      "releasedAt": "2026-11-09T00:00:00.000Z"
     },
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.21.6",
+      "version": "1.22.0",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, license pools, API access tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -1516,12 +1535,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.21.6/splunk-enterprise.zip",
-      "sha256": "dde9c124f43ef03e76cadb64106b55e08f70ca5322d14c1dd1be3f6590001b20",
-      "sizeBytes": 501634,
-      "publishedAt": "2026-10-03T20:16:24.607Z",
-      "releaseNotes": "## 1.21.6 — 2026-10-03\n\n### Fixed — Connections and Access Servers\n\nBundle SDK 3.9.1 so shared pages use the platform's typed host helpers for\ninventory, credentials, environments and connectivity providers. Connections\ncan load and save without sending forbidden platform routes through the scoped\napp fetch. Environment metadata and credential redaction remain intact.",
-      "releasedAt": "2026-10-03T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.22.0/splunk-enterprise.zip",
+      "sha256": "cf2798112665bd2190b5662b2ffaee9c20773d0a981e42cf7c2611412ed01860",
+      "sizeBytes": 509051,
+      "publishedAt": "2026-11-09T13:10:52.729Z",
+      "releaseNotes": "## 1.22.0 — 2026-11-08\n\n### Fixed — colors on the Tailwind 4 host\n\nTheme colors now read `rgb(var(--color-x-rgb, var(--color-x)))`, which\nrenders on hosts that ship bare RGB-triple tokens and on hosts that ship\nfull `rgb()` tokens (Veltrix Tailwind 4). Previously, on the new host,\nstatus dots, badges and panel colors fell back to defaults.\n\n### Changed — BYOL provisioning is a durable, single-writer lifecycle\n\nDeploy and Destroy now run inside one database transaction that locks the\ninfrastructure row, so two requests cannot open overlapping runs. The run's\ncommand is persisted before it is published; a broker outage leaves it\n`running` with `dispatchPending: true`, and the host's per-minute\n`provisioning.reconcile` event re-dispatches anything undelivered for more\nthan five minutes. Status, step and resource events are honoured only when\nthey carry the run id the record is waiting on (`active_deployment_id`), so a\nlate message from an older run can no longer flip a live environment.\n\nDestroy re-emits the configuration the stack was applied with\n(`applied_configuration`) rather than a freshly derived preview, so teardown\nrenders the same provider, account and subnet. A confirmed teardown clears\nresource references, completes the run and releases the subnet reservation;\na failed one keeps them, and the record cannot be deleted until a destroy has\nsucceeded and network cleanup is done. Editing topology or deployment target\nis refused while a stack is applied.\n\nNew `GET /byol/:id/readiness` reports whether an Apply may start (billing,\ncloud account, provider services); the console checks it when the Plan modal\nopens and disables Apply with the reason. `start`, `stop` and `restart` answer\n501 instead of rewriting the record's status without touching the cloud.\nGitHub deployment webhooks are no longer trusted as a provisioning signal.\n\nMigration `015_provisioning_lifecycle.sql` adds `active_deployment_id`,\n`applied_configuration`, `command_payload`, `dispatched_at` and tenant\ncolumns on runs and steps. Requires a host that provides\n`db.transaction` and `ctx.provisioning` (SDK 3.10.0).",
+      "releasedAt": "2026-11-08T00:00:00.000Z"
     },
     {
       "appId": "splunk-soar",
