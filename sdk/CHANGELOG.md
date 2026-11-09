@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.12.0 — 2026-11-09
+
+### `platform.cloudIdentities` on the manifest
+
+An app that needs the platform to hold a cloud identity on its behalf (a
+platform worker assumes customer roles with it; first use: the cloud-governance
+runner) declares the clouds in `manifest.platform.cloudIdentities`, e.g.
+`['aws']`. While such an app is installed, the platform shows platform admins a
+"Runner identity" setting for that cloud under Cloud Integrations › Settings;
+without one, the setting does not exist. The app never receives the credential.
+
 ## 3.11.0 — 2026-11-08
 
 ### Optional `db` on pipeline handler contexts

@@ -1,6 +1,6 @@
 id: cloud-governance
 name: Veltrix Cloud Governance
-version: "0.2.0"
+version: "0.2.1"
 vendor: Veltrix
 description: >
   Cloud governance policies as code. Author Cloud Custodian-compatible
@@ -19,6 +19,10 @@ icon: "🛡"
 
 platform:
   minVersion: "1.0.0"
+  # The platform runner assumes each customer's role with the platform's OWN
+  # AWS identity; declaring it here surfaces the platform-admin setting while
+  # this app is installed. This app never holds that credential.
+  cloudIdentities: [aws]
 
 # Original abstract mark (see assets/logo.svg). "Compatible with Cloud Custodian
 # policies" — Cloud Custodian is a Linux Foundation trademark and is not used in

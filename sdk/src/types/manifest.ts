@@ -33,6 +33,14 @@ export interface AppManifest {
 
   platform: {
     minVersion: string
+    /**
+     * Clouds for which the PLATFORM must hold its own identity on the app's
+     * behalf: a platform worker assumes customer roles with it. Declaring one
+     * makes the platform-admin "Runner identity" setting for that cloud appear
+     * while the app is installed; the app itself never sees the credential.
+     * Supported today: 'aws'.
+     */
+    cloudIdentities?: string[]
   }
 
   permissions: {

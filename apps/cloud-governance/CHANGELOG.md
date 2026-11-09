@@ -3,6 +3,17 @@
 All notable changes to the Veltrix Cloud Governance app are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.2.1 — 2026-11-09
+
+### Changed — declares the platform runner identity it needs
+
+The manifest now declares `platform.cloudIdentities: [aws]` (SDK 3.12.0). While
+this app is installed, platform admins see a "Runner identity" setting under
+Cloud Integrations › Settings where the platform's own AWS principal (host
+identity or a stored access key) is configured and verified. Runs that
+previously failed with "no valid AWS identity" succeed once it is set. The app
+itself still never holds a cloud credential.
+
 ## 0.2.0 — 2026-11-09
 
 ### Fixed — colors on the Tailwind 4 host
