@@ -1,6 +1,6 @@
 id: cloud-governance
 name: Veltrix Cloud Governance
-version: "0.2.1"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Cloud governance policies as code. Author Cloud Custodian-compatible
@@ -193,6 +193,36 @@ hooks:
 # that may hold cloud credentials.
 connectivity:
   testHandler: handlers/testConnection
+
+# One-click account connect (the platform's aws-assume-role adapter). The admin
+# gives the 12-digit account id; the platform mints an External ID, hands back a
+# pre-filled CloudFormation quick-create link (plus the equivalent aws iam
+# commands) and finishes the connection once it can assume the role. This app
+# still never sees a cloud credential: the stored connection is the role ARN,
+# the account id and the External ID the runner presents.
+connection:
+  onboarding:
+    provider: aws-assume-role
+    label: Connect AWS account
+    description: >-
+      Create an IAM role in your AWS account that trusts the Veltrix runner
+      with a generated External ID. Veltrix verifies the role and finishes the
+      connection for you; no key is ever entered or stored.
+    params:
+      requiredSettings: [aws_account_id]
+      roleName: VeltrixGovernance
+      managedPolicyArns:
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+
+settings:
+  - key: aws_account_id
+    type: string
+    label: AWS account id
+    description: >-
+      Pre-fills the account id when connecting an AWS account. Each connection
+      asks for its own account id; leave empty unless most connections target
+      one account.
+    required: false
 
 # Runner messages (see lib/runner/contract.ts) plus the host heartbeats: the
 # reconcile that re-dispatches persisted run commands the broker never

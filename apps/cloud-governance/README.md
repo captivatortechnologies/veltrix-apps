@@ -203,6 +203,29 @@ Same model as the Splunk BYOL provisioning lifecycle
 
 ## Setup
 
+### Quickest: Connect AWS account
+
+On the **Accounts** page click **Connect AWS account**, give the connection a
+name, pick the environment and enter the 12-digit account id. The platform
+(its `aws-assume-role` onboarding adapter, declared under
+`connection.onboarding` in the manifest) mints an External ID and shows:
+
+- a CloudFormation **quick-create** link, pre-filled with the role name
+  (`VeltrixGovernance`), the Veltrix runner principal, the External ID and
+  `ReadOnlyAccess` — available when the platform hosts the template
+  (`AWS_ONBOARDING_TEMPLATE_URL`; the document is served at
+  `/api/apps/connections/onboard/aws-assume-role/template`);
+- the equivalent `aws iam create-role` / `attach-role-policy` commands for the
+  CLI.
+
+The page polls the platform, which finishes the connection the moment it can
+assume the role with the External ID. The platform runner identity (Platform
+admin › Cloud integrations › Settings) must be configured first: it is the
+trust-policy principal. The stored connection is exactly the shape described
+in step 2 below, so everything else in this document applies unchanged.
+
+The steps below are the manual equivalent.
+
 ### 1. Create the IAM role in the AWS account
 
 Trust policy. Replace the principal with the Veltrix runner principal shown in

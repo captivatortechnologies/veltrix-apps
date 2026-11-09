@@ -3,6 +3,26 @@
 All notable changes to the Veltrix Cloud Governance app are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 — 2026-11-09
+
+### Added — "Connect AWS account" on the Accounts page (SDK 3.13.0)
+
+The manifest declares `connection.onboarding` with the platform's new
+`aws-assume-role` adapter, so the Accounts page's connect button is live. The
+admin enters a name, an environment and the 12-digit account id; the platform
+mints an External ID and shows a pre-filled CloudFormation quick-create link
+(when the platform hosts the template) together with the equivalent
+`aws iam create-role` / `attach-role-policy` commands. The page polls until
+the platform can assume the new `VeltrixGovernance` role, then stores the
+connection in the shape this app already reads (account id, role ARN,
+External ID). Manual connections keep working unchanged.
+
+The role gets `ReadOnlyAccess`, enough for previews; enforcement still needs
+the write actions your policies use, attached by you.
+
+A new optional app setting `aws_account_id` pre-fills the account id in the
+connect dialog; it is not required.
+
 ## 0.2.1 — 2026-11-09
 
 ### Changed — declares the platform runner identity it needs
