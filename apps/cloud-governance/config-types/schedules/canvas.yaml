@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template - Cloud Governance Schedules
+#
+# ONE recurring run schedule per item (one per policy). Field keys must match
+# config-types/lib/guardrailItems.ts. Reconciled by policy name.
+# =============================================================================
+
+id: "cloud-governance-schedules"
+name: "Schedules"
+toolType: "cloud-governance"
+entityType: "schedules"
+description: "Recurring runs of a policy (five-field cron, UTC) at an enforcement level never stronger than the policy's own. Reconciled by policy name."
+
+item:
+  label: "Schedule"
+  identityField: "policy"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Schedule"
+      icon: "clock"
+      description: "When and how strongly a policy runs"
+      fields:
+        - key: "policy"
+          label: "Policy"
+          fieldType: "remote-select"
+          optionsSource: "policies"
+          required: true
+          helpText: "The policy to run on this schedule. One schedule per policy."
+
+        - key: "cron"
+          label: "Cron (UTC)"
+          fieldType: "text"
+          required: true
+          placeholder: "0 6 * * 1"
+          validation:
+            maxLength: 100
+          helpText: "Five fields: minute hour day-of-month month day-of-week (numbers, ranges, steps, lists or *), evaluated in UTC."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Disabled schedules are kept but not fired."
+
+        - key: "enforcement"
+          label: "Enforcement"
+          fieldType: "select"
+          required: true
+          defaultValue: "observe"
+          helpText: "Enforcement for scheduled runs. Never stronger than the policy's own; a stronger value is lowered to the policy's at deploy."
+          options:
+            - { label: "Observe (match preview only)", value: "observe" }
+            - { label: "Notify (match preview and notify)", value: "notify" }
+            - { label: "Ask (actions need approval)", value: "ask" }
+            - { label: "Auto (actions under caps)", value: "auto" }

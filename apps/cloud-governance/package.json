@@ -1,0 +1,15 @@
+{
+  "name": "veltrix-app-cloud-governance",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: cloud governance policies as code — author, compile, preview and enforce Cloud Custodian-compatible policies against customer AWS accounts through a sandboxed platform runner, with every run previewed, capped, correlated and audited",
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@veltrixsecops/app-sdk": "^3.10.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

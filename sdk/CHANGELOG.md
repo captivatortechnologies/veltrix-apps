@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.11.0 — 2026-11-08
+
+### Optional `db` on pipeline handler contexts
+
+`PipelineContext` (and so validate/deploy/rollback/healthCheck/driftDetect/
+getStatus) and `OptionsProviderContext` gain an optional `db:
+PlatformDatabaseClient`, the same app-scoped client hooks and routes already
+receive. An app whose configuration types persist state in the app's own
+tables (first use: cloud-governance) reads it when present and degrades
+explicitly when the host has not injected it. Hosts that do not yet inject it
+are unaffected.
+
 ## 3.10.0 — 2026-11-08
 
 ### `AppProvisioningContext` and `PlatformDatabaseClient.transaction`

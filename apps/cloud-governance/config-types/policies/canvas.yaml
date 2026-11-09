@@ -1,0 +1,173 @@
+# =============================================================================
+# Canvas Template - Cloud Governance Policies
+#
+# ONE governance policy per item. Field keys must match
+# config-types/lib/policyItem.ts. The resource options are the allow-list in
+# lib/model/awsResources.ts (a test keeps the two identical). Reconciled by
+# policy name.
+# =============================================================================
+
+id: "cloud-governance-policies"
+name: "Policies"
+toolType: "cloud-governance"
+entityType: "policies"
+description: "Governance policies: a resource type, the filters that select resources, the actions to take and how far a run may go. Deploying compiles the policy and registers it for the targeted AWS accounts. Reconciled by name."
+
+item:
+  label: "Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "What the policy governs and how far a run may go"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+            pattern: "^[a-z0-9][a-z0-9-]{0,63}$"
+            patternMessage: "Lowercase letters, digits and hyphens, starting with a letter or digit."
+          helpText: "Unique policy name (1-64 chars: lowercase letters, digits, hyphens). The identity used to reconcile, schedule and except this policy."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What this policy is for."
+
+        - key: "resource"
+          label: "Resource Type"
+          fieldType: "select"
+          required: true
+          helpText: "The AWS resource type the policy evaluates."
+          options:
+            - { label: "ec2", value: "ec2" }
+            - { label: "ebs", value: "ebs" }
+            - { label: "ebs-snapshot", value: "ebs-snapshot" }
+            - { label: "ami", value: "ami" }
+            - { label: "eip", value: "eip" }
+            - { label: "security-group", value: "security-group" }
+            - { label: "vpc", value: "vpc" }
+            - { label: "subnet", value: "subnet" }
+            - { label: "elb", value: "elb" }
+            - { label: "app-elb", value: "app-elb" }
+            - { label: "rds", value: "rds" }
+            - { label: "rds-snapshot", value: "rds-snapshot" }
+            - { label: "rds-cluster", value: "rds-cluster" }
+            - { label: "s3", value: "s3" }
+            - { label: "iam-user", value: "iam-user" }
+            - { label: "iam-role", value: "iam-role" }
+            - { label: "iam-group", value: "iam-group" }
+            - { label: "iam-policy", value: "iam-policy" }
+            - { label: "lambda", value: "lambda" }
+            - { label: "log-group", value: "log-group" }
+            - { label: "dynamodb-table", value: "dynamodb-table" }
+            - { label: "sqs", value: "sqs" }
+            - { label: "sns", value: "sns" }
+            - { label: "kms-key", value: "kms-key" }
+            - { label: "cloudtrail", value: "cloudtrail" }
+            - { label: "ecr", value: "ecr" }
+            - { label: "ecs", value: "ecs" }
+            - { label: "eks", value: "eks" }
+            - { label: "efs", value: "efs" }
+            - { label: "elasticache", value: "elasticache" }
+            - { label: "redshift", value: "redshift" }
+            - { label: "cfn", value: "cfn" }
+            - { label: "asg", value: "asg" }
+            - { label: "launch-template", value: "launch-template" }
+            - { label: "nat-gateway", value: "nat-gateway" }
+            - { label: "internet-gateway", value: "internet-gateway" }
+            - { label: "route-table", value: "route-table" }
+            - { label: "network-acl", value: "network-acl" }
+            - { label: "secrets-manager", value: "secrets-manager" }
+            - { label: "ssm-parameter", value: "ssm-parameter" }
+
+        - key: "enforcement"
+          label: "Enforcement"
+          fieldType: "select"
+          required: true
+          defaultValue: "observe"
+          helpText: "observe and notify preview matches only (actions are stripped). ask keeps the actions but every run needs an approval. auto runs approved actions under the resource caps."
+          options:
+            - { label: "Observe (match preview only)", value: "observe" }
+            - { label: "Notify (match preview and notify)", value: "notify" }
+            - { label: "Ask (actions need approval)", value: "ask" }
+            - { label: "Auto (actions under caps)", value: "auto" }
+
+    - name: "Rules"
+      icon: "filter"
+      description: "Which resources match and what happens to them"
+      fields:
+        - key: "filters"
+          label: "Filters"
+          fieldType: "textarea"
+          required: false
+          placeholder: "[{\"type\": \"value\", \"key\": \"State.Name\", \"value\": \"stopped\"}]"
+          helpText: "A JSON array of Cloud Custodian filter specs, for example [{\"type\":\"value\",\"key\":\"State.Name\",\"value\":\"stopped\"}]. Combinators or / and / not nest. Unsafe constructs are refused by the compiler."
+
+        - key: "actions"
+          label: "Actions"
+          fieldType: "textarea"
+          required: false
+          placeholder: "[{\"type\": \"mark-for-op\", \"op\": \"stop\", \"days\": 7}]"
+          helpText: "A JSON array of Cloud Custodian action specs, for example [{\"type\":\"mark-for-op\",\"op\":\"stop\",\"days\":7}]. Ignored by runs below ask enforcement."
+
+    - name: "Safety"
+      icon: "lock"
+      description: "Caps and ownership"
+      fields:
+        - key: "maxResources"
+          label: "Max Resources"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+            max: 10000
+          helpText: "Absolute cap on resources one run may act on. Blank uses the app default (100)."
+
+        - key: "maxResourcesPercent"
+          label: "Max Resources (%)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+            max: 100
+          helpText: "Cap relative to the resource population. Blank uses the default (10)."
+
+        - key: "gracePeriodDays"
+          label: "Grace Period (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+            max: 365
+          helpText: "Days between marking a resource and acting on it."
+
+        - key: "ownerTagKeys"
+          label: "Owner Tag Keys"
+          fieldType: "tags"
+          required: false
+          helpText: "Tag keys consulted, in order, to resolve a resource owner. One key per entry."
+
+    - name: "Scope"
+      icon: "globe"
+      description: "Labels and regions"
+      fields:
+        - key: "tags"
+          label: "Policy Tags"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "Extra tags stamped on the compiled policy."
+
+        - key: "regions"
+          label: "Regions"
+          fieldType: "tags"
+          required: false
+          helpText: "Per-policy AWS region override, for example us-east-1. Empty uses the account default."

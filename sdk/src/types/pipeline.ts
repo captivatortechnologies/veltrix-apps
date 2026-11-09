@@ -1,11 +1,11 @@
 // ========================================================================
 // Pipeline types for app developers
-// These define the handler contracts apps must implement.
 //
 // This file mirrors the platform's pipeline-engine contract
 // (server/src/core/pipeline-engine/types.ts). The platform constructs
 // every context; apps only consume them.
 // ========================================================================
+import type { PlatformDatabaseClient } from './platform'
 
 // --- Shared result types ---
 
@@ -294,6 +294,12 @@ export interface PipelineContext {
   settings: Record<string, unknown>
   platform: PlatformDataApi
   /**
+   * The app's own database (same client hooks and routes receive), for
+   * configuration types that persist state in app tables. Optional because
+   * older hosts do not inject it; read it when present and degrade explicitly.
+   */
+  db?: PlatformDatabaseClient
+  /**
    * App-only token broker for brokered (consent-onboarded) connections.
    * Optional so existing BYO-secret handlers and contexts are unaffected.
    */
@@ -341,6 +347,8 @@ export interface OptionsProviderContext {
   credential: CredentialRef | null
   settings: Record<string, unknown>
   identity?: IdentityBroker
+  /** See {@link PipelineContext.db}. */
+  db?: PlatformDatabaseClient
 }
 
 /** An app handler that returns live options for a `remote-multiselect` field. */

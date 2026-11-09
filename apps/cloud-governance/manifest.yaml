@@ -1,0 +1,199 @@
+id: cloud-governance
+name: Veltrix Cloud Governance
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Cloud governance policies as code. Author Cloud Custodian-compatible
+  policies in a form (resource, filters, actions, enforcement), compile them
+  through an admission compiler that refuses unsafe constructs and injects a
+  resource cap, preview exactly which resources a run would touch, and only
+  then enforce — every run correlated, capped and audited. Policies run in a
+  sandboxed platform runner against your AWS accounts; this app never holds
+  cloud credentials. Phase 0 is AWS, match preview, and enforcement of
+  reversible and snapshot-backed actions under `auto`; `ask` and irreversible
+  enforcement wait for the per-run approval gate.
+category: CLOUD
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloud-governance
+icon: "🛡"
+
+platform:
+  minVersion: "1.0.0"
+
+# Original abstract mark (see assets/logo.svg). "Compatible with Cloud Custodian
+# policies" — Cloud Custodian is a Linux Foundation trademark and is not used in
+# the product name, id or imagery.
+branding:
+  primaryColor: "#0F2A3F"
+  accentColor: "#2DD4BF"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: policies
+      actions: [read, write, delete]
+      description: Author, compile and manage governance policies and packs
+    - resource: runs
+      actions: [read, write]
+      description: Request preview and enforcement runs and read their results
+    - resource: exceptions
+      actions: [read, write, delete]
+      description: Manage expiring per-resource exceptions
+    - resource: schedules
+      actions: [read, write, delete]
+      description: Manage recurring run schedules
+
+database:
+  migrations: migrations
+  tablePrefix: cgov_
+  isolation: database
+
+pipeline:
+  configurationTypes:
+    - id: policies
+      group: "Policies"
+      name: Policies
+      description: >
+        One governance policy: a resource type, the filters that select
+        resources, the actions to take and how far a run may go (observe,
+        notify, ask, auto). Deploying compiles the policy and registers it for
+        the targeted AWS accounts; nothing runs until a preview or enforcement
+        run is requested. Reconciled by policy name.
+      canvasTemplate: config-types/policies/canvas.yaml
+      defaultConfig: config-types/policies/defaults.yaml
+      handlers:
+        validate: config-types/policies/validate
+        deploy: config-types/policies/deploy
+        rollback: config-types/policies/rollback
+        healthCheck: config-types/policies/healthCheck
+        driftDetect: config-types/policies/driftDetect
+        getStatus: config-types/policies/getStatus
+      targets:
+        componentTypes: [aws-account]
+        requiresCredential: false
+        requiresConnectivity: false
+
+    - id: policy-packs
+      group: "Policies"
+      name: Policy Packs
+      description: >
+        A named set of existing policies applied together to the same accounts
+        (for example a cost-hygiene or tag-ownership pack). Deploying compiles
+        the members into one document and registers it. Reconciled by pack name.
+      canvasTemplate: config-types/policy-packs/canvas.yaml
+      defaultConfig: config-types/policy-packs/defaults.yaml
+      handlers:
+        validate: config-types/policy-packs/validate
+        deploy: config-types/policy-packs/deploy
+        rollback: config-types/policy-packs/rollback
+        healthCheck: config-types/policy-packs/healthCheck
+        driftDetect: config-types/policy-packs/driftDetect
+        getStatus: config-types/policy-packs/getStatus
+        options: config-types/policy-packs/options
+      targets:
+        componentTypes: [aws-account]
+        requiresCredential: false
+        requiresConnectivity: false
+
+    - id: exceptions
+      group: "Guardrails"
+      name: Exceptions
+      description: >
+        Expiring, approver-attributed exclusions of a single resource from a
+        policy. Compiled into the policy as a filter until the expiry date;
+        expired exceptions stop applying and are reported. Reconciled by
+        (policy, resource).
+      canvasTemplate: config-types/exceptions/canvas.yaml
+      defaultConfig: config-types/exceptions/defaults.yaml
+      handlers:
+        validate: config-types/exceptions/validate
+        deploy: config-types/exceptions/deploy
+        rollback: config-types/exceptions/rollback
+        healthCheck: config-types/exceptions/healthCheck
+        driftDetect: config-types/exceptions/driftDetect
+        getStatus: config-types/exceptions/getStatus
+        options: config-types/exceptions/options
+      targets:
+        componentTypes: [aws-account]
+        requiresCredential: false
+        requiresConnectivity: false
+
+    - id: schedules
+      group: "Guardrails"
+      name: Schedules
+      description: >
+        Recurring runs of a policy (five-field cron, UTC) at an enforcement
+        level never stronger than the policy's own. The platform scheduler
+        requests the runs; the app records them like any other. Reconciled by
+        policy name.
+      canvasTemplate: config-types/schedules/canvas.yaml
+      defaultConfig: config-types/schedules/defaults.yaml
+      handlers:
+        validate: config-types/schedules/validate
+        deploy: config-types/schedules/deploy
+        rollback: config-types/schedules/rollback
+        healthCheck: config-types/schedules/healthCheck
+        driftDetect: config-types/schedules/driftDetect
+        getStatus: config-types/schedules/getStatus
+        options: config-types/schedules/options
+      targets:
+        componentTypes: [aws-account]
+        requiresCredential: false
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/cloud-governance
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /runs
+      component: RunsPage
+      label: Runs
+      icon: activity
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Accounts
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+  onEvent: hooks/onEvent
+
+# Connection-level test: checks the account connection is well-formed (12-digit
+# account id, role ARN in that account, External ID present). The live
+# AssumeRole check runs in the platform runner, which is the only component
+# that may hold cloud credentials.
+connectivity:
+  testHandler: handlers/testConnection
+
+# Runner messages (see lib/runner/contract.ts) plus the host heartbeat that
+# re-dispatches persisted run commands the broker never confirmed.
+events:
+  - component:deleted
+  - governance.run.status
+  - governance.run.match
+  - governance.run.action
+  - governance.reconcile

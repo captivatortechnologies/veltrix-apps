@@ -1,0 +1,62 @@
+# =============================================================================
+# Canvas Template - Cloud Governance Exceptions
+#
+# ONE expiring exception per item: a single resource excluded from a policy
+# until a date, attributed to an approver. Field keys must match
+# config-types/lib/guardrailItems.ts. Reconciled by (policy, resource).
+# =============================================================================
+
+id: "cloud-governance-exceptions"
+name: "Exceptions"
+toolType: "cloud-governance"
+entityType: "exceptions"
+description: "Expiring, approver-attributed exclusions of a single resource from a policy. Compiled into the policy as a filter until the expiry date. Reconciled by policy and resource."
+
+item:
+  label: "Exception"
+  identityField: "resourceId"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Exception"
+      icon: "shield-off"
+      description: "What is excluded, why, and until when"
+      fields:
+        - key: "policy"
+          label: "Policy"
+          fieldType: "remote-select"
+          optionsSource: "policies"
+          required: true
+          helpText: "The policy the resource is excluded from."
+
+        - key: "resourceId"
+          label: "Resource ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 2048
+          helpText: "The id the policy's resource type is matched on, for example i-0abc123 for ec2. Together with the policy this is the exception's identity."
+
+        - key: "reason"
+          label: "Reason"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 2000
+          helpText: "Why this resource may not be acted on."
+
+        - key: "approver"
+          label: "Approver"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 320
+          helpText: "Who approved the exception (email or name). Recorded for audit."
+
+        - key: "expiresAt"
+          label: "Expires At"
+          fieldType: "text"
+          required: true
+          placeholder: "2026-12-31"
+          helpText: "ISO 8601 date or date-time (for example 2026-12-31 or 2026-12-31T00:00:00Z). After this the exception stops applying."

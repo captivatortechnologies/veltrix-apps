@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template - Cloud Governance Policy Packs
+#
+# ONE pack per item: a named set of existing policies applied together to the
+# same accounts. Field keys must match config-types/lib/packItem.ts. The member
+# picker is fed by the options handler (tenant policy names). Reconciled by
+# pack name.
+# =============================================================================
+
+id: "cloud-governance-policy-packs"
+name: "Policy Packs"
+toolType: "cloud-governance"
+entityType: "policy-packs"
+description: "Named sets of existing policies applied together to the same AWS accounts. Deploying registers every member for the targeted accounts and compiles the pack into one document for audit. Reconciled by pack name."
+
+item:
+  label: "Policy Pack"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Pack"
+      icon: "layers"
+      description: "Pack identity and members"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+            pattern: "^[a-z0-9][a-z0-9-]{0,63}$"
+            patternMessage: "Lowercase letters, digits and hyphens, starting with a letter or digit."
+          helpText: "Unique pack name (1-64 chars: lowercase letters, digits, hyphens)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What this pack is for, for example cost hygiene or tag ownership."
+
+        - key: "policies"
+          label: "Policies"
+          fieldType: "remote-multiselect"
+          optionsSource: "policies"
+          optionsMulti: true
+          required: true
+          helpText: "The member policies, by name. Each must already exist (deploy the Policies configuration first)."
