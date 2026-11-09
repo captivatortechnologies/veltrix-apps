@@ -5,6 +5,13 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## 1.22.0 — 2026-11-08
 
+### Fixed — colors on the Tailwind 4 host
+
+Theme colors now read `rgb(var(--color-x-rgb, var(--color-x)))`, which
+renders on hosts that ship bare RGB-triple tokens and on hosts that ship
+full `rgb()` tokens (Veltrix Tailwind 4). Previously, on the new host,
+status dots, badges and panel colors fell back to defaults.
+
 ### Changed — BYOL provisioning is a durable, single-writer lifecycle
 
 Deploy and Destroy now run inside one database transaction that locks the
