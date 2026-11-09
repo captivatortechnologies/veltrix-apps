@@ -8,6 +8,9 @@ export interface ComponentInspection {
 export type ComponentInspector = (componentId: string) => Promise<ComponentInspection>
 
 export const AWS_ACCOUNT_TYPE = 'aws-account'
+export const AZURE_SUBSCRIPTION_TYPE = 'azure-subscription'
+/** Every component type a policy can be registered for. */
+export const TARGET_COMPONENT_TYPES = [AWS_ACCOUNT_TYPE, AZURE_SUBSCRIPTION_TYPE] as const
 
 /**
  * Deployment status from platform records, refined per account by an optional
@@ -18,7 +21,7 @@ export async function buildStatus(ctx: PipelineContext, inspect?: ComponentInspe
   const latest = await platform.getLatestDeployment(canvas.canvasId, { status: 'SUCCEEDED' })
   if (!latest) return { deployed: false, version: String(canvas.version), lastDeployedAt: '', componentStatuses: [] }
 
-  const components = await platform.listComponents({ types: [AWS_ACCOUNT_TYPE] })
+  const components = await platform.listComponents({ types: [...TARGET_COMPONENT_TYPES] })
   const componentStatuses: ComponentConfigStatus[] = []
   for (const component of components) {
     const inspection = inspect ? await inspect(component.id) : { deployed: true }

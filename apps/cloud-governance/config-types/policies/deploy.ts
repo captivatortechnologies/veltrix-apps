@@ -4,6 +4,7 @@ import { evaluatePolicyItem } from '../lib/policyItem'
 import { errorMessage, toPolicyException } from '../lib/results'
 import { itemsOf } from '../lib/readers'
 import { resolveStore, STORE_UNAVAILABLE } from '../lib/store'
+import { componentProvider, policyTargetsComponent } from '../lib/targets'
 import type { PolicyRollbackData, PolicyRollbackEntry } from './_shared'
 
 /**
@@ -22,6 +23,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const deployed: string[] = []
   const failures: string[] = []
   const warnings: string[] = []
+  const skipped: string[] = []
 
   try {
     for (const canvasItem of itemsOf(ctx.canvas)) {
@@ -30,6 +32,12 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       const label = name || canvasItem.name
       if (!first.validated) {
         failures.push(`${label}: ${first.errors.map((e) => e.message).join('; ')}`)
+        continue
+      }
+      // A policy is registered only for components of its own cloud; an AWS
+      // policy deployed to an Azure subscription is neither an error nor a run.
+      if (!policyTargetsComponent(first.validated, ctx.component)) {
+        skipped.push(`${name} (${first.validated.provider}, this target is ${componentProvider(ctx.component) ?? 'not a governed account'})`)
         continue
       }
 
@@ -77,9 +85,9 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     success: failures.length === 0,
     message:
       failures.length === 0
-        ? `Compiled and registered ${deployed.length} policy(ies) for ${ctx.component.hostname}: ${deployed.join(', ') || '(none)'}`
+        ? `Compiled and registered ${deployed.length} policy(ies) for ${ctx.component.hostname}: ${deployed.join(', ') || '(none)'}${skipped.length ? `; not for this cloud: ${skipped.join(', ')}` : ''}`
         : `Policy deploy had ${failures.length} failure(s): ${failures.join(' | ')}`,
-    artifacts: { deployed, failures, warnings },
+    artifacts: { deployed, failures, warnings, skipped },
     rollbackData,
   }
 }

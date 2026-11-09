@@ -7,7 +7,13 @@
 // anything outside the allow-lists. Keep this file dependency-free.
 // =============================================================================
 
-export type Provider = 'aws'
+export type Provider = 'aws' | 'azure'
+
+export const PROVIDERS: readonly Provider[] = ['aws', 'azure']
+
+export function isProvider(value: unknown): value is Provider {
+  return value === 'aws' || value === 'azure'
+}
 
 /**
  * How far a run may go. `observe` and `notify` compile with actions stripped
@@ -47,7 +53,7 @@ export interface GovernancePolicy {
   name: string
   description?: string
   provider: Provider
-  /** c7n resource type without provider prefix, e.g. `ec2`, `ebs`, `s3`. */
+  /** c7n resource type without provider prefix, e.g. `ec2`, `ebs`, `s3` (AWS) or `vm`, `storage` (Azure). */
   resource: string
   filters: FilterSpec[]
   actions: ActionSpec[]

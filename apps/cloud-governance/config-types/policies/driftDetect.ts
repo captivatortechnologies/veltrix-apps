@@ -5,6 +5,7 @@ import { evaluatePolicyItem } from '../lib/policyItem'
 import { itemsOf } from '../lib/readers'
 import { toPolicyException } from '../lib/results'
 import { resolveStore } from '../lib/store'
+import { policyTargetsComponent } from '../lib/targets'
 
 /**
  * The canvas is the source of truth: a stored policy whose model, compiled
@@ -22,6 +23,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     const first = evaluatePolicyItem(canvasItem)
     const name = first.item.model.name
     if (typeof name !== 'string' || name === '' || !first.validated) continue
+    if (!policyTargetsComponent(first.validated, ctx.component)) continue
 
     const stored = await getPolicyByName(store.db, store.customerId, name)
     if (!stored) {

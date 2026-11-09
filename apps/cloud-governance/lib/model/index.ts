@@ -1,6 +1,9 @@
 export * from './types'
+export { AZURE_RESOURCES, AZURE_PROVIDER_PREFIX, AZURE_RESOURCE_ID_KEY, isAllowedAzureResource, normalizeAzureResource } from './azureResources'
+export type { AzureResource } from './azureResources'
 export {
   AWS_RESOURCES,
+  providerPrefix,
   ACTION_CLASS,
   REVERSIBLE_ACTIONS,
   IRREVERSIBLE_ACTIONS,

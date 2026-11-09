@@ -423,3 +423,33 @@ describe('gracePeriodDays', () => {
     expect(result.yaml?.includes('Owner')).toBe(false)
   })
 })
+
+describe('azure policies', () => {
+  const azure = { name: 'vm-untagged', provider: 'azure' as const, resource: 'vm', filters: ['tag:owner'], actions: [], enforcement: 'observe' as const }
+
+  it('compiles with the azure. prefix and identifies exceptions by ARM id', () => {
+    const armId = '/subscriptions/s/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/web-1'
+    const result = compilePolicy(azure, {
+      exceptions: [{ policy: 'vm-untagged', resourceId: armId, reason: 'r', approver: 'a', expiresAt: '2999-01-01' }],
+    })
+    expect(result.ok).toBe(true)
+    const d = doc(result)
+    expect(d.resource).toBe('azure.vm')
+    expect((d.filters as unknown[]).some((f) => JSON.stringify(f) === JSON.stringify({ not: [{ type: 'value', key: 'id', value: armId }] }))).toBe(true)
+    expect(result.warnings).toEqual([])
+  })
+
+  it('refuses logic-app and generic update actions', () => {
+    const result = compilePolicy({ ...azure, enforcement: 'auto', actions: [{ type: 'logic-app', 'resource-group': 'rg', 'logic-app-name': 'x' }, 'update'] })
+    expect(result.ok).toBe(false)
+    const codes = result.errors.map((e) => e.code)
+    expect(codes).toContain('ACTION_LOGIC_APP')
+    expect(codes).toContain('ACTION_UPDATE')
+  })
+
+  it('classifies lock and poweroff as reversible', () => {
+    const result = compilePolicy({ ...azure, enforcement: 'auto', actions: ['lock', 'poweroff'] })
+    expect(result.ok).toBe(true)
+    expect(result.actionClass).toBe('reversible')
+  })
+})

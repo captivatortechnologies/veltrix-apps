@@ -1,5 +1,12 @@
-import type { ActionClass } from './types'
+import type { ActionClass, Provider } from './types'
 import { hasOwn } from './issues'
+import {
+  AZURE_PROVIDER_PREFIX,
+  AZURE_RESOURCE_ID_KEY,
+  AZURE_REVERSIBLE_ACTIONS,
+  isAllowedAzureResource,
+  normalizeAzureResource,
+} from './azureResources'
 
 export const AWS_RESOURCES = [
   'ec2',
@@ -50,12 +57,19 @@ const RESOURCE_SET: ReadonlySet<string> = new Set(AWS_RESOURCES)
 
 export const PROVIDER_PREFIX = 'aws.'
 
-export function normalizeResource(resource: string): string {
+/** The c7n resource prefix for a provider (`aws.` / `azure.`). */
+export function providerPrefix(provider: Provider): string {
+  return provider === 'azure' ? AZURE_PROVIDER_PREFIX : PROVIDER_PREFIX
+}
+
+export function normalizeResource(resource: string, provider: Provider = 'aws'): string {
+  if (provider === 'azure') return normalizeAzureResource(resource)
   const trimmed = resource.trim()
   return trimmed.startsWith(PROVIDER_PREFIX) ? trimmed.slice(PROVIDER_PREFIX.length) : trimmed
 }
 
-export function isAllowedResource(resource: string): boolean {
+export function isAllowedResource(resource: string, provider: Provider = 'aws'): boolean {
+  if (provider === 'azure') return isAllowedAzureResource(resource)
   return RESOURCE_SET.has(normalizeResource(resource))
 }
 
@@ -104,7 +118,8 @@ export const RESOURCE_ID_KEYS: Readonly<Record<AwsResource, string>> = {
   'ssm-parameter': 'Name',
 }
 
-export function resourceIdKey(resource: string): string {
+export function resourceIdKey(resource: string, provider: Provider = 'aws'): string {
+  if (provider === 'azure') return AZURE_RESOURCE_ID_KEY
   const key = normalizeResource(resource)
   return RESOURCE_SET.has(key) ? RESOURCE_ID_KEYS[key as AwsResource] : DEFAULT_RESOURCE_ID_KEY
 }
@@ -134,6 +149,7 @@ export const REVERSIBLE_ACTIONS: readonly string[] = [
   'set-encryption',
   'post-finding',
   'put-metric',
+  ...AZURE_REVERSIBLE_ACTIONS,
 ]
 
 export const IRREVERSIBLE_ACTIONS: readonly string[] = [

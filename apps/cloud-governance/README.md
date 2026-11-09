@@ -226,6 +226,31 @@ in step 2 below, so everything else in this document applies unchanged.
 
 The steps below are the manual equivalent.
 
+### Azure: Connect Azure subscription
+
+On the **Accounts** page click **Connect Azure subscription**, give the
+connection a name, pick the environment and enter the subscription id. You are
+sent to Microsoft's admin-consent page for the Veltrix connector app (the
+platform's `entra-admin-consent` onboarding; a platform administrator must
+have registered that multi-tenant app under Cloud Integrations). Consent
+creates the connector's service principal in your tenant; the connection is
+stored **brokered** (no secret) with the subscription id as its endpoint and
+is registered as an `azure-subscription` component.
+
+One manual step remains, because consent never grants Azure RBAC: assign the
+built-in **Reader** role to the Veltrix connector on the subscription. The
+connection shows the portal link and the exact command:
+
+```bash
+az role assignment create --assignee "<connector client id>" --role "Reader" --scope "/subscriptions/<subscription id>"
+```
+
+**Verify** on the connection probes the subscription with an app-only token
+and reports whether the role is effective. Previews need Reader only;
+enforcement (`ask` / `auto`) needs **Contributor**, which you assign the same
+way. The runner authenticates per run with `AZURE_ACCESS_TOKEN` +
+`AZURE_SUBSCRIPTION_ID`; the connector secret never leaves the platform.
+
 ### 1. Create the IAM role in the AWS account
 
 Trust policy. Replace the principal with the Veltrix runner principal shown in
@@ -304,6 +329,28 @@ Policy `name`, pack `name`, exception `policy` and schedule `policy` all obey
 
 ## Coverage
 
+Every policy names its cloud (`provider: aws | azure`); a policy is registered
+only for connected accounts of that cloud, and the runner refuses a command
+whose target is the other cloud.
+
+### Azure resource allow-list (`lib/model/azureResources.ts`, 30 types)
+
+`vm`, `vmss`, `disk`, `snapshot`, `image`, `storage`, `storage-container`,
+`networksecuritygroup`, `networkinterface`, `publicip`, `vnet`, `routetable`,
+`loadbalancer`, `dnszone`, `resourcegroup`, `keyvault`, `keyvault-secret`,
+`keyvault-key`, `keyvault-certificate`, `sql-server`, `sql-database`,
+`mysql-flexibleserver`, `postgresql-flexibleserver`, `cosmosdb`, `redis`,
+`webapp`, `appserviceplan`, `aks`, `roleassignment`, `policyassignments`.
+
+Compiled as `azure.<type>` with `mode: pull`. Azure policies are
+subscription-wide: there is no region dimension (the canvas hides Regions),
+`location` is an ordinary resource property to filter on, every resource is
+identified by its ARM `id` (exceptions match on it; an ARN-shaped id is never
+expected), and tags are a plain map. Azure-only actions: `lock`, `poweroff`,
+`restart`, `resize`, `auto-tag-date`, `modify-disk-type` are reversible;
+`delete` is irreversible; `logic-app`, `webhook`, `notify` and the generic
+`update` are refused by the compiler (`ACTION_LOGIC_APP`, `ACTION_UPDATE`).
+
 ### AWS resource allow-list (`lib/model/awsResources.ts`, 40 types)
 
 Resource names are the upstream resource type without the `aws.` prefix; the
@@ -349,6 +396,21 @@ compiler does not validate filter semantics against the upstream schema; see
 Honest drops.
 
 ## Honest drops / not managed in 0.1.0
+
+### Azure (0.4.0)
+
+- **Storage data-plane filters/actions** (blob and container contents): the
+  runner authenticates with an access token, which c7n_azure documents as
+  unable to reach storage data planes, so `storage-container` policies are
+  limited to management-plane properties.
+- **Automatic role assignment**: the platform never assigns Azure RBAC itself
+  (that would need Owner in the customer tenant); Reader/Contributor are
+  assigned by the customer and verified by the platform.
+- **Azure event modes** (`azure-event-grid`, `azure-periodic`, container
+  modes): every policy is `pull`, like AWS.
+- **Manual Azure connections**: the Accounts page's manual "Add connection"
+  form creates `aws-account` targets only; Azure subscriptions are connected
+  through the consent flow so the tenant and connector are recorded.
 
 - **Azure and GCP.** `Provider` is `'aws'` only; the model, allow-list and
   connection check are AWS-shaped. Azure is Phase 2 in the plan.

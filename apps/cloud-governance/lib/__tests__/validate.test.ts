@@ -131,8 +131,8 @@ describe('validatePolicy', () => {
     expect(validatePolicy(makePolicy({ name: '9' + 'a'.repeat(63) })).errors).toEqual([])
   })
 
-  it('requires provider aws', () => {
-    const model = { ...makePolicy(), provider: 'azure' }
+  it('requires a known provider', () => {
+    const model = { ...makePolicy(), provider: 'gcp' }
     expect(codes(validatePolicy(model).errors)).toContain('PROVIDER_INVALID')
   })
 
@@ -266,5 +266,39 @@ describe('validatePack', () => {
     expect(codes(validatePack({ name: 'p', policies: ['BAD'] }).errors)).toContain('NAME_INVALID')
     expect(codes(validatePack({ name: 'BAD', policies: ['a'] }).errors)).toContain('NAME_INVALID')
     expect(validatePack(null).value).toBeNull()
+  })
+})
+
+import { AZURE_RESOURCES, providerPrefix } from '../model'
+
+describe('azure resource allow-list', () => {
+  it('is checked per provider and normalises the azure. prefix', () => {
+    expect(AZURE_RESOURCES).toHaveLength(30)
+    expect(isAllowedResource('vm', 'azure')).toBe(true)
+    expect(isAllowedResource('azure.storage', 'azure')).toBe(true)
+    expect(normalizeResource('azure.storage', 'azure')).toBe('storage')
+    expect(isAllowedResource('ec2', 'azure')).toBe(false)
+    expect(isAllowedResource('vm')).toBe(false)
+    expect(providerPrefix('azure')).toBe('azure.')
+    expect(providerPrefix('aws')).toBe('aws.')
+  })
+
+  it('identifies every Azure resource by its ARM id', () => {
+    for (const r of AZURE_RESOURCES) expect(resourceIdKey(r, 'azure')).toBe('id')
+  })
+
+  it('validates an azure policy and rejects AWS resources under it', () => {
+    const ok = validatePolicy({ name: 'vm-untagged', provider: 'azure', resource: 'vm', filters: ['tag:owner'], actions: [], enforcement: 'observe' })
+    expect(ok.errors).toEqual([])
+    expect(ok.value?.provider).toBe('azure')
+    const bad = validatePolicy({ name: 'x', provider: 'azure', resource: 'ec2', filters: [], actions: [], enforcement: 'observe' })
+    expect(bad.errors.map((e) => e.code)).toContain('RESOURCE_NOT_ALLOWED')
+    const gcp = validatePolicy({ name: 'x', provider: 'gcp', resource: 'ec2', filters: [], actions: [], enforcement: 'observe' })
+    expect(gcp.errors.map((e) => e.code)).toContain('PROVIDER_INVALID')
+  })
+
+  it('classifies Azure-only actions', () => {
+    for (const type of ['lock', 'poweroff', 'restart', 'auto-tag-date']) expect(classifyActionType(type)).toBe('reversible')
+    expect(classifyActionType('delete')).toBe('irreversible')
   })
 })

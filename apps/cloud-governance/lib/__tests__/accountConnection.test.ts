@@ -31,3 +31,29 @@ describe('readAccountConnection', () => {
     expect(r.value?.externalId).toBe('ext-id-12345')
   })
 })
+
+import { readSubscriptionConnection, targetKindOf } from '../accountConnection'
+
+const SUB = '2f2a1b3c-0000-4000-8000-000000000001'
+
+describe('readSubscriptionConnection', () => {
+  it('accepts a subscription GUID with the connector recorded as the username', () => {
+    const r = readSubscriptionConnection(SUB, cred('connector-client-id', ''))
+    expect(r.errors).toEqual([])
+    expect(r.value).toEqual({ subscriptionId: SUB, connectorClientId: 'connector-client-id' })
+  })
+
+  it('rejects a non-GUID subscription id and a connection without the connector', () => {
+    expect(readSubscriptionConnection('123456789012', cred('connector-client-id', '')).errors.join(' ')).toMatch(/subscription GUID/)
+    expect(readSubscriptionConnection(SUB, cred('', '')).errors.join(' ')).toMatch(/Connect Azure subscription/)
+  })
+})
+
+describe('targetKindOf', () => {
+  it('trusts the component type first and falls back to the endpoint shape', () => {
+    expect(targetKindOf(['azure-subscription'], '123456789012')).toBe('azure-subscription')
+    expect(targetKindOf(['aws-account'], SUB)).toBe('aws-account')
+    expect(targetKindOf(null, SUB)).toBe('azure-subscription')
+    expect(targetKindOf(undefined, '123456789012')).toBe('aws-account')
+  })
+})

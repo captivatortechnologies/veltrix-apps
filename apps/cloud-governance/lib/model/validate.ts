@@ -6,8 +6,8 @@ import type {
   GovernancePolicy,
   PolicyException,
   PolicyPack,
-  PolicySchedule,
-} from './types'
+  PolicySchedule, Provider } from './types'
+import { isProvider } from './types'
 import { isAllowedResource, normalizeResource } from './awsResources'
 import { isRecord, issue } from './issues'
 import type { UnknownRecord } from './issues'
@@ -103,16 +103,16 @@ function validateOwnerTagKeys(value: unknown, errors: CompileIssue[]): string[] 
   return undefined
 }
 
-function validateResource(value: unknown, errors: CompileIssue[]): string | null {
+function validateResource(value: unknown, provider: Provider, errors: CompileIssue[]): string | null {
   if (typeof value !== 'string' || value.trim() === '') {
     errors.push(issue('resource', 'RESOURCE_REQUIRED', 'resource is required'))
     return null
   }
-  if (!isAllowedResource(value)) {
-    errors.push(issue('resource', DENY_CODES.RESOURCE_NOT_ALLOWED, `Resource "${value}" is not in the allow-list`))
+  if (!isAllowedResource(value, provider)) {
+    errors.push(issue('resource', DENY_CODES.RESOURCE_NOT_ALLOWED, `Resource "${value}" is not in the ${provider} allow-list`))
     return null
   }
-  return normalizeResource(value)
+  return normalizeResource(value, provider)
 }
 
 export function validatePolicy(model: unknown): Validated<GovernancePolicy> {
@@ -121,11 +121,12 @@ export function validatePolicy(model: unknown): Validated<GovernancePolicy> {
   }
   const errors: CompileIssue[] = scanPolicyKeys(model)
   const name = validateName(model.name, 'name', errors)
-  const resource = validateResource(model.resource, errors)
+  const provider: Provider = isProvider(model.provider) ? model.provider : 'aws'
+  const resource = validateResource(model.resource, provider, errors)
   const filters = validateSpecList<FilterSpec>(model.filters, 'filters', 'FILTERS_INVALID', errors)
   const actions = validateSpecList<ActionSpec>(model.actions, 'actions', 'ACTIONS_INVALID', errors)
   const enforcement = validateEnforcement(model.enforcement, 'enforcement', errors)
-  if (model.provider !== 'aws') errors.push(issue('provider', 'PROVIDER_INVALID', 'provider must be "aws"'))
+  if (!isProvider(model.provider)) errors.push(issue('provider', 'PROVIDER_INVALID', 'provider must be "aws" or "azure"'))
   if (model.description !== undefined && typeof model.description !== 'string') {
     errors.push(issue('description', 'DESCRIPTION_INVALID', 'description must be a string'))
   }
@@ -138,7 +139,7 @@ export function validatePolicy(model: unknown): Validated<GovernancePolicy> {
   if (errors.length > 0 || !name || !resource || !filters || !actions || !enforcement) {
     return { value: null, errors }
   }
-  const value: GovernancePolicy = { name, provider: 'aws', resource, filters, actions, enforcement }
+  const value: GovernancePolicy = { name, provider, resource, filters, actions, enforcement }
   if (typeof model.description === 'string') value.description = model.description
   if (maxResources !== undefined) value.maxResources = maxResources
   if (maxResourcesPercent !== undefined) value.maxResourcesPercent = maxResourcesPercent

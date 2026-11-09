@@ -61,7 +61,7 @@ function resolveEnforcement(policy: PolicyDto, kind: RunKind, requested?: Enforc
 function buildPayload(runId: string, customerId: string, policy: PolicyDto, account: PolicyAccountDto, input: RequestRunInput, enforcement: Enforcement): RunRequestedPayload {
   return {
     runId, customerId, policyId: policy.id, policyName: policy.name, componentId: input.componentId, provider: policy.model.provider,
-    accountRef: account.accountRef, regions: account.regions, ownerTagKeys: policy.model.ownerTagKeys ?? [], kind: input.kind, enforcement, actionClass: policy.actionClass,
+    accountRef: account.accountRef, regions: policy.model.provider === 'azure' ? [] : account.regions, ownerTagKeys: policy.model.ownerTagKeys ?? [], kind: input.kind, enforcement, actionClass: policy.actionClass,
     compiledYaml: policy.compiledYaml as string, maxResources: policy.model.maxResources ?? DEFAULT_MAX_RESOURCES,
     requestedBy: input.requestedBy ?? null, requestedAt: new Date().toISOString(),
   }

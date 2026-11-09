@@ -10,12 +10,12 @@ export interface ExceptionOutcome {
 }
 
 export function buildExceptionFilters(
-  policy: Pick<GovernancePolicy, 'name' | 'resource'>,
+  policy: Pick<GovernancePolicy, 'name' | 'resource' | 'provider'>,
   exceptions: readonly PolicyException[],
   now: Date,
 ): ExceptionOutcome {
   const outcome: ExceptionOutcome = { filters: [], errors: [], warnings: [] }
-  const idKey = resourceIdKey(policy.resource)
+  const idKey = resourceIdKey(policy.resource, policy.provider)
   exceptions.forEach((candidate, index) => {
     const path = `exceptions.${index}`
     if (isRecord(candidate) && candidate.policy !== policy.name) return
@@ -30,7 +30,7 @@ export function buildExceptionFilters(
       )
       return
     }
-    if (/^arn:/i.test(value.resourceId) && !/arn$/i.test(idKey)) {
+    if (policy.provider === 'aws' && /^arn:/i.test(value.resourceId) && !/arn$/i.test(idKey)) {
       outcome.warnings.push(
         issue(path, 'EXCEPTION_ARN_UNMATCHED', `${policy.resource} resources are matched on ${idKey}; an ARN will not exclude anything`),
       )

@@ -9,7 +9,7 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   if (!store) return scoreChecks([check('Governance store reachable', false, STORE_UNAVAILABLE)])
 
   try {
-    const inspections = await inspectPolicies(store, ctx.canvas, ctx.component.id)
+    const inspections = await inspectPolicies(store, ctx.canvas, ctx.component)
     const missing = namesWhere(inspections, (i) => !i.policy)
     const uncompiled = namesWhere(inspections, (i) => i.policy !== null && i.policy.compiledYaml === null)
     const unregistered = namesWhere(inspections, (i) => i.policy !== null && !i.registered)

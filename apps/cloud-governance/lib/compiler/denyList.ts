@@ -13,6 +13,8 @@ export const DENY_CODES = {
   ACTION_INVOKE_LAMBDA: 'ACTION_INVOKE_LAMBDA',
   ACTION_INVOKE_SFN: 'ACTION_INVOKE_SFN',
   ACTION_NOTIFY: 'ACTION_NOTIFY',
+  ACTION_LOGIC_APP: 'ACTION_LOGIC_APP',
+  ACTION_UPDATE: 'ACTION_UPDATE',
   ACTION_INVALID: 'ACTION_INVALID',
   UNKNOWN_ACTION_TYPE: 'UNKNOWN_ACTION_TYPE',
   MODE_NOT_ALLOWED: 'MODE_NOT_ALLOWED',
@@ -64,6 +66,14 @@ const DENIED_ACTIONS: Readonly<Record<string, { code: string; message: string }>
   notify: {
     code: DENY_CODES.ACTION_NOTIFY,
     message: 'The notify action is not available yet; owner routing arrives in a later phase',
+  },
+  'logic-app': {
+    code: DENY_CODES.ACTION_LOGIC_APP,
+    message: 'The logic-app action runs arbitrary customer workflows and is not allowed',
+  },
+  update: {
+    code: DENY_CODES.ACTION_UPDATE,
+    message: 'The generic update action writes arbitrary ARM properties and is not allowed; use a typed action',
   },
 }
 

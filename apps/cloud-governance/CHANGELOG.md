@@ -3,6 +3,39 @@
 All notable changes to the Veltrix Cloud Governance app are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.4.0 — 2026-11-09
+
+### Added — Azure subscriptions (SDK 3.14.0)
+
+Policies gain a **Cloud** field (`provider: aws | azure`). An Azure policy
+names an Azure resource type from a curated 30-type allow-list (`vm`,
+`storage`, `networksecuritygroup`, `keyvault`, `sql-server`, `aks` …),
+compiles to `azure.<type>`, is subscription-wide (no regions; filter on
+`location` to narrow) and identifies exceptions by the ARM resource id.
+Azure-only actions are classified (`lock`, `poweroff`, `restart`,
+`auto-tag-date` reversible; `delete` irreversible) and `logic-app` and the
+generic `update` action join the deny list.
+
+**Connect Azure subscription** on the Accounts page: the admin gives the
+subscription id and consents to the Veltrix connector in their Entra tenant
+(the platform's existing admin-consent flow, brokered, no secret). The one
+manual step is assigning **Reader** on the subscription (portal link and `az`
+command shown); the connection's Verify action confirms it. The connection is
+registered as an `azure-subscription` component, which every configuration
+type now targets alongside `aws-account`. Deploying registers each policy
+only for components of its own cloud and says which were skipped. Runs
+against a subscription receive an app-only ARM token minted by the platform
+runner; nothing changes for AWS.
+
+Previews need Reader only; enforcement needs Contributor (assign it yourself
+when you raise a policy to `ask`/`auto`). Access-token authentication cannot
+use storage data-plane filters, so those stay out of the allow-list.
+
+New optional settings: `azure_subscription_id` (pre-fills the dialog) and
+`azure_cloud` (commercial / GCC / GCC High / DoD). `platform.cloudIdentities`
+now lists `azure` too, which shows the Entra connector app as the runner's
+Azure identity on the platform-admin Settings tab.
+
 ## 0.3.0 — 2026-11-09
 
 ### Added — "Connect AWS account" on the Accounts page (SDK 3.13.0)

@@ -1,6 +1,6 @@
 id: cloud-governance
 name: Veltrix Cloud Governance
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Cloud governance policies as code. Author Cloud Custodian-compatible
@@ -19,10 +19,12 @@ icon: "🛡"
 
 platform:
   minVersion: "1.0.0"
-  # The platform runner assumes each customer's role with the platform's OWN
-  # AWS identity; declaring it here surfaces the platform-admin setting while
-  # this app is installed. This app never holds that credential.
-  cloudIdentities: [aws]
+  # The platform runner acts with the platform's OWN identity per cloud: its
+  # AWS principal assumes each customer's role; its Entra connector app mints
+  # an app-only token in each consented tenant. Declaring them here surfaces
+  # the platform-admin settings while this app is installed. This app never
+  # holds either credential.
+  cloudIdentities: [aws, azure]
 
 # Original abstract mark (see assets/logo.svg). "Compatible with Cloud Custodian
 # policies" — Cloud Custodian is a Linux Foundation trademark and is not used in
@@ -77,7 +79,7 @@ pipeline:
         driftDetect: config-types/policies/driftDetect
         getStatus: config-types/policies/getStatus
       targets:
-        componentTypes: [aws-account]
+        componentTypes: [aws-account, azure-subscription]
         requiresCredential: false
         requiresConnectivity: false
 
@@ -99,7 +101,7 @@ pipeline:
         getStatus: config-types/policy-packs/getStatus
         options: config-types/policy-packs/options
       targets:
-        componentTypes: [aws-account]
+        componentTypes: [aws-account, azure-subscription]
         requiresCredential: false
         requiresConnectivity: false
 
@@ -122,7 +124,7 @@ pipeline:
         getStatus: config-types/exceptions/getStatus
         options: config-types/exceptions/options
       targets:
-        componentTypes: [aws-account]
+        componentTypes: [aws-account, azure-subscription]
         requiresCredential: false
         requiresConnectivity: false
 
@@ -146,7 +148,7 @@ pipeline:
         getStatus: config-types/schedules/getStatus
         options: config-types/schedules/options
       targets:
-        componentTypes: [aws-account]
+        componentTypes: [aws-account, azure-subscription]
         requiresCredential: false
         requiresConnectivity: false
 
@@ -194,25 +196,49 @@ hooks:
 connectivity:
   testHandler: handlers/testConnection
 
-# One-click account connect (the platform's aws-assume-role adapter). The admin
-# gives the 12-digit account id; the platform mints an External ID, hands back a
-# pre-filled CloudFormation quick-create link (plus the equivalent aws iam
-# commands) and finishes the connection once it can assume the role. This app
-# still never sees a cloud credential: the stored connection is the role ARN,
-# the account id and the External ID the runner presents.
+# One-click account connect, one entry per cloud. This app never sees a cloud
+# credential either way.
+#   AWS (aws-assume-role): the admin gives the 12-digit account id; the
+#   platform mints an External ID, hands back a pre-filled CloudFormation
+#   quick-create link (plus the equivalent aws iam commands) and finishes the
+#   connection once it can assume the role. Stored: account id, role ARN,
+#   External ID.
+#   Azure (entra-admin-consent): the admin gives the subscription id and
+#   consents to the platform connector app in their tenant; the connection is
+#   brokered (no secret) and the one manual step is assigning Reader on the
+#   subscription, which the connection's Verify action confirms.
 connection:
   onboarding:
-    provider: aws-assume-role
-    label: Connect AWS account
-    description: >-
-      Create an IAM role in your AWS account that trusts the Veltrix runner
-      with a generated External ID. Veltrix verifies the role and finishes the
-      connection for you; no key is ever entered or stored.
-    params:
-      requiredSettings: [aws_account_id]
-      roleName: VeltrixGovernance
-      managedPolicyArns:
-        - arn:aws:iam::aws:policy/ReadOnlyAccess
+    - provider: aws-assume-role
+      label: Connect AWS account
+      componentType: aws-account
+      description: >-
+        Create an IAM role in your AWS account that trusts the Veltrix runner
+        with a generated External ID. Veltrix verifies the role and finishes the
+        connection for you; no key is ever entered or stored.
+      params:
+        requiredSettings: [aws_account_id]
+        roleName: VeltrixGovernance
+        managedPolicyArns:
+          - arn:aws:iam::aws:policy/ReadOnlyAccess
+    - provider: entra-admin-consent
+      label: Connect Azure subscription
+      componentType: azure-subscription
+      description: >-
+        Approve the Veltrix connector in your Microsoft Entra tenant, then
+        assign it Reader on the subscription. Previews read resources only; no
+        secret is entered or stored.
+      params:
+        brokered: true
+        cloudSetting: azure_cloud
+        requiredSettings: [azure_subscription_id]
+        capture:
+          endpoint: "setting:azure_subscription_id"
+        provisioning:
+          - type: arm-role-assignment
+            role: Reader
+            scope: subscription
+            subscriptionSetting: azure_subscription_id
 
 settings:
   - key: aws_account_id
@@ -223,6 +249,25 @@ settings:
       asks for its own account id; leave empty unless most connections target
       one account.
     required: false
+  - key: azure_subscription_id
+    type: string
+    label: Azure subscription id
+    description: >-
+      Pre-fills the subscription id when connecting an Azure subscription. Each
+      connection asks for its own; leave empty unless most connections target
+      one subscription.
+    required: false
+  - key: azure_cloud
+    type: select
+    label: Azure cloud
+    description: Sovereign cloud the Azure subscriptions live in.
+    default: commercial
+    required: false
+    options:
+      - { label: "Azure (commercial)", value: commercial }
+      - { label: "Azure Government (GCC)", value: gcc }
+      - { label: "Azure Government (GCC High)", value: gcc-high }
+      - { label: "Azure Government (DoD)", value: dod }
 
 # Runner messages (see lib/runner/contract.ts) plus the host heartbeats: the
 # reconcile that re-dispatches persisted run commands the broker never

@@ -9,7 +9,7 @@ import type {
   PolicyException,
 } from '../model/types'
 import { actionTypeOf, classifyActions } from '../model/actionClass'
-import { PROVIDER_PREFIX } from '../model/awsResources'
+import { providerPrefix } from '../model/awsResources'
 import { dedupeIssues, isRecord, issue } from '../model/issues'
 import { validatePolicy } from '../model/validate'
 import { scanActions, scanEmittedKeys, scanFilters } from './denyList'
@@ -54,7 +54,7 @@ function buildDocument(
 ): Record<string, unknown> {
   const document: Record<string, unknown> = { name: policy.name }
   if (policy.description) document.description = policy.description
-  document.resource = `${PROVIDER_PREFIX}${policy.resource}`
+  document.resource = `${providerPrefix(policy.provider)}${policy.resource}`
   document.mode = { type: 'pull' }
   document['max-resources'] = policy.maxResources ?? DEFAULT_MAX_RESOURCES
   document['max-resources-percent'] = policy.maxResourcesPercent ?? DEFAULT_MAX_RESOURCES_PERCENT

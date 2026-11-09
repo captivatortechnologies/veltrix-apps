@@ -7,16 +7,22 @@ import deploy from '../deploy'
 import rollback from '../rollback'
 import driftDetect from '../driftDetect'
 import healthCheck from '../healthCheck'
-import { AWS_RESOURCES } from '../../../lib/model'
+import { AWS_RESOURCES, AZURE_RESOURCES } from '../../../lib/model'
 import { CUSTOMER, COMPONENT, createFakeDb, ctxFor, goodPolicyFields, item } from '../../lib/__tests__/fakeDb'
 
 const good = item(goodPolicyFields)
 
+const canvasYaml = () => readFileSync(join(process.cwd(), 'apps', 'cloud-governance', 'config-types', 'policies', 'canvas.yaml'), 'utf8')
+const optionValues = (block: string) => [...block.matchAll(/value: "([^"]+)"/g)].map((m) => m[1])
+
 test('canvas resource options are exactly the allow-listed AWS resources', () => {
-  const yaml = readFileSync(join(process.cwd(), 'apps', 'cloud-governance', 'config-types', 'policies', 'canvas.yaml'), 'utf8')
-  const block = yaml.split('key: "resource"')[1].split('key: "enforcement"')[0]
-  const values = [...block.matchAll(/value: "([^"]+)"/g)].map((m) => m[1])
-  assert.deepEqual(values, [...AWS_RESOURCES])
+  const block = canvasYaml().split('key: "resource"')[1].split('key: "azureResource"')[0]
+  assert.deepEqual(optionValues(block), [...AWS_RESOURCES])
+})
+
+test('canvas Azure resource options are exactly the allow-listed Azure resources', () => {
+  const block = canvasYaml().split('key: "azureResource"')[1].split('key: "enforcement"')[0]
+  assert.deepEqual(optionValues(block), [...AZURE_RESOURCES])
 })
 
 test('validate accepts a good policy', async () => {
@@ -220,4 +226,34 @@ test('healthCheck without a store reports score 0', async () => {
   const res = await healthCheck(ctxFor([good]))
   assert.equal(res.healthy, false)
   assert.equal(res.score, 0)
+})
+
+const SUBSCRIPTION = '2f2a1b3c-0000-4000-8000-000000000001'
+const azureComponent = { ...COMPONENT, id: '00000000-0000-4000-8000-0000000000c2', hostname: SUBSCRIPTION, type: ['azure-subscription'] }
+const azurePolicy = item({ ...goodPolicyFields, name: 'vm-untagged', provider: 'azure', azureResource: 'vm', regions: ['eu-west-1'] }, 'az')
+
+test('deploy registers a policy only for components of its own cloud, and ignores regions for Azure', async () => {
+  const db = createFakeDb()
+  const toAzure = await deploy({ ...ctxFor([good, azurePolicy], db), component: azureComponent })
+  assert.equal(toAzure.success, true, toAzure.message)
+  assert.equal(db.tables.policies.length, 1)
+  assert.equal(db.tables.policies[0].name, 'vm-untagged')
+  assert.match(db.tables.policies[0].compiled_yaml, /resource: "azure\.vm"/)
+  assert.deepEqual(db.tables.accounts[0].regions, [])
+  assert.equal(db.tables.accounts[0].account_ref, SUBSCRIPTION)
+  assert.match(toAzure.message, /not for this cloud: stopped-ec2 \(aws, this target is azure\)/)
+
+  const toAws = await deploy(ctxFor([good, azurePolicy], db))
+  assert.equal(toAws.success, true, toAws.message)
+  assert.deepEqual(db.tables.policies.map((p) => p.name).sort(), ['stopped-ec2', 'vm-untagged'])
+  assert.equal(db.tables.accounts.filter((a) => a.component_id === COMPONENT.id).length, 1)
+})
+
+test('drift and health ignore policies of the other cloud on a target', async () => {
+  const db = createFakeDb()
+  await deploy({ ...ctxFor([azurePolicy], db), component: azureComponent })
+  const drift = await driftDetect({ ...ctxFor([good, azurePolicy], db), component: azureComponent } as never)
+  assert.equal(drift.hasDrift, false, JSON.stringify(drift))
+  const health = await healthCheck({ ...ctxFor([good, azurePolicy], db), component: azureComponent } as never)
+  assert.ok(health.checks.every((c) => c.passed), JSON.stringify(health.checks))
 })

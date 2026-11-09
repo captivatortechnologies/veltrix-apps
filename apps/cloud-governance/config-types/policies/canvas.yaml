@@ -11,7 +11,7 @@ id: "cloud-governance-policies"
 name: "Policies"
 toolType: "cloud-governance"
 entityType: "policies"
-description: "Governance policies: a resource type, the filters that select resources, the actions to take and how far a run may go. Deploying compiles the policy and registers it for the targeted AWS accounts. Reconciled by name."
+description: "Governance policies: a cloud, a resource type, the filters that select resources, the actions to take and how far a run may go. Deploying compiles the policy and registers it for the targeted AWS accounts or Azure subscriptions of that cloud. Reconciled by name."
 
 item:
   label: "Policy"
@@ -42,10 +42,21 @@ item:
             maxLength: 500
           helpText: "What this policy is for."
 
-        - key: "resource"
-          label: "Resource Type"
+        - key: "provider"
+          label: "Cloud"
           fieldType: "select"
           required: true
+          defaultValue: "aws"
+          helpText: "The cloud the policy evaluates. A policy is registered only for connected accounts of this cloud."
+          options:
+            - { label: "AWS", value: "aws" }
+            - { label: "Azure", value: "azure" }
+
+        - key: "resource"
+          label: "AWS Resource Type"
+          fieldType: "select"
+          required: false
+          visibleWhen: { field: "provider", equals: "aws" }
           helpText: "The AWS resource type the policy evaluates."
           options:
             - { label: "ec2", value: "ec2" }
@@ -88,6 +99,44 @@ item:
             - { label: "network-acl", value: "network-acl" }
             - { label: "secrets-manager", value: "secrets-manager" }
             - { label: "ssm-parameter", value: "ssm-parameter" }
+
+        - key: "azureResource"
+          label: "Azure Resource Type"
+          fieldType: "select"
+          required: false
+          visibleWhen: { field: "provider", equals: "azure" }
+          helpText: "The Azure resource type the policy evaluates (subscription-wide; filter on location to narrow)."
+          options:
+            - { label: "vm", value: "vm" }
+            - { label: "vmss", value: "vmss" }
+            - { label: "disk", value: "disk" }
+            - { label: "snapshot", value: "snapshot" }
+            - { label: "image", value: "image" }
+            - { label: "storage", value: "storage" }
+            - { label: "storage-container", value: "storage-container" }
+            - { label: "networksecuritygroup", value: "networksecuritygroup" }
+            - { label: "networkinterface", value: "networkinterface" }
+            - { label: "publicip", value: "publicip" }
+            - { label: "vnet", value: "vnet" }
+            - { label: "routetable", value: "routetable" }
+            - { label: "loadbalancer", value: "loadbalancer" }
+            - { label: "dnszone", value: "dnszone" }
+            - { label: "resourcegroup", value: "resourcegroup" }
+            - { label: "keyvault", value: "keyvault" }
+            - { label: "keyvault-secret", value: "keyvault-secret" }
+            - { label: "keyvault-key", value: "keyvault-key" }
+            - { label: "keyvault-certificate", value: "keyvault-certificate" }
+            - { label: "sql-server", value: "sql-server" }
+            - { label: "sql-database", value: "sql-database" }
+            - { label: "mysql-flexibleserver", value: "mysql-flexibleserver" }
+            - { label: "postgresql-flexibleserver", value: "postgresql-flexibleserver" }
+            - { label: "cosmosdb", value: "cosmosdb" }
+            - { label: "redis", value: "redis" }
+            - { label: "webapp", value: "webapp" }
+            - { label: "appserviceplan", value: "appserviceplan" }
+            - { label: "aks", value: "aks" }
+            - { label: "roleassignment", value: "roleassignment" }
+            - { label: "policyassignments", value: "policyassignments" }
 
         - key: "enforcement"
           label: "Enforcement"
@@ -170,4 +219,5 @@ item:
           label: "Regions"
           fieldType: "tags"
           required: false
-          helpText: "Per-policy AWS region override, for example us-east-1. Empty uses the account default."
+          visibleWhen: { field: "provider", equals: "aws" }
+          helpText: "AWS only: per-policy region override, for example us-east-1. Empty uses the account default. Azure policies cover the whole subscription."

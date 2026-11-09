@@ -3,6 +3,7 @@ import { compilePolicy } from '../../lib/compiler'
 import { validatePolicy } from '../../lib/model'
 import type { CompileIssue, CompileResult, GovernancePolicy, PolicyException } from '../../lib/model/types'
 import { readJsonArray, readList, readOptionalNumber, readOptionalString, readRecord, readString } from './readers'
+import { isProvider, type Provider } from '../../lib/model/types'
 
 export const REGION_PATTERN = /^[a-z]{2}(?:-[a-z]+)+-\d$/
 
@@ -30,11 +31,14 @@ export function readPolicyItem(item: CanvasItemSnapshot): PolicyItem {
   const fields = item.fields ?? {}
   const filters = readJsonArray(fields, 'filters')
   const actions = readJsonArray(fields, 'actions')
-  const regions = readList(fields, 'regions')
+  const rawProvider = readString(fields, 'provider') || 'aws'
+  const provider: Provider = isProvider(rawProvider) ? rawProvider : 'aws'
+  // Azure policies cover the whole subscription: regions apply to AWS only.
+  const regions = provider === 'aws' ? readList(fields, 'regions') : []
   const model: Record<string, unknown> = {
     name: readString(fields, 'name'),
-    provider: 'aws',
-    resource: readString(fields, 'resource'),
+    provider: rawProvider,
+    resource: readString(fields, provider === 'azure' ? 'azureResource' : 'resource'),
     filters: filters.value,
     actions: actions.value,
     enforcement: readString(fields, 'enforcement') || 'observe',
