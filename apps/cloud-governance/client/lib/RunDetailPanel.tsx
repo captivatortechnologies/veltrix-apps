@@ -77,7 +77,7 @@ export function RunDetailPanel({ runId, dispatchPending, onClose, onChanged }: P
           {dispatchPending && run.status === 'queued' && (
             <div role="status" style={PANEL}>This run is queued and waiting for the platform runner to pick it up. It will start automatically.</div>
           )}
-          {cancelError && <p role="alert" style={{ color: 'rgb(var(--color-danger))', margin: 0 }}>{cancelError}</p>}
+          {cancelError && <p role="alert" style={{ color: 'rgb(var(--color-danger-rgb, var(--color-danger)))', margin: 0 }}>{cancelError}</p>}
           <div style={ROW}>
             <RunStatusPill status={run.status} />
             <EvaluationIndicator run={run} />

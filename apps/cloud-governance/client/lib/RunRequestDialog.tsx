@@ -93,7 +93,7 @@ export function RunRequestDialog({ policy, accounts, onClose, onRequested }: Pro
         )}
         {kind === 'preview' && <p style={MUTED}>A preview evaluates the policy and lists matching resources. Nothing is changed.</p>}
         {irreversible && (
-          <div role="alert" style={{ ...ROW, alignItems: 'flex-start', color: 'rgb(var(--color-danger))' }}>
+          <div role="alert" style={{ ...ROW, alignItems: 'flex-start', color: 'rgb(var(--color-danger-rgb, var(--color-danger)))' }}>
             <AlertIcon />
             <div style={{ flex: 1 }}>
               <strong>This policy makes irreversible changes.</strong>
@@ -101,7 +101,7 @@ export function RunRequestDialog({ policy, accounts, onClose, onRequested }: Pro
             </div>
           </div>
         )}
-        {error && <p role="alert" style={{ color: 'rgb(var(--color-danger))', margin: 0 }}>{error}</p>}
+        {error && <p role="alert" style={{ color: 'rgb(var(--color-danger-rgb, var(--color-danger)))', margin: 0 }}>{error}</p>}
       </div>
     </Modal>
   )

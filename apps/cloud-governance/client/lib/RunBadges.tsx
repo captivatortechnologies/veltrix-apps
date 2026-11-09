@@ -11,7 +11,7 @@ export const RunStatusPill = ({ status }: { status: RunDto['status'] }) => {
 
 export const EvaluationIndicator = ({ run }: { run: Pick<RunDto, 'status' | 'evaluation'> }) => {
   if (!run.evaluation) {
-    return <span style={{ fontSize: 13, color: 'rgb(var(--color-content-tertiary))' }}>{run.status === 'queued' || run.status === 'running' ? 'Pending' : '—'}</span>
+    return <span style={{ fontSize: 13, color: 'rgb(var(--color-content-tertiary-rgb, var(--color-content-tertiary)))' }}>{run.status === 'queued' || run.status === 'running' ? 'Pending' : '—'}</span>
   }
   const { label, variant, meaning } = EVALUATION[run.evaluation]
   return (

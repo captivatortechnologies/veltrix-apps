@@ -46,7 +46,7 @@ async function responseError(res: Response): Promise<Error> {
   return new Error(`HTTP ${res.status}`)
 }
 
-const MUTED: React.CSSProperties = { fontSize: 13, color: 'rgb(var(--color-content-secondary))' }
+const MUTED: React.CSSProperties = { fontSize: 13, color: 'rgb(var(--color-content-secondary-rgb, var(--color-content-secondary)))' }
 const DT_STYLE: React.CSSProperties = { ...MUTED, margin: 0 }
 const DD_STYLE: React.CSSProperties = { margin: 0, fontSize: 13 }
 const DL_GRID: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: 16, rowGap: 8, margin: 0 }
@@ -57,7 +57,7 @@ const SERVICE_ROW: React.CSSProperties = {
   justifyContent: 'space-between',
   gap: 12,
   padding: '8px 12px',
-  border: '1px solid rgb(var(--color-border))',
+  border: '1px solid rgb(var(--color-border-rgb, var(--color-border)))',
   borderRadius: 6,
 }
 
@@ -71,7 +71,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
           fontWeight: 600,
           textTransform: 'uppercase',
           letterSpacing: 0.4,
-          color: 'rgb(var(--color-content-tertiary))',
+          color: 'rgb(var(--color-content-tertiary-rgb, var(--color-content-tertiary)))',
         }}
       >
         {title}
@@ -103,8 +103,8 @@ function CopyableBlock({ value, ariaLabel }: { value: string; ariaLabel: string 
           margin: 0,
           padding: '10px 12px',
           borderRadius: 6,
-          border: '1px solid rgb(var(--color-border))',
-          background: 'rgb(var(--color-surface-sunken))',
+          border: '1px solid rgb(var(--color-border-rgb, var(--color-border)))',
+          background: 'rgb(var(--color-surface-sunken-rgb, var(--color-surface-sunken)))',
           fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
           fontSize: 12.5,
           whiteSpace: 'pre-wrap',
@@ -400,7 +400,7 @@ export default function AccessServerDetailModal({
             {enrollError && <Alert variant="danger">{enrollError}</Alert>}
             {enrollResult && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <p style={{ margin: 0, fontSize: 12, color: 'rgb(var(--color-danger))' }}>
+                <p style={{ margin: 0, fontSize: 12, color: 'rgb(var(--color-danger-rgb, var(--color-danger)))' }}>
                   The key is shown once — copy it now.
                 </p>
                 <CopyableBlock value={enrollResult.installCommands} ariaLabel="Copy install command" />

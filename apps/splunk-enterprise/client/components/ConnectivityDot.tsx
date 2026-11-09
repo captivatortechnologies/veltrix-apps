@@ -24,9 +24,9 @@ function ensureKeyframes(): void {
 export type ConnectivityState = 'online' | 'offline' | 'checking'
 
 const COLOR: Record<ConnectivityState, string> = {
-  online: 'rgb(var(--color-success))',
-  offline: 'rgb(var(--color-danger))',
-  checking: 'rgb(var(--color-warning))',
+  online: 'rgb(var(--color-success-rgb, var(--color-success)))',
+  offline: 'rgb(var(--color-danger-rgb, var(--color-danger)))',
+  checking: 'rgb(var(--color-warning-rgb, var(--color-warning)))',
 }
 
 const DEFAULT_LABEL: Record<ConnectivityState, string> = {
@@ -82,7 +82,7 @@ export default function ConnectivityDot({ state, label, size = 10 }: Connectivit
           height: core,
           borderRadius: '50%',
           background: color,
-          boxShadow: '0 0 0 2px rgb(var(--color-surface-raised))',
+          boxShadow: '0 0 0 2px rgb(var(--color-surface-raised-rgb, var(--color-surface-raised)))',
         }}
       />
     </span>
