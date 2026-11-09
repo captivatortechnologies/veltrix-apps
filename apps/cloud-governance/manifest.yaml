@@ -1,6 +1,6 @@
 id: cloud-governance
 name: Veltrix Cloud Governance
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Cloud governance policies as code. Author Cloud Custodian-compatible
@@ -127,9 +127,10 @@ pipeline:
       name: Schedules
       description: >
         Recurring runs of a policy (five-field cron, UTC) at an enforcement
-        level never stronger than the policy's own. The platform scheduler
-        requests the runs; the app records them like any other. Reconciled by
-        policy name.
+        level never stronger than the policy's own. On every host minute tick
+        the app fires the schedules that are due, one run per registered
+        account; `auto` schedules enforce, everything else previews.
+        Reconciled by policy name.
       canvasTemplate: config-types/schedules/canvas.yaml
       defaultConfig: config-types/schedules/defaults.yaml
       handlers:
@@ -189,11 +190,13 @@ hooks:
 connectivity:
   testHandler: handlers/testConnection
 
-# Runner messages (see lib/runner/contract.ts) plus the host heartbeat that
-# re-dispatches persisted run commands the broker never confirmed.
+# Runner messages (see lib/runner/contract.ts) plus the host heartbeats: the
+# reconcile that re-dispatches persisted run commands the broker never
+# confirmed, and the minute tick that fires due schedules.
 events:
   - component:deleted
   - governance.run.status
   - governance.run.match
   - governance.run.action
   - governance.reconcile
+  - governance.schedule.tick

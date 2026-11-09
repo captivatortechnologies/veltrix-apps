@@ -23,6 +23,13 @@ export const RUN_MATCH = 'governance.run.match'
 export const RUN_ACTION = 'governance.run.action'
 /** Host heartbeat: re-dispatch persisted commands the broker never confirmed. */
 export const RECONCILE = 'governance.reconcile'
+/** Host heartbeat, once a minute: the app fires whichever of its own schedules are due. */
+export const SCHEDULE_TICK = 'governance.schedule.tick'
+
+export interface ScheduleTickPayload {
+  /** ISO timestamp of the minute the host is announcing. */
+  now: string
+}
 
 export type RunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
 

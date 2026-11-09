@@ -1,6 +1,7 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import { getPolicyByName, listSchedules, upsertSchedule } from '../../lib/db'
 import { validateSchedule } from '../../lib/model'
+import { nextCronRun } from '../../lib/schedule/cron'
 import { readScheduleItem } from '../lib/guardrailItems'
 import { itemsOf } from '../lib/readers'
 import { errorMessage } from '../lib/results'
@@ -9,10 +10,10 @@ import { clampEnforcement } from './_shared'
 import type { ScheduleRollbackData, ScheduleRollbackEntry } from './_shared'
 
 /**
- * Records each schedule with its enforcement clamped to the policy's own. This
- * handler only stores the schedule: the platform scheduler that reads
- * cgov_schedule and requests the runs is Phase 0 platform work and is not part
- * of this repository, so next_run_at is left for it to maintain.
+ * Records each schedule with its enforcement clamped to the policy's own and a
+ * due time computed from the cron. A due time already armed by the minute tick
+ * is kept when the cron did not change, so re-deploying a canvas never resets
+ * a schedule's cadence. The tick itself (`lib/schedule/tick.ts`) fires the runs.
  */
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const store = resolveStore(ctx)
@@ -46,7 +47,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         cron: value.cron,
         enabled: value.enabled,
         enforcement,
-        nextRunAt: previous?.nextRunAt ?? null,
+        nextRunAt: previous?.cron === value.cron && previous.nextRunAt ? previous.nextRunAt : nextCronRun(value.cron, new Date()).toISOString(),
       })
       entries.push({
         policyName: value.policy,

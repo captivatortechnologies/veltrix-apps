@@ -3,6 +3,25 @@
 All notable changes to the Veltrix Cloud Governance app are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.2.0 — 2026-11-09
+
+### Added — schedules fire
+
+The app now subscribes to the host's minute heartbeat
+(`governance.schedule.tick`) and fires its own schedules: a schedule stored
+without a due time is armed on its first tick, a due schedule is claimed
+atomically and requests one run per registered account, and `next_run_at`
+moves to the next UTC cron match. `auto` schedules request enforcement runs;
+`observe`, `notify` and (until the approval gate ships) `ask` schedules
+request previews. Deploying a schedule computes its first due time from the
+cron and keeps an armed due time when the cron is unchanged. Runs requested
+this way carry `requestedBy: schedule:<policy>`.
+
+The platform side of Phase 0 — `ctx.db` on pipeline handler contexts, the
+c7n runner worker, the credential broker and the heartbeat — shipped in the
+Veltrix repository, so deploy handlers and runs are no longer inert on an
+up-to-date host.
+
 ## 0.1.0 — 2026-11-08
 
 ### Added — Phase 0: author, compile, preview

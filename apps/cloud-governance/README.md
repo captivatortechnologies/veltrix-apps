@@ -86,14 +86,24 @@ External ID), executes exactly the YAML it was given, enforces the same
 `maxResources` cap, and reports back on `governance.run.status`,
 `governance.run.match` and `governance.run.action`.
 
-**The runner is not in this repository and has not been built yet.** It is
-Phase 0 platform work tracked in
-`_ai_tasks/cloud-governance/2026-11-08/01_mvp-plan.md` (§2 "Sandboxed per-job
-runner", "Credential broker", "Scheduler for apps"). Until it ships, a
-requested run is persisted and published but no component consumes it; the
-run stays `running` after dispatch, and the host heartbeat re-dispatches it
-every five minutes (see Run correlation). The UI shows this state honestly
-rather than claiming the account was evaluated.
+**The runner lives in the Veltrix platform repository**
+(`rabbitmq/src/services/governance/`, `governance-worker.ts`): a per-job
+container running a pinned `cloudcustodian/c7n` image under a 15-minute
+`sts:AssumeRole` session, `--dryrun` for previews, the resource cap enforced
+again on its side, and an inbound app-event consumer that returns its
+messages to `hooks/onEvent`. Its `contract.ts` mirrors `lib/runner/contract.ts`
+here; change them together. On a host without the worker, a requested run is
+persisted and published but nothing consumes it; the run stays `running`
+after dispatch and the host heartbeat re-dispatches it every five minutes
+(see Run correlation). The UI shows this state honestly rather than claiming
+the account was evaluated.
+
+**Schedules** are fired by the app itself on the host's minute tick
+(`governance.schedule.tick`, payload `{ now }`): `lib/schedule/tick.ts` arms a
+freshly stored schedule on its first tick, claims a due one atomically (two
+overlapping ticks cannot both fire it), requests one run per registered
+account — `auto` enforces, `observe`/`notify`/`ask` preview — and moves
+`next_run_at` to the next cron match (`lib/schedule/cron.ts`, UTC).
 
 ## Admission compiler
 
@@ -344,9 +354,9 @@ Honest drops.
   `cgov_policy` / `cgov_policy_account`; there is no `cgov_policy_pack` table
   in `migrations/001_initial.sql`, so a pack cannot be listed or diffed as its
   own record.
-- **Schedule firing.** `cgov_schedule` stores the cron, `enabled`,
-  `last_run_at`, `next_run_at`; nothing in this app evaluates the cron. Runs
-  are requested by the platform scheduler (Phase 0 platform work, not built).
+- **Schedule firing** needs the host's minute tick (`governance.schedule.tick`,
+  platform ≥ the app-heartbeat release). On a host without it, schedules are
+  stored and armed but never fire; nothing in the UI says so yet.
 - **The runner itself.** See Architecture.
 - **App settings `default_max_resources` / `default_regions`** are declared
   but not read by the lifecycle yet.

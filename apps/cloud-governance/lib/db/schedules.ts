@@ -29,11 +29,26 @@ export async function listSchedules(db: PlatformDatabaseClient, customerId: stri
   return rows.map(mapSchedule)
 }
 
-export async function setScheduleRun(db: PlatformDatabaseClient, customerId: string, id: string, lastRunAt: Date, nextRunAt: Date | null): Promise<void> {
-  await db.$executeRawUnsafe(
+/** First tick after a schedule is stored without a due time: arm it, never fire it. */
+export async function armSchedule(db: PlatformDatabaseClient, customerId: string, id: string, nextRunAt: Date): Promise<boolean> {
+  const updated = await db.$executeRawUnsafe(
+    `UPDATE cgov_schedule SET next_run_at = $3::timestamptz, updated_at = now()
+     WHERE id = $1::uuid AND customer_id = $2::uuid AND next_run_at IS NULL`,
+    id, customerId, nextRunAt.toISOString())
+  return updated > 0
+}
+
+/**
+ * Atomically takes a due schedule for this tick by moving its due time forward.
+ * Two overlapping ticks cannot both win: the second finds `next_run_at` already
+ * past `now` and gets false.
+ */
+export async function claimDueSchedule(db: PlatformDatabaseClient, customerId: string, id: string, now: Date, nextRunAt: Date): Promise<boolean> {
+  const updated = await db.$executeRawUnsafe(
     `UPDATE cgov_schedule SET last_run_at = $3::timestamptz, next_run_at = $4::timestamptz, updated_at = now()
-     WHERE id = $1::uuid AND customer_id = $2::uuid`,
-    id, customerId, lastRunAt.toISOString(), nextRunAt ? nextRunAt.toISOString() : null)
+     WHERE id = $1::uuid AND customer_id = $2::uuid AND enabled AND next_run_at IS NOT NULL AND next_run_at <= $3::timestamptz`,
+    id, customerId, now.toISOString(), nextRunAt.toISOString())
+  return updated > 0
 }
 
 export async function deleteSchedule(db: PlatformDatabaseClient, customerId: string, id: string): Promise<number> {
