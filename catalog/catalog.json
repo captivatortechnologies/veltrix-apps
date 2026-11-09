@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-11-09T20:05:49.505Z",
+  "generatedAt": "2026-11-09T21:53:37.281Z",
   "apps": [
     {
       "appId": "akamai",
@@ -1525,7 +1525,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.22.0",
+      "version": "1.22.1",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, license pools, API access tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -1535,12 +1535,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.22.0/splunk-enterprise.zip",
-      "sha256": "cf2798112665bd2190b5662b2ffaee9c20773d0a981e42cf7c2611412ed01860",
-      "sizeBytes": 509051,
-      "publishedAt": "2026-11-09T13:10:52.729Z",
-      "releaseNotes": "## 1.22.0 — 2026-11-08\n\n### Fixed — colors on the Tailwind 4 host\n\nTheme colors now read `rgb(var(--color-x-rgb, var(--color-x)))`, which\nrenders on hosts that ship bare RGB-triple tokens and on hosts that ship\nfull `rgb()` tokens (Veltrix Tailwind 4). Previously, on the new host,\nstatus dots, badges and panel colors fell back to defaults.\n\n### Changed — BYOL provisioning is a durable, single-writer lifecycle\n\nDeploy and Destroy now run inside one database transaction that locks the\ninfrastructure row, so two requests cannot open overlapping runs. The run's\ncommand is persisted before it is published; a broker outage leaves it\n`running` with `dispatchPending: true`, and the host's per-minute\n`provisioning.reconcile` event re-dispatches anything undelivered for more\nthan five minutes. Status, step and resource events are honoured only when\nthey carry the run id the record is waiting on (`active_deployment_id`), so a\nlate message from an older run can no longer flip a live environment.\n\nDestroy re-emits the configuration the stack was applied with\n(`applied_configuration`) rather than a freshly derived preview, so teardown\nrenders the same provider, account and subnet. A confirmed teardown clears\nresource references, completes the run and releases the subnet reservation;\na failed one keeps them, and the record cannot be deleted until a destroy has\nsucceeded and network cleanup is done. Editing topology or deployment target\nis refused while a stack is applied.\n\nNew `GET /byol/:id/readiness` reports whether an Apply may start (billing,\ncloud account, provider services); the console checks it when the Plan modal\nopens and disables Apply with the reason. `start`, `stop` and `restart` answer\n501 instead of rewriting the record's status without touching the cloud.\nGitHub deployment webhooks are no longer trusted as a provisioning signal.\n\nMigration `015_provisioning_lifecycle.sql` adds `active_deployment_id`,\n`applied_configuration`, `command_payload`, `dispatched_at` and tenant\ncolumns on runs and steps. Requires a host that provides\n`db.transaction` and `ctx.provisioning` (SDK 3.10.0).",
-      "releasedAt": "2026-11-08T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.22.1/splunk-enterprise.zip",
+      "sha256": "6c5eddc764ca7956568c98ad69c7c91c45c811d6dad99c197d2a6d8da0c736f6",
+      "sizeBytes": 512530,
+      "publishedAt": "2026-11-09T21:53:37.262Z",
+      "releaseNotes": "## 1.22.1 — 2026-11-09\n\n### Fixed — loads on a fresh platform database\n\nMigration `014_deployment_metadata_customer_scope.sql` adds a `customer_id`\ncolumn (and index) to `splunk_deployment_metadata`, the one app table that\ncarried neither a tenant column nor a foreign key to another app table. The\nplatform's tenant-partition check refused to load the app on a database where\nits migrations had not already been applied; existing installations are\nunaffected beyond the additive column. The table is not written by the app\ntoday.",
+      "releasedAt": "2026-11-09T00:00:00.000Z"
     },
     {
       "appId": "splunk-soar",
