@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-11-09T13:10:52.747Z",
+  "generatedAt": "2026-11-09T20:05:49.505Z",
   "apps": [
     {
       "appId": "akamai",
@@ -339,7 +339,7 @@
     {
       "appId": "cloud-governance",
       "name": "Veltrix Cloud Governance",
-      "version": "0.2.0",
+      "version": "0.4.0",
       "vendor": "Veltrix",
       "description": "Cloud governance policies as code. Author Cloud Custodian-compatible policies in a form (resource, filters, actions, enforcement), compile them through an admission compiler that refuses unsafe constructs and injects a resource cap, preview exactly which resources a run would touch, and only then enforce — every run correlated, capped and audited. Policies run in a sandboxed platform runner against your AWS accounts; this app never holds cloud credentials. Phase 0 is AWS, match preview, and enforcement of reversible and snapshot-backed actions under `auto`; `ask` and irreversible enforcement wait for the per-run approval gate.",
       "category": "CLOUD",
@@ -348,11 +348,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloud-governance",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloud-governance-v0.2.0/cloud-governance.zip",
-      "sha256": "4c3cebaa01bc153499bf4abe331ecc1da947622d3c22b7172e75d624148fc210",
-      "sizeBytes": 226700,
-      "publishedAt": "2026-11-09T13:10:52.679Z",
-      "releaseNotes": "## 0.2.0 — 2026-11-09\n\n### Fixed — colors on the Tailwind 4 host\n\nTheme colors now read `rgb(var(--color-x-rgb, var(--color-x)))`, which\nrenders on hosts that ship bare RGB-triple tokens and on hosts that ship\nfull `rgb()` tokens (Veltrix Tailwind 4). Previously, on the new host,\nstatus dots, badges and panel colors fell back to defaults.\n\n### Added — schedules fire\n\nThe app now subscribes to the host's minute heartbeat\n(`governance.schedule.tick`) and fires its own schedules: a schedule stored\nwithout a due time is armed on its first tick, a due schedule is claimed\natomically and requests one run per registered account, and `next_run_at`\nmoves to the next UTC cron match. `auto` schedules request enforcement runs;\n`observe`, `notify` and (until the approval gate ships) `ask` schedules\nrequest previews. Deploying a schedule computes its first due time from the\ncron and keeps an armed due time when the cron is unchanged. Runs requested\nthis way carry `requestedBy: schedule:<policy>`.\n\nThe platform side of Phase 0 — `ctx.db` on pipeline handler contexts, the\nc7n runner worker, the credential broker and the heartbeat — shipped in the\nVeltrix repository, so deploy handlers and runs are no longer inert on an\nup-to-date host.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloud-governance-v0.4.0/cloud-governance.zip",
+      "sha256": "a5589287900c2f6d5278e35861e2ade163fb3f234a6ad348f0b73b6eae363dd2",
+      "sizeBytes": 243344,
+      "publishedAt": "2026-11-09T20:05:49.434Z",
+      "releaseNotes": "## 0.4.0 — 2026-11-09\n\n### Added — Azure subscriptions (SDK 3.14.0)\n\nPolicies gain a **Cloud** field (`provider: aws | azure`). An Azure policy\nnames an Azure resource type from a curated 30-type allow-list (`vm`,\n`storage`, `networksecuritygroup`, `keyvault`, `sql-server`, `aks` …),\ncompiles to `azure.<type>`, is subscription-wide (no regions; filter on\n`location` to narrow) and identifies exceptions by the ARM resource id.\nAzure-only actions are classified (`lock`, `poweroff`, `restart`,\n`auto-tag-date` reversible; `delete` irreversible) and `logic-app` and the\ngeneric `update` action join the deny list.\n\n**Connect Azure subscription** on the Accounts page: the admin gives the\nsubscription id and consents to the Veltrix connector in their Entra tenant\n(the platform's existing admin-consent flow, brokered, no secret). The one\nmanual step is assigning **Reader** on the subscription (portal link and `az`\ncommand shown); the connection's Verify action confirms it. The connection is\nregistered as an `azure-subscription` component, which every configuration\ntype now targets alongside `aws-account`. Deploying registers each policy\nonly for components of its own cloud and says which were skipped. Runs\nagainst a subscription receive an app-only ARM token minted by the platform\nrunner; nothing changes for AWS.\n\nPreviews need Reader only; enforcement needs Contributor (assign it yourself\nwhen you raise a policy to `ask`/`auto`). Access-token authentication cannot\nuse storage data-plane filters, so those stay out of the allow-list.\n\nNew optional settings: `azure_subscription_id` (pre-fills the dialog) and\n`azure_cloud` (commercial / GCC / GCC High / DoD). `platform.cloudIdentities`\nnow lists `azure` too, which shows the Entra connector app as the runner's\nAzure identity on the platform-admin Settings tab.",
       "releasedAt": "2026-11-09T00:00:00.000Z"
     },
     {
