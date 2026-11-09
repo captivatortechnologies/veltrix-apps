@@ -265,7 +265,10 @@ export default defineConnectionTester(async (ctx) => {
 app-only token with `ctx.identity.getAccessToken({ tenantId, resource })`. `ctx.identity` is
 present on the test, options-provider, and pipeline contexts, and BYO-secret handlers just
 ignore it. Client pages drive the consent flow with the `/client` onboarding helpers
-(`startOnboarding`, `getOnboardingStatus`, `revokeOnboarding`).
+(`startOnboarding`, `getOnboardingStatus`, `revokeOnboarding`). Providers that never
+redirect back (an AWS account is connected by creating an IAM role) return a `pending`
+descriptor from `startOnboarding`; `ConnectionsManager` shows the step and polls
+`completeOnboarding` until the platform verifies it, so app code needs nothing extra.
 
 Server routes then reach the tool with `ctx.resolveConnection(...)` (above), so the decrypted
 secret never leaves the server. Apps that provision their own hosted infrastructure
@@ -379,11 +382,13 @@ events: [ some.platform.event ]     # optional — platform events the app subsc
 connectivity:
   testHandler: handlers/testConnection   # backs the "Test" button on a Connection
 
-connection:                         # optional — one-click consent onboarding
+connection:                         # optional — one-click connection onboarding
   onboarding:
-    provider: entra-admin-consent   # a platform onboarding adapter
+    provider: entra-admin-consent   # entra-admin-consent | oauth2-auth-code | aws-assume-role
     label: Connect Microsoft Defender
+    description: Approve Veltrix in your tenant.   # optional dialog text
     params: { brokered: true, capture: { tenantId: "setting:tenant_id" }, requiredSettings: [tenant_id] }
+    # aws-assume-role: params { requiredSettings: [aws_account_id], roleName, managedPolicyArns }
 
 remoteCommands:                     # optional — allow-listed CLI templates for ctx.remote.command()
   - id: so-rule                     #   (Salt/CLI-managed tools over managed ZTNA, e.g. Security Onion)
@@ -513,7 +518,7 @@ the item), `lockKeys` (keyvalue only). `veltrix validate` checks all of these ag
 | `@veltrixsecops/app-sdk` | **React-free.** All types (handler contexts/results, manifest, platform refs, hook contexts), `APP_LAYOUT`/`HANDLER_NAMES`/`conventionalPaths()` — safe to load in a bare Node process, which is what the sandbox runner does |
 | `@veltrixsecops/app-sdk/pipeline` | `defineValidator`, `defineDeployer`, `defineRollbackHandler`, `defineHealthChecker`, `defineDriftDetector`, `defineConnectionTester` |
 | `@veltrixsecops/app-sdk/hooks` | React hooks for app client pages — `useAppContext`, `usePipelineStatus`, `useAppBranding`, `usePermissions` (requires `react`) |
-| `@veltrixsecops/app-sdk/client` | Browser client contract: `authFetch`, `getHostRuntime`/`requireHostRuntime`, `AppClientModule`/`AppSidebarItem`, tenant-data helpers (`listEnvironments`, `listConnectivityProviders`), connection ops (`runOperation`), and the consent-onboarding helpers (`startOnboarding`/`getOnboardingStatus`/`revokeOnboarding`/`fetchAppOnboarding`) |
+| `@veltrixsecops/app-sdk/client` | Browser client contract: `authFetch`, `getHostRuntime`/`requireHostRuntime`, `AppClientModule`/`AppSidebarItem`, tenant-data helpers (`listEnvironments`, `listConnectivityProviders`), connection ops (`runOperation`), and the connection-onboarding helpers (`startOnboarding`/`completeOnboarding`/`getOnboardingStatus`/`revokeOnboarding`/`fetchAppOnboarding`) |
 | `@veltrixsecops/app-sdk/ui` | Platform design-system components + hooks for app client pages (requires `react`; renders richly inside the platform, degrades to a minimal accessible fallback outside it) |
 | `@veltrixsecops/app-sdk/connections` | `ConnectionsManager` — the shared Settings → Connections page an app's `/connections` client page renders (requires `react`) |
 | `@veltrixsecops/app-sdk/byol` | Bring-Your-Own-Infra console — `ByolInfrastructureManager`/`ByolInfrastructureDetail` + plan helpers (`buildByolPlan`, `diffPlan`, `planHasChanges`) for apps that provision hosted infra (requires `react`) |

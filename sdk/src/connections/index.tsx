@@ -12,6 +12,7 @@ import {
   addInventoryItem,
   updateInventoryItem,
   fetchAppOnboarding,
+  type OnboardPending,
   type CredentialSummary,
   type EnvironmentRef,
   type TestConnectionResult,
@@ -34,6 +35,8 @@ import {
   type FilterDefinition,
   type SortOption,
 } from '../ui'
+import { OnboardingPendingPanel } from './OnboardingPendingPanel'
+import { useOnboardingCompletion } from './useOnboardingCompletion'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -100,10 +103,20 @@ export interface OnboardingDescriptorSummary {
   provider: string
   /** Button/label text, e.g. "Connect Microsoft Defender". */
   label: string
+  /** One sentence for the connect dialog; replaces the generic sign-in text. */
+  description?: string
   /** True → brokered (no secret ever entered by the user). */
   brokered: boolean
   /** App settings the admin must supply before the consent redirect. */
   requiredSettings: string[]
+  /** Labels for `requiredSettings` (falls back to a humanised key). */
+  requiredSettingLabels?: Record<string, string>
+}
+
+/** `aws_account_id` → "Aws account id" — the fallback label for an up-front setting. */
+function humanizeKey(key: string): string {
+  const words = key.replace(/[_-]+/g, ' ').trim()
+  return words ? words[0].toUpperCase() + words.slice(1) : key
 }
 
 /** Per-connection test state: in-flight, or the last result. */
@@ -280,6 +293,8 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
   const [onboardSettings, setOnboardSettings] = useState<Record<string, string>>({})
   const [onboardSubmitting, setOnboardSubmitting] = useState(false)
   const [onboardError, setOnboardError] = useState<string | null>(null)
+  // A pending (polled) flow: the admin does a step elsewhere while we verify.
+  const [pendingFlow, setPendingFlow] = useState<{ pending: OnboardPending; authorizeUrl: string } | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   // The OAuth "Connect …" option is offered on every app. The descriptor is the
   // `onboarding` prop when the page passes it, else self-fetched from
@@ -319,8 +334,10 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
       setFetchedOnboarding({
         provider: d.provider,
         label: d.label,
+        description: d.description,
         brokered: d.brokered ?? false,
         requiredSettings: d.requiredSettings ?? [],
+        requiredSettingLabels: d.requiredSettingLabels,
       })
     })
     return () => {
@@ -379,11 +396,22 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
     setOnboardSubmitting(true)
     setOnboardError(null)
     try {
-      const { authorizeUrl } = await startOnboarding(appId, {
+      const { authorizeUrl, pending } = await startOnboarding(appId, {
         environmentId: onboardEnvironmentId,
         connectionName: name,
         settings: onboardSettings,
       })
+      if (pending) {
+        // The provider never redirects back: show the step to perform and poll
+        // until the platform can verify it (see useOnboardingCompletion).
+        setOnboardOpen(false)
+        setOnboardSubmitting(false)
+        setPendingFlow({ pending, authorizeUrl })
+        if (authorizeUrl && pending.openInNewTab && typeof window !== 'undefined') {
+          window.open(authorizeUrl, '_blank', 'noopener,noreferrer')
+        }
+        return
+      }
       // Full-page navigation to the provider's hosted consent page. The
       // platform's static callback redirects back here with `?onboarded=…`.
       if (typeof window !== 'undefined') window.location.assign(authorizeUrl)
@@ -392,6 +420,15 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
       setOnboardSubmitting(false)
     }
   }
+
+  const completion = useOnboardingCompletion(appId, pendingFlow?.pending ?? null, (done) => {
+    setNotice(
+      done.manualStepsPending
+        ? `Connection "${done.connectionName}" created. One manual step remains — see the connection to finish setup.`
+        : `Connection "${done.connectionName}" created successfully.`,
+    )
+    void load()
+  })
 
   const openCreate = () => {
     setEditing(null)
@@ -873,12 +910,13 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
           }}
           title={effectiveOnboarding.label}
           description={
-            effectiveOnboarding.brokered
+            effectiveOnboarding.description ??
+            (effectiveOnboarding.brokered
               ? "You'll approve this on your provider's sign-in page — no secret is entered or stored here."
-              : "You'll authorize this on your provider's sign-in page."
+              : "You'll authorize this on your provider's sign-in page.")
           }
           onSubmit={handleStartOnboarding}
-          submitText="Continue to sign-in"
+          submitText="Continue"
           isSubmitting={onboardSubmitting}
           submitDisabled={!onboardName.trim() || !onboardEnvironmentId}
           error={onboardError}
@@ -906,7 +944,7 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
             {effectiveOnboarding.requiredSettings.map((key) => (
               <Input
                 key={key}
-                label={key}
+                label={effectiveOnboarding.requiredSettingLabels?.[key] ?? humanizeKey(key)}
                 value={onboardSettings[key] ?? ''}
                 onChange={(e) =>
                   setOnboardSettings((prev) => ({ ...prev, [key]: e.target.value }))
@@ -918,6 +956,16 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
             ))}
           </div>
         </FormDialog>
+      ) : null}
+
+      {pendingFlow ? (
+        <OnboardingPendingPanel
+          pending={pendingFlow.pending}
+          authorizeUrl={pendingFlow.authorizeUrl}
+          status={completion.status}
+          onVerifyNow={completion.verifyNow}
+          onClose={() => setPendingFlow(null)}
+        />
       ) : null}
     </Card>
   )

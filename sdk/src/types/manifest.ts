@@ -152,6 +152,8 @@ export interface ConnectionOnboardingDescriptor {
   provider: string
   /** Button label in the Connections UI (e.g. "Connect Microsoft Defender"). */
   label: string
+  /** One sentence shown in the connect dialog instead of the generic sign-in text. */
+  description?: string
   params?: ConnectionOnboardingParams
   /**
    * Optional app-provided finalize hook (extensionless path). Run in-process
@@ -179,6 +181,24 @@ export interface ConnectionOnboardingParams {
   requiredSettings?: string[]
   /** Post-consent provisioning steps the adapter runs (e.g. Sentinel ARM RBAC). */
   provisioning?: OnboardingProvisioningStep[]
+
+  // --- `provider: oauth2-auth-code` (generic OAuth2 authorization code) ---
+  /** Authorization endpoint; `{setting_key}` placeholders resolve from `requiredSettings`. */
+  authorizeUrl?: string
+  tokenUrl?: string
+  scopes?: string[]
+  /** Hosts a templated endpoint may resolve to (required when the host is templated). */
+  allowedHosts?: string[]
+  revokeUrl?: string
+  accessType?: string
+
+  // --- `provider: aws-assume-role` (IAM role the platform runner assumes) ---
+  /** Setting key holding the 12-digit account id collected up front (default `aws_account_id`). */
+  accountIdSetting?: string
+  /** IAM role name created in the customer account (default `Veltrix-<appId>`). */
+  roleName?: string
+  /** Managed policies attached to that role (default ReadOnlyAccess). */
+  managedPolicyArns?: string[]
 }
 
 export interface OnboardingRequiredResource {

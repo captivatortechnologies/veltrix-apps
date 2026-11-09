@@ -1,5 +1,26 @@
 # Changelog
 
+## 3.13.0 — 2026-11-09
+
+### Pending (polled) connection onboarding
+
+Some providers have no consent page that redirects back to the platform — an
+AWS account is connected by creating an IAM role the platform runner can
+assume. `startOnboarding` may now return a `pending` descriptor (`state`,
+instructions, CLI commands, `openInNewTab`, poll interval, expiry) next to an
+`authorizeUrl` that may be empty. `ConnectionsManager` handles it end to end:
+it opens the hosted page in a new tab when there is one, shows the
+`OnboardingPendingPanel` (instructions, copyable commands, live status) and
+polls the new `completeOnboarding(appId, state)` helper through
+`useOnboardingCompletion` until the platform verifies the step, then reloads
+the list. Redirect-style providers are unchanged.
+
+The connect dialog uses the manifest's new `connection.onboarding.description`
+and labels the up-front inputs from the app's setting declarations
+(`requiredSettingLabels` in the `/enabled` payload) instead of showing raw
+keys. Manifest types gain the `oauth2-auth-code` and `aws-assume-role` params
+(`roleName`, `managedPolicyArns`, `accountIdSetting`).
+
 ## 3.12.0 — 2026-11-09
 
 ### `platform.cloudIdentities` on the manifest

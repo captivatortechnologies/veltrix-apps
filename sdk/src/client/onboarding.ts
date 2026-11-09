@@ -33,8 +33,12 @@ async function onboardingError(res: Response): Promise<Error> {
 export interface AppOnboardingDescriptor {
   provider: string
   label: string
+  /** One sentence for the connect dialog (replaces the generic sign-in text). */
+  description?: string
   brokered?: boolean
   requiredSettings?: string[]
+  /** Labels for `requiredSettings`, when the app declares a setting for the key. */
+  requiredSettingLabels?: Record<string, string>
 }
 
 /**
@@ -70,10 +74,60 @@ export interface StartOnboardingInput {
   settings?: Record<string, unknown>
 }
 
+/**
+ * Returned by providers that never redirect back to the platform (AWS): the
+ * admin performs a step elsewhere while the page polls `completeOnboarding`.
+ */
+export interface OnboardPending {
+  /** The one-time session token to pass to `completeOnboarding`. */
+  state: string
+  title: string
+  instructions: string[]
+  /** Copy-pasteable commands for doing the step by hand. */
+  cliCommands: string[]
+  /** Open `authorizeUrl` in a new tab rather than navigating away. */
+  openInNewTab: boolean
+  pollIntervalSeconds: number
+  expiresInSeconds: number
+}
+
 export interface StartOnboardingResult {
-  /** Open this in the browser — the provider's hosted consent page. */
+  /**
+   * Open this in the browser — the provider's hosted consent page. Empty for a
+   * pending flow that offers no hosted page (manual commands only).
+   */
   authorizeUrl: string
   provider: string
+  /** Present when the flow finishes by polling instead of a redirect. */
+  pending?: OnboardPending
+}
+
+export type CompleteOnboardingResult =
+  | { status: 'done'; connectionId: string; connectionName: string; manualStepsPending: boolean }
+  | { status: 'pending'; message: string }
+  | { status: 'expired'; message: string }
+
+/**
+ * Poll a pending flow. POST /api/apps/:appId/connections/onboard/complete.
+ * `pending` means the out-of-band step is not verifiable yet — call again
+ * after `pollIntervalSeconds`; `expired` means the session is gone and the
+ * admin must start over. Any other failure throws.
+ */
+export async function completeOnboarding(appId: string, state: string): Promise<CompleteOnboardingResult> {
+  const res = await authFetch(`/api/apps/${encodeURIComponent(appId)}/connections/onboard/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ state }),
+  })
+  if (res.ok) {
+    const body = (await res.json()) as { connectionId: string; connectionName: string; manualStepsPending?: boolean }
+    return { status: 'done', connectionId: body.connectionId, connectionName: body.connectionName, manualStepsPending: body.manualStepsPending ?? false }
+  }
+  if (res.status === 409 || res.status === 410) {
+    const message = (await onboardingError(res)).message
+    return { status: res.status === 409 ? 'pending' : 'expired', message }
+  }
+  throw await onboardingError(res)
 }
 
 /** Begin onboarding a connection. POST /api/apps/:appId/connections/onboard/start. */
