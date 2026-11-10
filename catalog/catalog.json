@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-11-10T03:56:56.047Z",
+  "generatedAt": "2026-11-10T04:58:58.042Z",
   "apps": [
     {
       "appId": "akamai",
@@ -1525,7 +1525,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.22.2",
+      "version": "1.22.3",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, license pools, API access tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -1535,17 +1535,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.22.2/splunk-enterprise.zip",
-      "sha256": "c00973d6bbdf1ee64d458081f4975cb9ef431e27a260360c06644c744d2f802c",
-      "sizeBytes": 514919,
-      "publishedAt": "2026-11-10T03:56:56.031Z",
-      "releaseNotes": "## 1.22.2 — 2026-11-09\n\n### Fixed — deploys reach a host the connection test could reach\n\nThe HEC Tokens, License Pools and API Access Tokens deploys refused to run\n(\"Missing connectivity\") when a component had neither a connectivity record\nnor a managed-ZTNA provider, although the connection test had just reached the\nsame instance by address. They now resolve the management URL the same way\nevery other handler does (connectivity URL, then tailnet IP, then ZTNA device\naddress, then the component hostname and port) and fail only when the\ncomponent has no address at all, with a message that says what to set.\n\n### Fixed — an untouched optional multiselect no longer fails validation\n\nOlder platform clients stored `\"\"` for an optional multiselect that was never\nopened (Allowed Indexes on HEC Tokens, Target Server Types on Apps). Validation\nrejected the row with \"must be an array\" and the form could not repair it. The\nvalidators now read list fields through a shared coercion that treats `\"\"`,\n`null` and a missing value as an empty list, so those rows validate with the\nusual least-privilege warning; a value that is not list-like is still rejected.",
-      "releasedAt": "2026-11-09T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.22.3/splunk-enterprise.zip",
+      "sha256": "4adaece5de51e2fa41e894c35bef0ac05ccbde0a24f5c2f5aa6125fe2ec71508",
+      "sizeBytes": 515347,
+      "publishedAt": "2026-11-10T04:58:58.025Z",
+      "releaseNotes": "## 1.22.3 — 2026-11-10\n\n### Fixed — activation links work again on hosts with the default-deny route gate\n\nThe platform now refuses any app route that declares neither a permission\nrequirement nor an explicit opt-out, and the one-time activation routes\n(`GET`/`POST /activation/:token`) declared neither, so every activation link\nanswered 403 on production. They now declare `config.public`: the single-use\ntoken plus the signed-in user's customer check remain the authorization, as\ndesigned; no permission is granted that was not granted before.",
+      "releasedAt": "2026-11-10T00:00:00.000Z"
     },
     {
       "appId": "splunk-soar",
       "name": "Splunk SOAR",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "vendor": "Veltrix",
       "description": "Connect Veltrix to Splunk SOAR (Security Orchestration, Automation and Response) and manage it as code over its REST API: the instance connection profile, severities, container statuses, container labels, CEF custom fields, roles and permissions, assets, automation/service accounts, and custom lists. Playbooks and other automation code are intentionally out of scope — see README Coverage.",
       "category": "SOAR",
@@ -1555,12 +1555,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-soar",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-soar-v1.2.0/splunk-soar.zip",
-      "sha256": "25ec0bef26083e3781f2aca12b96041c3511ca1a971286efd37642e14f95aeaa",
-      "sizeBytes": 235477,
-      "publishedAt": "2026-09-16T20:59:55.022Z",
-      "releaseNotes": "## 1.2.0 — 2026-08-05\n\nConfig-as-code surface exhaustion — researched the full Splunk SOAR REST API\nand added eight configuration types, taking coverage from 1 (`connection`) to 9:\n\n- **Severities** (`severities`) — name, color, default flag, full add/edit/delete.\n- **Container Statuses** (`container-statuses`) — custom status labels (name,\n  category, default flag), full add/edit/delete.\n- **Container Labels** (`container-labels`) — ensures declared labels exist\n  (add-only — SOAR's API has no rename).\n- **Custom Fields** (`custom-fields`) — CEF field definitions (name + data\n  types), full add/edit/delete.\n- **Custom Lists** (`custom-lists`) — named lookup/allow/block lists, full\n  content replace.\n- **Roles** (`roles`) — roles and their permission flags across all 9\n  documented SOAR permission categories, full add/edit/delete.\n- **Automation Accounts** (`automation-accounts`) — service accounts\n  (`type: automation` only), full add/edit/delete; never manages a password.\n- **Assets** (`assets`) — asset instances of installed SOAR apps; non-secret\n  fields (identity, ownership, tags, tenants, polling) are fully managed,\n  free-form per-app `configuration` is write-only (sent, never read back or\n  diffed — mirrors `apps/cribl`'s Secrets type).\n\nCross-cutting finding: Splunk SOAR restricts `DELETE` to a user-authenticated\ncredential — an automation API token cannot delete records (Custom Lists is\nthe one documented exception). Every new type's rollback documents this and\nsurfaces a clear failure rather than silently no-op'ing when it applies.\n\nDropped after research (see README Coverage): Playbooks/Custom Functions/\nAutomation Broker scripts (versioned code in SOAR's own Source Control, not\ncanvas configuration), Workbook Templates (create-only REST surface — no\nlist-by-name, update, or delete, so not idempotently round-trippable),\nTenants/Multi-tenancy (`GET`-only, no write path found), System Settings\n(whole-section replace mixing unrelated feature flags with IdP secrets), and\none-shot actions / read-only case data (unchanged reasoning from prior\nreleases).",
-      "releasedAt": "2026-08-05T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-soar-v1.2.1/splunk-soar.zip",
+      "sha256": "2eb67a5ef80edf728bb722dccdc7a0c301e96a6b4caa45e6f74a96f3ec66add0",
+      "sizeBytes": 238501,
+      "publishedAt": "2026-11-10T04:58:58.028Z",
+      "releaseNotes": "## 1.2.1 — 2026-11-10\n\n### Fixed — status probe no longer denied by default\n\n`GET /status`, the reachability probe the Overview page calls, declared no\npermission requirement and no opt-out, so the platform's default-deny route\ngate answered it with 403. It now declares `config.public`; it returns only\n`{ status, appId }` and never read tenant data.",
+      "releasedAt": "2026-11-10T00:00:00.000Z"
     },
     {
       "appId": "sumo-logic",
