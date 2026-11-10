@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-11-09T21:53:37.281Z",
+  "generatedAt": "2026-11-10T03:56:56.047Z",
   "apps": [
     {
       "appId": "akamai",
@@ -1525,7 +1525,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.22.1",
+      "version": "1.22.2",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, license pools, API access tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -1535,11 +1535,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.22.1/splunk-enterprise.zip",
-      "sha256": "6c5eddc764ca7956568c98ad69c7c91c45c811d6dad99c197d2a6d8da0c736f6",
-      "sizeBytes": 512530,
-      "publishedAt": "2026-11-09T21:53:37.262Z",
-      "releaseNotes": "## 1.22.1 — 2026-11-09\n\n### Fixed — loads on a fresh platform database\n\nMigration `014_deployment_metadata_customer_scope.sql` adds a `customer_id`\ncolumn (and index) to `splunk_deployment_metadata`, the one app table that\ncarried neither a tenant column nor a foreign key to another app table. The\nplatform's tenant-partition check refused to load the app on a database where\nits migrations had not already been applied; existing installations are\nunaffected beyond the additive column. The table is not written by the app\ntoday.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.22.2/splunk-enterprise.zip",
+      "sha256": "c00973d6bbdf1ee64d458081f4975cb9ef431e27a260360c06644c744d2f802c",
+      "sizeBytes": 514919,
+      "publishedAt": "2026-11-10T03:56:56.031Z",
+      "releaseNotes": "## 1.22.2 — 2026-11-09\n\n### Fixed — deploys reach a host the connection test could reach\n\nThe HEC Tokens, License Pools and API Access Tokens deploys refused to run\n(\"Missing connectivity\") when a component had neither a connectivity record\nnor a managed-ZTNA provider, although the connection test had just reached the\nsame instance by address. They now resolve the management URL the same way\nevery other handler does (connectivity URL, then tailnet IP, then ZTNA device\naddress, then the component hostname and port) and fail only when the\ncomponent has no address at all, with a message that says what to set.\n\n### Fixed — an untouched optional multiselect no longer fails validation\n\nOlder platform clients stored `\"\"` for an optional multiselect that was never\nopened (Allowed Indexes on HEC Tokens, Target Server Types on Apps). Validation\nrejected the row with \"must be an array\" and the form could not repair it. The\nvalidators now read list fields through a shared coercion that treats `\"\"`,\n`null` and a missing value as an empty list, so those rows validate with the\nusual least-privilege warning; a value that is not list-like is still rejected.",
       "releasedAt": "2026-11-09T00:00:00.000Z"
     },
     {
