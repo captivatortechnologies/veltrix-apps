@@ -3,6 +3,17 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.22.3 — 2026-11-10
+
+### Fixed — activation links work again on hosts with the default-deny route gate
+
+The platform now refuses any app route that declares neither a permission
+requirement nor an explicit opt-out, and the one-time activation routes
+(`GET`/`POST /activation/:token`) declared neither, so every activation link
+answered 403 on production. They now declare `config.public`: the single-use
+token plus the signed-in user's customer check remain the authorization, as
+designed; no permission is granted that was not granted before.
+
 ## 1.22.2 — 2026-11-09
 
 ### Fixed — deploys reach a host the connection test could reach

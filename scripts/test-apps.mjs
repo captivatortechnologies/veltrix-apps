@@ -24,6 +24,7 @@ const patterns = [
   'apps/*/config-types/*/__tests__/*.test.ts',
   'apps/*/lib/__tests__/*.test.ts',
   'apps/*/infra/**/__tests__/*.test.ts',
+  'apps/*/server/__tests__/*.test.ts',
 ]
 
 // node:fs/promises `glob` is Node 22+, but CI/runtime target Node 20 — expand

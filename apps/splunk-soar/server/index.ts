@@ -21,8 +21,10 @@ export default async function registerRoutes(
   const { hasPermission, db } = ctx
 
   // --- App status (used by the Overview page to confirm reachability) ---
+  // A reachability probe carries no tenant data, so it opts out of the
+  // app-permission gate; without the declaration the registrar denies it.
 
-  fastify.get('/status', async (_request, _reply) => {
+  fastify.get('/status', { config: { public: true } }, async (_request, _reply) => {
     return { status: 'ok', appId: ctx.appId }
   })
 

@@ -3,6 +3,15 @@
 All notable changes to the Splunk SOAR app are documented here. This file
 starts at v1.2.0 — prior releases (v1.0.0–v1.1.2) predate this changelog.
 
+## 1.2.1 — 2026-11-10
+
+### Fixed — status probe no longer denied by default
+
+`GET /status`, the reachability probe the Overview page calls, declared no
+permission requirement and no opt-out, so the platform's default-deny route
+gate answered it with 403. It now declares `config.public`; it returns only
+`{ status, appId }` and never read tenant data.
+
 ## 1.2.0 — 2026-08-05
 
 Config-as-code surface exhaustion — researched the full Splunk SOAR REST API

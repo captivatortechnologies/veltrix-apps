@@ -8,7 +8,9 @@
 // These run behind the platform's app-auth (the admin is signed into the Veltrix
 // console when they click the link), and are additionally gated by the single-
 // use TOKEN and a customer-scope check — the authenticated user's customer must
-// match the token's. No app-permission preHandler: the token IS the capability.
+// match the token's. No app-permission preHandler: the token IS the capability,
+// which the routes declare with `config.public` so the registrar's default-deny
+// gate (which otherwise 403s any undeclared route) lets them through.
 // ========================================================================
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
@@ -17,6 +19,9 @@ import { hashToken, isTokenUsable, checkPasswordPolicy } from '../lib/activation
 import { findTokenByHash, consumeToken } from '../lib/db/activation'
 import { resolveBootstrapConnection } from '../lib/activationFlow'
 import { relayAdminPassword } from '../lib/splunkAdmin'
+
+/** Opt out of the app-permission gate: the single-use token + customer check authorize these. */
+export const TOKEN_IS_THE_CAPABILITY = { public: true } as const
 
 function customerOf(request: FastifyRequest): string | null {
   return (request as any).user?.customerId ?? null
@@ -28,6 +33,7 @@ export function registerActivationRoutes(fastify: FastifyInstance, ctx: AppRoute
   // Validate a link and return what the reset page needs to render.
   fastify.get(
     '/activation/:token',
+    { config: TOKEN_IS_THE_CAPABILITY },
     async (request: FastifyRequest<{ Params: { token: string } }>, reply: FastifyReply) => {
       const row = await findTokenByHash(db, hashToken(request.params.token))
       // Same 404 for unknown / wrong-customer / used / expired — never leak which.
@@ -45,6 +51,7 @@ export function registerActivationRoutes(fastify: FastifyInstance, ctx: AppRoute
   // Set the admin password: validate token → policy → relay to Splunk → consume.
   fastify.post(
     '/activation/:token',
+    { config: TOKEN_IS_THE_CAPABILITY },
     async (
       request: FastifyRequest<{ Params: { token: string }; Body: { password?: string } }>,
       reply: FastifyReply,
