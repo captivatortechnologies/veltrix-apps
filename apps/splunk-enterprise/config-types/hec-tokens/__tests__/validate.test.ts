@@ -30,6 +30,23 @@ function makeCtx(sections: Array<{ name: string; fields: Record<string, unknown>
 }
 
 describe('Splunk HEC Tokens Validate Handler', () => {
+  it('accepts the legacy empty-string value of an untouched Allowed Indexes multiselect', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'token-1', defaultIndex: 'main', allowedIndexes: '' } }]),
+    )
+    expect(result.valid).toBe(true)
+    expect(result.errors.some((e) => e.code === 'invalid_type')).toBe(false)
+    expect(result.warnings.some((w) => w.code === 'unrestricted_indexes')).toBe(true)
+  })
+
+  it('still rejects an Allowed Indexes value that is not list-like', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'token-1', allowedIndexes: { main: true } } }]),
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_type')).toBe(true)
+  })
+
   it('returns invalid for empty sections', async () => {
     const result = await validate(makeCtx([]))
     expect(result.valid).toBe(false)

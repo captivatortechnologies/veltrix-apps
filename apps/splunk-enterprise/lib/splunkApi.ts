@@ -35,6 +35,25 @@ export function buildSplunkUrl(
   return `https://${component.hostname}:${port}`
 }
 
+/**
+ * True when `buildSplunkUrl` has something real to resolve. A component with a
+ * hostname needs neither a connectivity record nor a ZTNA provider: the
+ * connection test reaches it by address, so a deploy must too.
+ */
+export function hasSplunkAddress(
+  component: ComponentRef,
+  connectivity: ConnectivityRef | null,
+  connectivityProvider?: { config?: Record<string, unknown> | null } | null,
+): boolean {
+  if (connectivity?.httpsUrl || connectivity?.tailscaleDeviceIP) return true
+  const deviceAddress = (connectivityProvider?.config as Record<string, unknown> | undefined)?.deviceAddress
+  if (typeof deviceAddress === 'string' && deviceAddress) return true
+  return typeof component.hostname === 'string' && component.hostname.trim() !== ''
+}
+
+export const NO_ADDRESS_MESSAGE =
+  'No address for this Splunk instance: set the component hostname or attach connectivity (HTTPS URL or managed ZTNA)'
+
 /** Bearer token when an API token is configured, otherwise HTTP Basic. */
 export function buildAuthHeader(credential: CredentialRef): Record<string, string> {
   if (credential.apiToken) {

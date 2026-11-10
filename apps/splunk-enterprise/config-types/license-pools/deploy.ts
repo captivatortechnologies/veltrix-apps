@@ -1,5 +1,5 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader, getEntityContent, postForm, splunkRequest } from '../../lib/splunkApi'
+import { NO_ADDRESS_MESSAGE, buildSplunkUrl, buildAuthHeader, getEntityContent, hasSplunkAddress, postForm, splunkRequest } from '../../lib/splunkApi'
 
 /**
  * Deploy license pool configuration via the REST API.
@@ -42,8 +42,8 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   if (!credential) {
     return { success: false, message: 'Missing credential for license pool deployment' }
   }
-  if (!connectivity && !connectivityProvider) {
-    return { success: false, message: 'Missing connectivity for license pool deployment' }
+  if (!hasSplunkAddress(component, connectivity, connectivityProvider)) {
+    return { success: false, message: NO_ADDRESS_MESSAGE }
   }
 
   const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)

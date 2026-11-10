@@ -1,5 +1,5 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader, getEntityContent, getJson, postForm, splunkRequest } from '../../lib/splunkApi'
+import { NO_ADDRESS_MESSAGE, buildSplunkUrl, buildAuthHeader, getEntityContent, getJson, hasSplunkAddress, postForm, splunkRequest } from '../../lib/splunkApi'
 
 /**
  * Deploy HEC token configuration via the REST API. Tokens live in the
@@ -44,13 +44,11 @@ interface DeployedResource {
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const { component, credential, connectivity, connectivityProvider, canvas } = ctx
 
-  // A managed-ZTNA host has no direct `connectivity` record — it is reached over
-  // the tailnet via `connectivityProvider` (deviceAddress). Accept either.
   if (!credential) {
     return { success: false, message: 'Missing credential for HEC token deployment' }
   }
-  if (!connectivity && !connectivityProvider) {
-    return { success: false, message: 'Missing connectivity for HEC token deployment' }
+  if (!hasSplunkAddress(component, connectivity, connectivityProvider)) {
+    return { success: false, message: NO_ADDRESS_MESSAGE }
   }
 
   const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)

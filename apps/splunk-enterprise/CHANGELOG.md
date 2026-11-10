@@ -3,6 +3,27 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.22.2 — 2026-11-09
+
+### Fixed — deploys reach a host the connection test could reach
+
+The HEC Tokens, License Pools and API Access Tokens deploys refused to run
+("Missing connectivity") when a component had neither a connectivity record
+nor a managed-ZTNA provider, although the connection test had just reached the
+same instance by address. They now resolve the management URL the same way
+every other handler does (connectivity URL, then tailnet IP, then ZTNA device
+address, then the component hostname and port) and fail only when the
+component has no address at all, with a message that says what to set.
+
+### Fixed — an untouched optional multiselect no longer fails validation
+
+Older platform clients stored `""` for an optional multiselect that was never
+opened (Allowed Indexes on HEC Tokens, Target Server Types on Apps). Validation
+rejected the row with "must be an array" and the form could not repair it. The
+validators now read list fields through a shared coercion that treats `""`,
+`null` and a missing value as an empty list, so those rows validate with the
+usual least-privilege warning; a value that is not list-like is still rejected.
+
 ## 1.22.1 — 2026-11-09
 
 ### Fixed — loads on a fresh platform database

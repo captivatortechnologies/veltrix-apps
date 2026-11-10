@@ -1,4 +1,5 @@
 import type { PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
+import { asStringList, isUnreadableList } from '../lib/canvasFields'
 
 /**
  * Validate Splunk HTTP Event Collector (HEC) token configurations.
@@ -59,12 +60,12 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
     }
 
     // --- Allowed indexes ---------------------------------------------------------
-    const allowedIndexes = fields.allowedIndexes as string[] | undefined
-    if (allowedIndexes !== undefined && !Array.isArray(allowedIndexes)) {
+    const allowedIndexes = asStringList(fields.allowedIndexes)
+    if (isUnreadableList(fields.allowedIndexes)) {
       errors.push({ field: `${prefix}.allowedIndexes`, message: 'Allowed indexes must be an array', code: 'invalid_type' })
-    } else if (Array.isArray(allowedIndexes)) {
+    } else {
       for (const idx of allowedIndexes) {
-        if (typeof idx !== 'string' || !INDEX_NAME_PATTERN.test(idx)) {
+        if (!INDEX_NAME_PATTERN.test(idx)) {
           errors.push({
             field: `${prefix}.allowedIndexes`,
             message: `"${idx}" is not a valid Splunk index name`,
@@ -79,12 +80,6 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
           code: 'unrestricted_indexes',
         })
       }
-    } else {
-      warnings.push({
-        field: `${prefix}.allowedIndexes`,
-        message: 'Token can write to any index the HEC user can access — restrict allowed indexes for least privilege',
-        code: 'unrestricted_indexes',
-      })
     }
 
     // --- Default index ------------------------------------------------------------
@@ -92,7 +87,7 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
     if (defaultIndex !== undefined && defaultIndex !== '') {
       if (typeof defaultIndex !== 'string' || !INDEX_NAME_PATTERN.test(defaultIndex)) {
         errors.push({ field: `${prefix}.defaultIndex`, message: 'Default index is not a valid Splunk index name', code: 'invalid_format' })
-      } else if (Array.isArray(allowedIndexes) && allowedIndexes.length > 0 && !allowedIndexes.includes(defaultIndex)) {
+      } else if (allowedIndexes.length > 0 && !allowedIndexes.includes(defaultIndex)) {
         errors.push({
           field: `${prefix}.defaultIndex`,
           message: `Default index "${defaultIndex}" is not in the allowed indexes list — Splunk will reject events sent without an explicit index`,

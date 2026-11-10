@@ -1,5 +1,5 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader, getJson, postForm, splunkRequest, toFormBody } from '../../lib/splunkApi'
+import { NO_ADDRESS_MESSAGE, buildSplunkUrl, buildAuthHeader, getJson, hasSplunkAddress, postForm, splunkRequest, toFormBody } from '../../lib/splunkApi'
 
 /**
  * Deploy API access token (Token Authentication) configuration via REST.
@@ -83,8 +83,8 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   if (!credential) {
     return { success: false, message: 'Missing credential for API access token deployment' }
   }
-  if (!connectivity && !connectivityProvider) {
-    return { success: false, message: 'Missing connectivity for API access token deployment' }
+  if (!hasSplunkAddress(component, connectivity, connectivityProvider)) {
+    return { success: false, message: NO_ADDRESS_MESSAGE }
   }
 
   const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)

@@ -1,5 +1,6 @@
 import type { PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
 import { extractAppSpec, validateAppSpec, resolveAppId } from '../../lib/splunkPackage'
+import { asStringList, isUnreadableList } from '../lib/canvasFields'
 
 /**
  * Validate Splunk app / add-on configurations.
@@ -222,10 +223,9 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
       errors.push({ field: `${prefix}.state`, message: `Invalid state "${state}"`, code: 'invalid_value' })
     }
 
-    const targetTypes = fields.targetTypes as unknown
-    if (targetTypes !== undefined && !Array.isArray(targetTypes)) {
+    if (isUnreadableList(fields.targetTypes)) {
       errors.push({ field: `${prefix}.targetTypes`, message: 'Target server types must be an array', code: 'invalid_type' })
-    } else if (Array.isArray(targetTypes) && targetTypes.length === 0) {
+    } else if (fields.targetTypes !== undefined && asStringList(fields.targetTypes).length === 0) {
       warnings.push({
         field: `${prefix}.targetTypes`,
         message: 'No target server types set — the app deploys to every matching connection for this configuration type',

@@ -177,6 +177,12 @@ describe('Splunk Apps Validate Handler', () => {
     expect(result.warnings.some((w) => w.code === 'no_version_pin')).toBe(true)
   })
 
+  it('treats the legacy empty-string multiselect value as no target types', async () => {
+    const result = await validate(makeCtx([{ name: 'sec1', fields: { ...validApp, targetTypes: '' } }]))
+    expect(result.valid).toBe(true)
+    expect(result.warnings.some((w) => w.code === 'no_target_types')).toBe(true)
+  })
+
   it('warns when no target types are set', async () => {
     const result = await validate(makeCtx([{ name: 'sec1', fields: { ...validApp, targetTypes: [] } }]))
     expect(result.warnings.some((w) => w.code === 'no_target_types')).toBe(true)

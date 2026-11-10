@@ -113,6 +113,27 @@ describe('HEC deploy pre-flight index validation', () => {
     expect(wroteToken()).toBe(true) // created after validation passed
   })
 
+  it('deploys over the component hostname when no connectivity record or ZTNA provider exists', async () => {
+    stubSplunk(['main'])
+    const ctx = { ...makeCtx({ name: 'my_token', defaultIndex: 'main', enabled: true }), connectivity: null, connectivityProvider: null }
+    const result = await deploy(ctx)
+
+    expect(result.success).toBe(true)
+    expect(wroteToken()).toBe(true)
+    expect(calls.every((c) => c.url.startsWith('https://splunk-sh1.babong.local:8089'))).toBe(true)
+  })
+
+  it('fails with a precise message when the component has no address at all', async () => {
+    stubSplunk(['main'])
+    const base = makeCtx({ name: 'my_token', enabled: true })
+    const ctx = { ...base, connectivity: null, connectivityProvider: null, component: { ...base.component, hostname: '' } }
+    const result = await deploy(ctx)
+
+    expect(result.success).toBe(false)
+    expect(result.message).toContain('No address')
+    expect(calls.length).toBe(0)
+  })
+
   it('skips validation (best-effort) and proceeds when the index list cannot be read', async () => {
     stubSplunk(null) // data/indexes 500s
     const result = await deploy(makeCtx({ name: 'my_token', defaultIndex: 'main', enabled: true }))
