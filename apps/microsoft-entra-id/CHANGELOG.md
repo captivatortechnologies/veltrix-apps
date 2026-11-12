@@ -8,6 +8,13 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.10.1 - 2026-11-12
+
+### Fixed
+
+- Declared bounded resource authorization for metadata/settings routes so the platform recognizes their dynamic resource permission checks and does not deny them as ungated.
+- Requires the platform update that supports `requiresAppPermission.resourceFromQuery`; existing inline permission checks remain active.
+
 ## 0.10.0 - 2026-11-12
 
 ### Added

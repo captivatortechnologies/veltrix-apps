@@ -31,8 +31,18 @@ export default async function registerRoutes(
   }
 
 
+  const resourcePermission = {
+    requiresAppPermission: {
+      resource: 'conditional-access-policies', action: 'read',
+      resourceFromQuery: {
+        key: 'resource', allowed: manifest.permissions.app.filter(permission => permission.actions.includes('read')).map(permission => permission.resource),
+      },
+    },
+  }
+
   // Metadata for the Overview page: what this app manages, from the manifest.
   fastify.get('/meta', {
+    config: resourcePermission,
     preHandler: [authorizeResource],
     handler: async (request, reply) => {
       const customerId = (request as any).user?.customerId
@@ -54,6 +64,7 @@ export default async function registerRoutes(
 
   // The tenant's saved app settings (e.g. tenant_id, request_timeout_seconds).
   fastify.get('/settings', {
+    config: resourcePermission,
     preHandler: [authorizeResource],
     handler: async (request, reply) => {
       const customerId = (request as any).user?.customerId

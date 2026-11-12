@@ -5,7 +5,7 @@ import register from '../index'
 async function routes() {
  const routes = new Map<string,any>()
  const permitted:string[]=[]
- const ctx={appId:'microsoft-entra-id',manifest:{name:'Entra',version:'0.9.0',permissions:{app:[{resource:'groups'},{resource:'conditional-access-policies'}]},pipeline:{configurationTypes:[]}},
+ const ctx={appId:'microsoft-entra-id',manifest:{name:'Entra',version:'0.9.0',permissions:{app:[{resource:'groups',actions:['read']},{resource:'conditional-access-policies',actions:['read']}]},pipeline:{configurationTypes:[]}},
   hasPermission:(resource:string,action:string)=>async (_req:unknown,reply:any)=>{
    permitted.push(resource+':'+action)
    if(resource!=='groups')return reply.status(403).send({error:'denied'})
@@ -32,4 +32,12 @@ test('settings response is tenant-authenticated and only returns documented non-
  await route.handler({user:{customerId:'customer'}},response)
  assert.deepEqual(response.payload.settings,{tenant_id:'tenant',azure_cloud:'global'})
  const unauth=reply();await route.handler({},unauth);assert.equal(unauth.statusCode,401)
+})
+
+
+test('metadata and settings declare bounded resource authorization for the platform route guard',async()=>{
+ const {routes:map}=await routes()
+ for(const path of ['/meta','/settings'])assert.deepEqual(map.get(path).config.requiresAppPermission,{
+  resource:'conditional-access-policies',action:'read',resourceFromQuery:{key:'resource',allowed:['groups','conditional-access-policies']},
+ })
 })
