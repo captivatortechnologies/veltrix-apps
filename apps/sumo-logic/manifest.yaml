@@ -1,6 +1,6 @@
 id: sumo-logic
 name: Sumo Logic
-version: "0.3.1"
+version: "0.3.2"
 vendor: Veltrix
 description: >
   Manage Sumo Logic (cloud SIEM & log analytics) as code. Author Field Extraction
@@ -20,6 +20,7 @@ platform:
 
 # Sumo Logic brand violet. Placeholder until the official lockup is added.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#762EC9"
 
 permissions:

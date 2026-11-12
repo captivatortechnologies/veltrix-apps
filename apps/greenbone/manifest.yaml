@@ -1,6 +1,6 @@
 id: greenbone
 name: Greenbone
-version: "0.4.1"
+version: "0.4.2"
 vendor: Veltrix
 description: >
   Manage Greenbone / OpenVAS vulnerability scanning as code. Author scan Targets
@@ -20,6 +20,7 @@ platform:
 # Greenbone brand green — placeholder until the official lockup is added; verify
 # the exact brand hex.
 branding:
+  logo: ./assets/logo.png
   primaryColor: "#66b512"
 
 permissions:

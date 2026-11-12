@@ -1,6 +1,6 @@
 id: graylog
 name: Graylog
-version: "0.4.1"
+version: "0.4.2"
 vendor: Veltrix
 description: >
   Manage Graylog (open-source SIEM / log management) as code. Author message
@@ -21,6 +21,7 @@ platform:
 
 # Graylog's brand orange. Assets are placeholders until the official lockup is added.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#f37f26"
 
 permissions:

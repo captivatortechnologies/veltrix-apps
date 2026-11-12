@@ -1,6 +1,6 @@
 id: datadog
 name: Datadog
-version: "0.3.2"
+version: "0.3.3"
 vendor: Veltrix
 description: >
   Manage Datadog as code: Security Monitoring rules/suppressions/filters,
@@ -21,6 +21,7 @@ platform:
 
 # Datadog brand purple.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#632CA6"
   accentColor: "#7B3FE4"
 

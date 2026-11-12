@@ -1,6 +1,6 @@
 id: opnsense
 name: OPNsense
-version: "0.3.1"
+version: "0.3.2"
 vendor: Veltrix
 description: >
   Manage OPNsense open-source firewall configuration as code through the
@@ -26,6 +26,7 @@ platform:
 
 # OPNsense's signature orange, with a dark slate accent.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#D94F00"
   accentColor: "#2B2B2B"
 

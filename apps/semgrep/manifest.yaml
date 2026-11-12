@@ -1,6 +1,6 @@
 id: semgrep
 name: Semgrep
-version: "0.3.2"
+version: "0.3.3"
 vendor: Veltrix
 description: >
   Manage Semgrep AppSec Platform configuration as code. Author your Semgrep
@@ -27,6 +27,7 @@ platform:
 
 # Semgrep brand green.
 branding:
+  logo: ./assets/logo.png
   primaryColor: "#1AA179"
 
 permissions:

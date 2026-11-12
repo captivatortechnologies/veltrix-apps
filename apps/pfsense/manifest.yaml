@@ -1,6 +1,6 @@
 id: pfsense
 name: pfSense
-version: "0.3.2"
+version: "0.3.3"
 vendor: Veltrix
 description: >
   Manage pfSense firewall configuration as code. pfSense CE ships NO REST API
@@ -29,6 +29,7 @@ platform:
 
 # pfSense/Netgate brand: signature orange with a dark navy accent.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#EA7125"
   accentColor: "#03314B"
 

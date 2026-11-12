@@ -1,6 +1,6 @@
 id: sonarqube
 name: SonarQube
-version: "0.4.1"
+version: "0.4.2"
 vendor: Veltrix
 description: >
   Manage SonarQube as code. Author quality gates, quality profiles (with per-rule
@@ -20,6 +20,7 @@ platform:
 
 # SonarQube brand blue. Assets are placeholders until the official lockup is added.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#4E9BCD"
 
 permissions:

@@ -1,6 +1,6 @@
 id: hackerone
 name: HackerOne
-version: "0.3.1"
+version: "0.3.2"
 vendor: Veltrix
 description: >
   Manage HackerOne program scope, policy and organization asset inventory as
@@ -24,6 +24,7 @@ platform:
 
 # HackerOne brand: near-black slate. Placeholder until the official lockup is added.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#242A31"
 
 permissions:

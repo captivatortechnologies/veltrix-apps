@@ -1,6 +1,6 @@
 id: opencti
 name: OpenCTI
-version: "0.4.1"
+version: "0.4.2"
 vendor: Veltrix
 description: >
   Manage OpenCTI (open-source cyber threat-intelligence platform) as code. Author
@@ -23,6 +23,7 @@ platform:
 
 # OpenCTI's brand cyan. Assets are placeholders until the official lockup is added.
 branding:
+  logo: ./assets/logo.png
   primaryColor: "#0692c4"
 
 permissions:

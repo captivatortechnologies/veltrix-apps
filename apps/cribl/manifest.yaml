@@ -1,6 +1,6 @@
 id: cribl
 name: Cribl
-version: "0.3.1"
+version: "0.3.2"
 vendor: Veltrix
 description: >
   Manage Cribl Stream (telemetry / observability data pipeline) as code across
@@ -23,6 +23,7 @@ platform:
 
 # Cribl's brand magenta. Placeholder until the official lockup is added.
 branding:
+  logo: ./assets/logo.png
   primaryColor: "#E6007E"
 
 permissions:

@@ -1,6 +1,6 @@
 id: pagerduty
 name: PagerDuty
-version: "0.4.1"
+version: "0.4.2"
 vendor: Veltrix
 description: >
   Manage PagerDuty incident-response configuration as code through the PagerDuty
@@ -23,6 +23,7 @@ platform:
 
 # PagerDuty's brand green. Emoji icon until the official lockup is added.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#06AC38"
   accentColor: "#25C151"
 

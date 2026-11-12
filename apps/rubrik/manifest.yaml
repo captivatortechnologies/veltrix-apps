@@ -1,6 +1,6 @@
 id: rubrik
 name: Rubrik
-version: "0.3.1"
+version: "0.3.2"
 vendor: Veltrix
 description: >
   Manage Rubrik (backup, ransomware recovery and data security) configuration as
@@ -22,6 +22,7 @@ platform:
 
 # Rubrik brand green.
 branding:
+  logo: ./assets/logo.png
   primaryColor: "#00b388"
 
 permissions:

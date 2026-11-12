@@ -1,6 +1,6 @@
 id: aqua-security
 name: Aqua Security
-version: "0.1.1"
+version: "0.1.2"
 vendor: Veltrix
 description: >
   Manage Aqua Security (CNAPP) as code — image, host, function and Kubernetes
@@ -20,6 +20,7 @@ platform:
 # Aqua Security brand blue. Assets are placeholders until the official
 # lockup is added.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#0091ea"
 
 permissions:

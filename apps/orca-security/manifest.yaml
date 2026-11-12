@@ -1,6 +1,6 @@
 id: orca-security
 name: Orca Security
-version: "0.3.2"
+version: "0.3.3"
 vendor: Veltrix
 description: >
   Manage Orca Security (agentless CNAPP / CSPM) configuration as code through the
@@ -21,6 +21,7 @@ platform:
 
 # Orca Security brand: the Orca teal/aqua.
 branding:
+  logo: ./assets/logo.png
   primaryColor: "#12B5A5"
 
 permissions:

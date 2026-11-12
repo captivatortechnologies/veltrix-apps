@@ -1,6 +1,6 @@
 id: servicenow
 name: ServiceNow
-version: "0.3.3"
+version: "0.3.4"
 vendor: Veltrix
 description: >
   Manage ServiceNow configuration as code over the Table API (HTTPS, HTTP Basic
@@ -20,6 +20,7 @@ homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/
 # ServiceNow brand green — placeholder until the official lockup is added.
 icon: "🛎️"
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#62D84E"
 
 platform:

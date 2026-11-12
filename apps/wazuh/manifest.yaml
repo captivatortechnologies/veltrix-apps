@@ -1,6 +1,6 @@
 id: wazuh
 name: Wazuh
-version: "0.5.1"
+version: "0.5.2"
 vendor: Veltrix
 description: >
   Manage Wazuh (open-source SIEM / XDR / HIDS) as code. Author CDB lists,
@@ -20,6 +20,7 @@ platform:
 
 # Wazuh's brand blue. Assets are placeholders until the official lockup is added.
 branding:
+  logo: ./assets/logo.png
   primaryColor: "#00A9E0"
 
 permissions:

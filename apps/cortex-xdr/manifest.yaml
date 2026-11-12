@@ -1,6 +1,6 @@
 id: cortex-xdr
 name: Cortex XDR
-version: "0.3.2"
+version: "0.3.3"
 vendor: Veltrix
 description: >
   Manage Palo Alto Networks Cortex XDR configuration as code. Author threat
@@ -26,6 +26,7 @@ platform:
 
 # Palo Alto Networks brand orange.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#FA582D"
 
 permissions:

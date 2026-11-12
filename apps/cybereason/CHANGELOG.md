@@ -4,6 +4,12 @@ All notable changes to the Cybereason app are documented here. This project
 follows [Keep a Changelog](https://keepachangelog.com/) conventions and
 [semantic versioning](https://semver.org/).
 
+## 0.3.2 — 2026-11-11
+
+### Added — marketplace logo
+
+The app now ships its brand logo (`assets/logo.png`, declared as `branding.logo`), so the marketplace card shows it before the app is installed. No behaviour change.
+
 ## 0.3.1 — 2026-09-16
 
 ### Fixed — health score is a percentage, and zero means unhealthy

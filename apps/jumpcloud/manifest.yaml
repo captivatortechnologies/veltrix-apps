@@ -1,6 +1,6 @@
 id: jumpcloud
 name: JumpCloud
-version: "0.3.1"
+version: "0.3.2"
 vendor: Veltrix
 description: >
   Manage JumpCloud directory, policy, network-access and organization
@@ -21,6 +21,7 @@ platform:
 
 # JumpCloud brand green.
 branding:
+  logo: ./assets/logo.png
   primaryColor: "#37b34a"
 
 permissions:

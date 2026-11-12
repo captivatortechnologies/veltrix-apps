@@ -2,6 +2,12 @@
 
 All notable changes to the ServiceNow Veltrix app are documented here.
 
+## 0.3.4 — 2026-11-11
+
+### Added — marketplace logo
+
+The app now ships its brand logo (`assets/logo.svg`, declared as `branding.logo`), so the marketplace card shows it before the app is installed. No behaviour change.
+
 ## 0.3.3 — 2026-09-16
 
 ### Fixed — the documented alternative credential field was dead code

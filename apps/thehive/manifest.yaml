@@ -1,6 +1,6 @@
 id: thehive
 name: TheHive
-version: "0.4.1"
+version: "0.4.2"
 vendor: Veltrix
 description: >
   Manage TheHive (open-source Security Incident Response Platform / SOAR) as code.
@@ -22,6 +22,7 @@ platform:
 
 # TheHive's brand amber. Assets are placeholders until the official lockup is added.
 branding:
+  logo: ./assets/logo.png
   primaryColor: "#f9a825"
 
 permissions:

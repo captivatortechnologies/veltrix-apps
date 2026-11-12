@@ -1,6 +1,6 @@
 id: misp
 name: MISP
-version: "0.5.1"
+version: "0.5.2"
 vendor: Veltrix
 description: >
   Manage MISP (open-source Threat Intelligence Platform) as code. Author threat
@@ -18,6 +18,7 @@ platform:
 
 # MISP's brand green. Assets are placeholders until the official lockup is added.
 branding:
+  logo: ./assets/logo.png
   primaryColor: "#2f9e44"
 
 permissions:

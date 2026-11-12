@@ -1,6 +1,6 @@
 id: jfrog-xray
 name: JFrog Xray
-version: "0.3.1"
+version: "0.3.2"
 vendor: Veltrix
 description: >
   Manage JFrog Xray (software composition analysis / supply-chain security)
@@ -26,6 +26,7 @@ platform:
 # publishes an exact value. No logo asset shipped yet (placeholder, like the
 # Auth0 app) until an official lockup is added.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#41BF47"
 
 permissions:

@@ -8,6 +8,12 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.3.2 — 2026-11-11
+
+### Added — marketplace logo
+
+The app now ships its brand logo (`assets/logo.png`, declared as `branding.logo`), so the marketplace card shows it before the app is installed. No behaviour change.
+
 ## 0.3.1 — 2026-09-16
 
 ### Fixed — drift no longer claims "in sync" from a run that could not look

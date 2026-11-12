@@ -1,6 +1,6 @@
 id: github-advanced-security
 name: GitHub Advanced Security
-version: "0.3.2"
+version: "0.3.3"
 vendor: Veltrix
 description: >
   Manage GitHub Advanced Security posture as code. Author per-repository security
@@ -23,6 +23,7 @@ platform:
 
 # GitHub's brand blue. Assets are placeholders until an official lockup is added.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#1f6feb"
 
 permissions:

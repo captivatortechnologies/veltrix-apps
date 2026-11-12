@@ -1,6 +1,6 @@
 id: cisco-umbrella
 name: Cisco Umbrella
-version: "0.3.1"
+version: "0.3.2"
 vendor: Veltrix
 description: >
   Manage Cisco Umbrella (Secure Internet Gateway / DNS-layer security)
@@ -22,6 +22,7 @@ platform:
 
 # Cisco brand cyan.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#00bceb"
   accentColor: "#0d274d"
 

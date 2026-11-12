@@ -3,6 +3,12 @@
 All notable changes to the Semgrep app are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## 0.3.3 — 2026-11-11
+
+### Added — marketplace logo
+
+The app now ships its brand logo (`assets/logo.png`, declared as `branding.logo`), so the marketplace card shows it before the app is installed. No behaviour change.
+
 ## 0.3.2 — 2026-09-16
 
 ### Fixed — drift no longer claims "in sync" from a run that could not look

@@ -1,6 +1,6 @@
 id: fleet
 name: Fleet
-version: "0.5.1"
+version: "0.5.2"
 vendor: Veltrix
 description: >
   Manage Fleet (open-source osquery fleet management) as code — endpoint
@@ -20,6 +20,7 @@ platform:
 # Fleet's brand purple. Assets are placeholders until the official lockup is
 # added — see assets/README.
 branding:
+  logo: ./assets/logo.png
   primaryColor: "#6a67ce"
 
 permissions:

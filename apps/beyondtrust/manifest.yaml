@@ -1,6 +1,6 @@
 id: beyondtrust
 name: BeyondTrust
-version: "0.3.1"
+version: "0.3.2"
 vendor: Veltrix
 description: >
   Manage BeyondTrust Password Safe (privileged access management) as code. Author
@@ -18,6 +18,7 @@ platform:
 
 # BeyondTrust brand orange. Placeholder until the official lockup is added.
 branding:
+  logo: ./assets/logo.png
   primaryColor: "#f26a1b"
 
 permissions:

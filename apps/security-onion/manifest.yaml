@@ -1,6 +1,6 @@
 id: security-onion
 name: Security Onion
-version: "0.6.1"
+version: "0.6.2"
 vendor: Veltrix
 description: >
   Manage Security Onion (open-source NSM / SIEM) as code. Author Suricata NIDS
@@ -21,6 +21,7 @@ platform:
 # Security Onion's brand blue. Assets are placeholders until the official lockup
 # is added — see assets/README.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#1d6fb8"
 
 permissions:

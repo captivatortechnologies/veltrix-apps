@@ -1,6 +1,6 @@
 id: keycloak
 name: Keycloak
-version: "0.4.2"
+version: "0.4.3"
 vendor: Veltrix
 description: >
   Manage Keycloak (open-source Identity and Access Management) as code. Author
@@ -24,6 +24,7 @@ platform:
 
 # Keycloak's brand blue. Assets are placeholders until the official lockup is added.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#4d4dff"
 
 permissions:

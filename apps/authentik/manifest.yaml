@@ -1,6 +1,6 @@
 id: authentik
 name: authentik
-version: "0.4.1"
+version: "0.4.2"
 vendor: Veltrix
 description: >
   Manage authentik (open-source Identity Provider) as code. Author authentik
@@ -22,6 +22,7 @@ platform:
 
 # authentik's orange brand accent — placeholder until the official lockup is added.
 branding:
+  logo: ./assets/logo.svg
   primaryColor: "#fd4b2d"
 
 permissions:

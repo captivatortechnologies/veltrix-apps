@@ -1,6 +1,6 @@
 id: darktrace
 name: Darktrace
-version: "0.2.1"
+version: "0.2.2"
 vendor: Veltrix
 description: >
   Manage a Darktrace NDR deployment's writable surfaces as code. Author intel-feed
@@ -20,6 +20,7 @@ platform:
 
 # Darktrace's brand teal. Placeholder until the official lockup is added.
 branding:
+  logo: ./assets/logo.png
   primaryColor: "#1ba39c"
 
 permissions:

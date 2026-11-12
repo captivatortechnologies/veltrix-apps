@@ -1,6 +1,6 @@
 id: velociraptor
 name: Velociraptor
-version: "0.4.1"
+version: "0.4.2"
 vendor: Veltrix
 description: >
   Manage Velociraptor (open-source endpoint DFIR / hunting platform) as code.
@@ -21,6 +21,7 @@ platform:
 
 # Velociraptor's brand teal. Assets are placeholders until the official lockup is added.
 branding:
+  logo: ./assets/logo.png
   primaryColor: "#0b7285"
 
 permissions:
