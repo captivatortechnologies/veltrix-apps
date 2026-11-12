@@ -1,3 +1,5 @@
+import { reconciliationIssue } from '../../lib/reconciliation'
+import { buildNameMap, describeLookup } from '../lib/checkedNames'
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import {
   buildGraphClient,
@@ -44,86 +46,32 @@ export interface RollbackEntry {
 
 /** Build a case-insensitive group displayName → id map from the live directory. */
 export async function buildGroupNameToId(client: GraphClient): Promise<Map<string, string>> {
-  const map = new Map<string, string>()
-  const listed = await client.getAll<{ id?: string; displayName?: string }>('/groups?$select=id,displayName')
-  if (listed.ok) {
-    for (const g of listed.items) {
-      if (g.displayName && g.id) map.set(g.displayName.toLowerCase(), g.id)
-    }
-  }
-  return map
+  return buildNameMap(client, '/groups?$select=id,displayName')
 }
 
 /** Build a case-insensitive user displayName/UPN → id map from the live directory. */
 export async function buildUserNameToId(client: GraphClient): Promise<Map<string, string>> {
-  const map = new Map<string, string>()
-  const listed = await client.getAll<{ id?: string; displayName?: string; userPrincipalName?: string }>(
-    '/users?$select=id,displayName,userPrincipalName'
-  )
-  if (listed.ok) {
-    for (const u of listed.items) {
-      if (!u.id) continue
-      if (u.displayName) map.set(u.displayName.toLowerCase(), u.id)
-      if (u.userPrincipalName) map.set(u.userPrincipalName.toLowerCase(), u.id)
-    }
-  }
-  return map
+  return buildNameMap(client, '/users?$select=id,displayName,userPrincipalName', true)
 }
 
 /** Build a case-insensitive directory-role displayName → id map (roleManagement/directory/roleDefinitions). */
 export async function buildRoleNameToId(client: GraphClient): Promise<Map<string, string>> {
-  const map = new Map<string, string>()
-  const listed = await client.getAll<{ id?: string; displayName?: string }>(
-    '/roleManagement/directory/roleDefinitions?$select=id,displayName'
-  )
-  if (listed.ok) {
-    for (const r of listed.items) {
-      if (r.id && r.displayName) map.set(r.displayName.toLowerCase(), r.id)
-    }
-  }
-  return map
+  return buildNameMap(client, '/roleManagement/directory/roleDefinitions?$select=id,displayName')
 }
 
 /** Build a case-insensitive named-location displayName → id map. */
 export async function buildLocationNameToId(client: GraphClient): Promise<Map<string, string>> {
-  const map = new Map<string, string>()
-  const listed = await client.getAll<{ id?: string; displayName?: string }>(
-    '/identity/conditionalAccess/namedLocations?$select=id,displayName'
-  )
-  if (listed.ok) {
-    for (const n of listed.items) {
-      if (n.id && n.displayName) map.set(n.displayName.toLowerCase(), n.id)
-    }
-  }
-  return map
+  return buildNameMap(client, '/identity/conditionalAccess/namedLocations?$select=id,displayName')
 }
 
 /** Build a case-insensitive authenticationStrengthPolicy displayName → id map. */
 export async function buildAuthStrengthNameToId(client: GraphClient): Promise<Map<string, string>> {
-  const map = new Map<string, string>()
-  const listed = await client.getAll<{ id?: string; displayName?: string }>(
-    '/policies/authenticationStrengthPolicies?$select=id,displayName'
-  )
-  if (listed.ok) {
-    for (const p of listed.items) {
-      if (p.id && p.displayName) map.set(p.displayName.toLowerCase(), p.id)
-    }
-  }
-  return map
+  return buildNameMap(client, '/policies/authenticationStrengthPolicies?$select=id,displayName')
 }
 
 /** Build a case-insensitive terms-of-use agreement displayName → id map. */
 export async function buildTermsOfUseNameToId(client: GraphClient): Promise<Map<string, string>> {
-  const map = new Map<string, string>()
-  const listed = await client.getAll<{ id?: string; displayName?: string }>(
-    '/identityGovernance/termsOfUse/agreements?$select=id,displayName'
-  )
-  if (listed.ok) {
-    for (const a of listed.items) {
-      if (a.id && a.displayName) map.set(a.displayName.toLowerCase(), a.id)
-    }
-  }
-  return map
+  return buildNameMap(client, '/identityGovernance/termsOfUse/agreements?$select=id,displayName')
 }
 
 // --- Id-aware resolution ------------------------------------------------------
@@ -175,7 +123,7 @@ function resolveTargets(
     }
     const id = nameToId.get(v.toLowerCase())
     if (id) ids.push(id)
-    else missing.push(v)
+    else missing.push(describeLookup(nameToId, v))
   }
   return { ids, missing }
 }
@@ -342,15 +290,26 @@ async function loadPriorEntries(ctx: DeployContext): Promise<RollbackEntry[]> {
 
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { success: false, message: MISSING_CREDENTIAL_MESSAGE }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractPolicySpecs(ctx.canvas).filter((s) => s.name)
 
+  const unsafe = specs.find(s => s.state === 'enabled' && (s.includeAllUsers || s.includeUsers.some(u => u.toLowerCase() === 'all')) && !s.enforcementAcknowledged)
+  if (unsafe) return { success: false, message: `Policy ${unsafe.name}: tenant-wide enforcement acknowledgement required`, rollbackData: { entries: [] } }
+  if (specs.some(s => s.state === 'enabled')) {
+    const defaults = await client.get('/policies/identitySecurityDefaultsEnforcementPolicy?$select=isEnabled')
+    const state = parseJson<{ isEnabled?: boolean }>(defaults.body)
+    if (!defaults.ok || typeof state?.isEnabled !== 'boolean' || state.isEnabled) return {
+      success: false, message: 'Cannot enforce Conditional Access: Security Defaults must be readable and disabled. Review the tenant protection transition first.', rollbackData: { entries: [] },
+    }
+  }
   const listed = await client.getAll<LiveCaPolicy>(BASE)
-  if (!listed.ok) {
-    return { success: false, message: `Failed to list Conditional Access policies: ${graphErrorMessage(listed.lastError!)}` }
+  const listingIssue = reconciliationIssue(listed, specs.map(s => 'name' in s ? String(s.name) : ''))
+  if (listingIssue) return { success: false, message: listingIssue, rollbackData: { entries: [] } }
+  if (!listed.ok || listed.truncated) {
+    return { success: false, message: `Failed to list Conditional Access policies: ${listed.lastError ? graphErrorMessage(listed.lastError) : 'incomplete listing'}` }
   }
   const liveByName = new Map<string, LiveCaPolicy>()
   const liveById = new Map<string, LiveCaPolicy>()
@@ -421,12 +380,12 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       (priorEntry?.id ? liveById.get(priorEntry.id) : undefined) ?? liveByName.get(spec.name.toLowerCase()) ?? null
 
     if (liveMatch?.id) {
+      entries.push({ itemId: spec.itemId, name: spec.name, existed: true, id: liveMatch.id, prior: snapshotLive(liveMatch) })
       const resp = await client.patch(`${BASE}/${liveMatch.id}`, body)
       if (!resp.ok) {
         failures.push(`${spec.name}: ${graphErrorMessage(resp)}`)
         continue
       }
-      entries.push({ itemId: spec.itemId, name: spec.name, existed: true, id: liveMatch.id, prior: snapshotLive(liveMatch) })
     } else {
       const resp = await client.post(BASE, body)
       if (!resp.ok) {
@@ -460,6 +419,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   return {
     success: true,
     message: `Deployed ${entries.length} Conditional Access policy(ies)`,
+    artifacts: { review: { tenantId: cred.tenantId, policies: specs.map(s => ({ name: s.name, state: s.state, includeAllUsers: s.includeAllUsers, exclusions: [...s.excludeGroups, ...s.excludeUsers, ...s.excludeRoles], enforcementAcknowledged: s.enforcementAcknowledged })) } },
     rollbackData: { entries },
   }
 }

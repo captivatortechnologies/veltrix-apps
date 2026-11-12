@@ -59,8 +59,8 @@ test('rollback restores the live prior fields captured at deploy', async () => {
     assert.equal(graphCalls[0].method, 'PATCH')
     assert.ok(graphCalls[0].url.endsWith(`${BASE}/Google-OAUTH`))
     assert.deepEqual(bodyOf(graphCalls[0]), PRIOR)
-    assert.equal(result.success, true)
-    assert.match(String(result.message), /0 deleted, 1 restored/)
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /prior write-only client secret cannot be restored/)
   } finally {
     restore()
   }
@@ -113,7 +113,7 @@ test('a pre-existing provider is restored while an app-created one is deleted', 
       writeCalls(calls).map((c) => `${c.method} ${c.url.replace(/^.*\/v1\.0/, '')}`),
       [`PATCH ${BASE}/Google-OAUTH`, `DELETE ${BASE}/GitHub-OAUTH`],
     )
-    assert.match(String(result.message), /1 deleted, 1 restored/)
+    assert.match(String(result.message), /prior write-only client secret cannot be restored/)
   } finally {
     restore()
   }
@@ -141,7 +141,7 @@ test('an updated provider with no recorded prior is left alone, never guessed at
     )
 
     assert.equal(writeCalls(calls).length, 0)
-    assert.equal(result.success, true)
+    assert.equal(result.success, false)
   } finally {
     restore()
   }

@@ -1,3 +1,4 @@
+import { capabilityWarnings } from '../../lib/capabilityReview'
 import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
 
 // --- Entra PIM role-management-policy (rule) constraints ---------------------
@@ -113,5 +114,5 @@ export default function validate(ctx: PipelineContext): ValidationResult {
     }
   })
 
-  return { valid: errors.length === 0, errors, warnings }
+  return { valid: errors.length === 0, errors, warnings: [...warnings, ...capabilityWarnings('pim-role-management-policies')] }
 }

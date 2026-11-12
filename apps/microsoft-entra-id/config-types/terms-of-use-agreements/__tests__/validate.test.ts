@@ -1,4 +1,4 @@
-import validate, {
+import { validateShape as validate,
   buildTermsExpiration,
   effectiveFileName,
   effectiveLanguage,

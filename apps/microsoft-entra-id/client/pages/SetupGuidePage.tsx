@@ -1,151 +1,140 @@
 import React from 'react'
-import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
+import { Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-// Microsoft Graph APPLICATION permissions the app-registration needs, granted
-// admin consent, to cover every configuration type + the connection test.
-const GRAPH_PERMISSIONS = [
-  'Policy.ReadWrite.ConditionalAccess',
-  'Policy.Read.All',
-  'Group.ReadWrite.All',
-  'User.Read.All',
-  'RoleManagement.Read.Directory',
-  'Organization.Read.All',
-]
+import { CAPABILITIES } from '../../lib/capabilities'
 
-/**
- * Step-by-step connection guide for the Microsoft Entra ID app, rendered with
- * the platform design-system components from @veltrixsecops/app-sdk/ui — the
- * same Tabs / Card / Badge the built-in platform screens use, themed to the
- * app's brand color. Entra authenticates as an app registration via OAuth2
- * client credentials.
- */
 export default function SetupGuidePage() {
   const tabs = [
     {
-      key: 'app-registration',
-      label: '1. App registration',
-      content: (
-        <Card variant="bordered" padding="md">
-          <CardBody>
-            <p>
-              In the <strong>Microsoft Entra admin center</strong>, go to{' '}
-              <strong>Identity &gt; Applications &gt; App registrations</strong> and register a new
-              application (single tenant). From its <strong>Overview</strong>, copy:
-            </p>
-            <ul>
-              <li>
-                <strong>Application (client) ID</strong> — used as the credential username
-              </li>
-              <li>
-                <strong>Directory (tenant) ID</strong> — used for the app's Tenant ID setting
-              </li>
-            </ul>
-          </CardBody>
-        </Card>
-      ),
+      key: 'prerequisites', label: '1. Prerequisites', content: <>
+        <p>Start with a test tenant and choose the configuration types you intend to manage.
+          You need access to app registrations, an administrator authorized to grant Graph application permissions,
+          and access to Veltrix app settings and credentials.</p>
+        <p>Use a client secret or a vault certificate credential containing the PEM certificate and matching private key.
+          Brokered connections can use the platform identity broker when supplied by the host. Select global, us-gov, us-gov-dod, or china in Microsoft cloud settings.</p>
+        <p>Conditional Access requires Entra ID P1; risk-based policies require P2. Confirm separate licensing
+          for governance features. <a href="https://learn.microsoft.com/en-us/entra/identity/conditional-access/overview#license-requirements"
+          target="_blank" rel="noopener noreferrer">Microsoft licensing requirements</a>.</p>
+        <p>Allow outbound HTTPS from the Veltrix handler runtime to the selected cloud authority and Graph host. For the global cloud, these are <code>login.microsoftonline.com</code> and{' '}
+          <code>graph.microsoft.com</code>. No server tunnel is required.</p>
+      </>,
     },
     {
-      key: 'permissions',
-      label: '2. Graph permissions',
-      content: (
-        <Card variant="bordered" padding="md">
-          <CardBody>
-            <p>
-              Under <strong>API permissions</strong>, add these Microsoft Graph{' '}
-              <strong>application</strong> permissions (not delegated), then click{' '}
-              <strong>Grant admin consent</strong>:
-            </p>
-            <div>
-              {GRAPH_PERMISSIONS.map((perm) => (
-                <Badge key={perm} variant="primary" size="sm">
-                  {perm}
-                </Badge>
+      key: 'registration', label: '2. Register and consent', content: <>
+        <ol>
+          <li>Open the <a href="https://entra.microsoft.com" target="_blank" rel="noopener noreferrer">Entra admin center</a>.
+            Find <strong>App registrations</strong>, choose <strong>New registration</strong>, and select accounts in this
+            organizational directory only. A redirect URI is not required for client credentials.</li>
+          <li>Copy the <strong>Application (client) ID</strong> and <strong>Directory (tenant) ID</strong> from Overview.</li>
+          <li>Under <strong>API permissions</strong>, choose <strong>Add a permission &gt; Microsoft Graph &gt; Application permissions</strong>.
+            Add the permissions for your selected features, then have an authorized administrator grant tenant consent.</li>
+          <li>Verify consent shows as granted. Delegated permissions do not authorize this app-only connection.</li>
+        </ol>
+        <p>Choose only the profiles you need. Add read permissions for referenced objects and live pickers.
+          The registry covers every configuration type. Check endpoint permissions for the specific operations and references you use.</p>
+        <div style={{ overflowX: 'auto' }}><table>
+          <caption>Application permission profiles by feature</caption>
+          <thead><tr><th scope="col">Feature</th><th scope="col">Permissions</th></tr></thead>
+          <tbody>{CAPABILITIES.map(cap => <tr key={cap.id}>
+            <th scope="row">{cap.name}</th>
+            <td>{cap.appOnly ? <>
+              Read: {cap.readPermissions.join(', ')}<br />
+              Write: {cap.writePermissions.join(', ')}<br />
+              {Object.entries(cap.optionalWritePermissions ?? {}).map(([operation, permissions]) => (
+                <React.Fragment key={operation}>{operation}: {permissions.join(', ')}<br /></React.Fragment>
               ))}
-            </div>
-            <p>
-              These cover Conditional Access policies, named locations, and authentication
-              strengths (<code>Policy.ReadWrite.ConditionalAccess</code>, <code>Policy.Read.All</code>),
-              security groups (<code>Group.ReadWrite.All</code>), the Included/Excluded Users
-              live picker (<code>User.Read.All</code>), the Included/Excluded Roles live picker
-              (<code>RoleManagement.Read.Directory</code>), and the connection test
-              (<code>Organization.Read.All</code>). Admin consent is required — without it Graph
-              rejects the app with 403.
-            </p>
-            <p>
-              <strong>Terms of Use</strong> is the one exception: Microsoft Graph does not
-              support listing terms-of-use agreements with application permissions at all (it's
-              delegated-only), so no permission above makes that picker searchable — enter the
-              agreement id directly, copied from the Entra admin center (Identity Governance{' '}
-              &gt; Terms of use). Writing an agreement id into a policy's grant controls still
-              works normally via <code>Policy.ReadWrite.ConditionalAccess</code>.
-            </p>
-          </CardBody>
-        </Card>
-      ),
+              References: {cap.pickerPermissions.join(', ') || 'None'}<br />
+              {cap.licensing}<br />{cap.rollbackLimits.join(' ')}
+            </> : cap.unsupportedReason}</td>
+          </tr>)}</tbody>
+        </table></div>
+        <p><a href="https://learn.microsoft.com/en-us/graph/permissions-reference" target="_blank" rel="noopener noreferrer">
+          Microsoft Graph permission reference</a>. Do not grant every profile just to pass Test.</p>
+        <p><strong>Terms of Use limitation:</strong> Graph agreement listing does not support application permissions.
+          Agreement management cannot complete its initial listing with this authentication flow.
+          Manage agreements in Entra and paste an existing agreement ID into Conditional Access grant controls;
+          its Terms of Use picker may be unavailable. More application permissions do not resolve this limitation.{' '}
+          <a href="https://learn.microsoft.com/en-us/graph/api/termsofusecontainer-list-agreements?view=graph-rest-1.0"
+            target="_blank" rel="noopener noreferrer">Microsoft agreement API requirements</a>.</p>
+      </>,
     },
     {
-      key: 'secret',
-      label: '3. Client secret',
-      content: (
-        <Card variant="bordered" padding="md">
-          <CardBody>
-            <p>
-              Under <strong>Certificates &amp; secrets</strong>, create a new{' '}
-              <strong>client secret</strong> and copy its <strong>Value</strong> immediately — Entra
-              shows it only once. Set a rotation reminder for its expiry.
-            </p>
-          </CardBody>
-        </Card>
-      ),
+      key: 'credential', label: '3. Secret and settings', content: <>
+        <ol>
+          <li>In <strong>Certificates &amp; secrets</strong>, create a client secret and copy its <strong>Value</strong>
+            immediately. The Secret ID is not the credential.</li>
+          <li>Set the Veltrix app&apos;s <strong>Tenant ID</strong> setting (<code>tenant_id</code>) to the Directory ID.
+            This is the fallback tenant. To isolate connections, set Per-connection tenant overrides to a JSON object keyed by credential ID with tenantId and optional cloud. The endpoint does not override it.</li>
+          <li>Store the Application ID as the credential <strong>Username</strong> and the secret value as its
+            <strong> Password / Client secret</strong>.</li>
+          <li>Leave <strong>Request Timeout</strong> at 30 seconds initially. This is a per-request timeout,
+            rather than an overall deployment deadline.</li>
+        </ol>
+        <p>Record the secret expiry and assign a rotation owner. Create a replacement secret, update the saved
+          credential, test the connection and a selected feature, then remove the old secret.
+          Keep secrets in the credential vault, outside canvas fields and logs.</p>
+      </>,
     },
     {
-      key: 'credential',
-      label: '4. Credential',
-      content: (
-        <Card variant="bordered" padding="md">
-          <CardBody>
-            <p>Store the app registration as a Veltrix credential:</p>
-            <ul>
-              <li>
-                <strong>Username</strong> → the Application (client) ID
-              </li>
-              <li>
-                <strong>Password</strong> → the client secret value
-              </li>
-            </ul>
-            <p>
-              The app exchanges these for a bearer token via OAuth2 client credentials
-              (<code>scope=https://graph.microsoft.com/.default</code>) and caches it until just
-              before expiry.
-            </p>
-          </CardBody>
-        </Card>
-      ),
+      key: 'connect', label: '4. Connect and verify', content: <>
+        <ol>
+          <li>On <strong>Connections</strong>, save a connection with the app-registration credential.
+            Saving registers the <code>entra-tenant</code> deployment target.</li>
+          <li>If an endpoint is requested, use <code>https://graph.microsoft.com</code>. It is informational;
+            the app uses fixed Graph and login hosts.</li>
+          <li>Choose <strong>Test</strong> and confirm the returned tenant name and IDs match the intended directory.</li>
+          <li>Open the pickers for your chosen configuration type and validate a test configuration.</li>
+        </ol>
+        <p><strong>Test scope:</strong> Test exchanges a token and reads <code>/organization</code> using{' '}
+          <code>Organization.Read.All</code>. Success confirms that read operation; selected feature probes verify their read endpoints only. Write permissions,
+          licensing, and unselected features remain unverified.</p>
+      </>,
     },
     {
-      key: 'connect',
-      label: '5. Connect',
-      content: (
-        <Card variant="bordered" padding="md">
-          <CardBody>
-            <p>
-              Set the app's <strong>Tenant ID</strong> setting to the Directory (tenant) ID, then on
-              the <strong>Connections</strong> page create an <strong>entra-tenant</strong>{' '}
-              connection and attach the credential. Use <strong>Test</strong> to verify the token
-              exchange and Graph access.
-            </p>
-            <p>
-              Then author a configuration in the Configuration Canvas and deploy it through the
-              pipeline. Conditional Access policies reference security groups by display name and
-              deploy as <strong>report-only</strong> by default — review the sign-in impact before
-              switching a policy to Enabled, and exclude a break-glass group so an enforced policy
-              can't lock every admin out.
-            </p>
-          </CardBody>
-        </Card>
-      ),
+      key: 'deploy', label: '5. First deployment', content: <>
+        <ol>
+          <li>Create a configuration in the Configuration Canvas and explicitly select the intended <code>entra-tenant</code> target.</li>
+          <li>Deploy referenced groups, locations, and custom strengths before policies that use them.
+            Prefer picker-selected IDs; display names can be duplicated.</li>
+          <li>For Conditional Access, select a pilot group and explicit applications. Keep the default <strong>report-only</strong>
+            state and select tested emergency-access exclusions.</li>
+          <li>Validate, review warnings, deploy, then check health, drift, and the resulting objects in Entra.</li>
+          <li>Review report-only sign-in results before deliberately enabling a policy. Review Security Defaults
+            compatibility before changing either tenant-wide control.</li>
+        </ol>
+        <p>The default is a starting value: explicitly choosing Enabled enforces the policy on deployment. Tenant-wide enforcement requires the canvas acknowledgement; deployment checks that Security Defaults is readable and disabled.</p>
+        <p>Review rollback limits: external identity-provider secrets are write-only and cannot be restored from Graph;
+          created custom attribute sets cannot be deleted. Preserve an independent recovery path.</p>
+      </>,
+    },
+    {
+      key: 'troubleshooting', label: '6. Troubleshooting', content: <dl>
+        <dt><strong>Missing credential or token failure</strong></dt>
+        <dd>Check Tenant ID, Application ID, secret expiry and secret Value. Status 0 can indicate token or network failure;
+          read the accompanying message. Check outbound HTTPS from the runtime.</dd>
+        <dt><strong>Graph 401 or 403</strong></dt>
+        <dd>Check application permissions and tenant consent for the failing endpoint. Test requires Organization.Read.All;
+          deployment may need more permissions. Check licensing and API support before expanding access.</dd>
+        <dt><strong>Empty picker or object not found</strong></dt>
+        <dd>Check tenant selection, search text, resource existence and read permissions. Cloud-app targets use application IDs;
+          service-principal references use object IDs. Use an existing agreement ID for Terms of Use.</dd>
+        <dt><strong>Deploy target unavailable</strong></dt>
+        <dd>Save the connection, confirm its entra-tenant target and credential, and select it in the canvas.</dd>
+        <dt><strong>Throttling or timeout</strong></dt>
+        <dd>The client retries HTTP 429 once, waiting at most 20 seconds. Reduce concurrent work and inspect live state before
+          retrying a partial deployment. Increase the request timeout only after checking connectivity.</dd>
+      </dl>,
     },
   ]
 
-  return <Tabs tabs={tabs} />
+  return <>
+    <Card variant="bordered" padding="md"><CardBody>
+      <h2>Connect Microsoft Entra ID</h2>
+      <p>Register an application, grant feature-specific permissions, then verify your tenant and first deployment.
+        Complete these steps in order.</p>
+    </CardBody></Card>
+    <Tabs tabs={tabs.map((tab) => ({ ...tab, content:
+      <Card variant="bordered" padding="md"><CardBody>{tab.content}</CardBody></Card>,
+    }))} />
+  </>
 }

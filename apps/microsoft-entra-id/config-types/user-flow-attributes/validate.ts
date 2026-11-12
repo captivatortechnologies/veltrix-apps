@@ -1,3 +1,4 @@
+import { capabilityWarnings } from '../../lib/capabilityReview'
 import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
 
 // --- Entra custom user-flow-attribute constraints ----------------------------
@@ -82,5 +83,5 @@ export default function validate(ctx: PipelineContext): ValidationResult {
     }
   })
 
-  return { valid: errors.length === 0, errors, warnings }
+  return { valid: errors.length === 0, errors, warnings: [...warnings, ...capabilityWarnings('user-flow-attributes')] }
 }

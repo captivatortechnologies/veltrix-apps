@@ -1,3 +1,4 @@
+import { reconciliationIssue } from '../../lib/reconciliation'
 import type { DriftContext, DriftResult } from '@veltrixsecops/app-sdk'
 import {
   buildGraphClient,
@@ -16,7 +17,7 @@ function sortedJson(v: unknown[]): string {
 
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   // Without a usable credential we can't read live state — assert no drift
   // rather than a false positive.
   if (!cred) return { hasDrift: false, diffs: [], checked: false }
@@ -24,7 +25,8 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   const specs = extractNamedLocationSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listed = await client.getAll<LiveNamedLocation>(BASE)
-  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
+  if (reconciliationIssue(listed, specs.map(s => 'name' in s ? String(s.name) : ''))) return { hasDrift: false, diffs: [], checked: false }
+  if (!listed.ok || listed.truncated) return { hasDrift: false, diffs: [], checked: false }
   const liveByName = new Map(
     listed.items.filter((l) => l.displayName).map((l) => [l.displayName!.toLowerCase(), l])
   )

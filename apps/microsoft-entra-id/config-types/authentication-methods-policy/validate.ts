@@ -1,3 +1,4 @@
+import { capabilityWarnings } from '../../lib/capabilityReview'
 import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
 
 // --- Entra authentication-methods-policy constraints -------------------------
@@ -89,5 +90,5 @@ export default function validate(ctx: PipelineContext): ValidationResult {
     }
   })
 
-  return { valid: errors.length === 0, errors, warnings }
+  return { valid: errors.length === 0, errors, warnings: [...warnings, ...capabilityWarnings('authentication-methods-policy')] }
 }

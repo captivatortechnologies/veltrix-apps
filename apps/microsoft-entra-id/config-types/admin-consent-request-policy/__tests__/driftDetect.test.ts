@@ -109,8 +109,8 @@ test('a reviewer removed in the portal surfaces with both lists', async () => {
     assert.equal(result.hasDrift, true)
     const diff = result.diffs.find((d) => d.field === 'reviewers')
     assert.ok(diff, 'a reviewer list that no longer matches is drift')
-    assert.equal(diff?.actual.includes('security-team'), false)
-    assert.equal(diff?.expected.includes('security-team'), true)
+    assert.equal(String(diff?.actual).includes('security-team'), false)
+    assert.equal(String(diff?.expected).includes('security-team'), true)
   } finally {
     restore()
   }

@@ -220,8 +220,8 @@ test('a condition set added to includes in the portal surfaces', async () => {
     assert.ok(diff, 'a widened consent rule is exactly what this detector is for')
     // expected/actual are a JSON array of canonicalised condition sets, so the
     // added rule is one more entry rather than a changed one.
-    assert.equal(mentionsAllClassification(diff.actual), true)
-    assert.equal(mentionsAllClassification(diff.expected), false)
+    assert.equal(mentionsAllClassification(String(diff.actual)), true)
+    assert.equal(mentionsAllClassification(String(diff.expected)), false)
   } finally {
     restore()
   }

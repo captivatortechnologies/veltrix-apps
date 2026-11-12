@@ -1,3 +1,4 @@
+import { probeSelectedFeatures } from '../lib/readiness'
 import type { CredentialRef } from '@veltrixsecops/app-sdk'
 import {
   buildGraphClient,
@@ -19,6 +20,7 @@ interface TestConnectionContext {
   credential: CredentialRef | null
   component: { hostname?: string | null } | null
   connectivity: unknown
+  identity?: import('../lib/graph').GraphIdentity
   settings: Record<string, unknown>
 }
 interface TestConnectionResult {
@@ -28,25 +30,19 @@ interface TestConnectionResult {
   latencyMs?: number
 }
 
-// =============================================================================
-// Microsoft Entra ID — connection test.
-//
-// Entra is a cloud API, so there is no per-server host to reach. This verifies
-// the app-registration credential end to end: the OAuth2 client-credentials
-// token exchange against the tenant, then `GET /organization` on Microsoft
-// Graph. A 2xx confirms the tenant ID, client ID, secret AND admin consent are
-// all in place; a token failure or 401/403 pinpoints which part is wrong.
-// =============================================================================
+// Organization identity and selected feature READ probes only. Successful reads
+// do not prove write authorization, conditional picker access, or feature licensing.
 
 export default async function testConnection(
   ctx: TestConnectionContext
 ): Promise<TestConnectionResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  if (settings.configurationError) return { ok: false, message: settings.configurationError }
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { ok: false, message: MISSING_CREDENTIAL_MESSAGE }
 
   const client = buildGraphClient(cred, settings)
-  const details = [`Tenant: ${cred.tenantId}`, `Client ID: ${cred.clientId}`, 'Auth: OAuth2 client credentials']
+  const details = [`Tenant: ${cred.tenantId}`, `Client ID: ${cred.clientId}`, `Cloud: ${cred.cloud ?? 'global'}`, `Auth: ${cred.certificate ? 'certificate' : cred.identity && !cred.clientSecret ? 'platform broker' : 'client secret'}`]
   const started = Date.now()
   const res = await client.get('/organization?$select=id,displayName')
   const latencyMs = Date.now() - started
@@ -54,7 +50,7 @@ export default async function testConnection(
   // status 0 means the token exchange or the network request itself failed —
   // the body carries the underlying reason.
   if (res.status === 0) {
-    return { ok: false, message: `Could not reach Microsoft Entra: ${res.body}`, details, latencyMs }
+    return { ok: false, message: `Microsoft Entra ${res.stage ?? "request"} failed: ${res.body}`, details, latencyMs }
   }
   if (res.status === 401 || res.status === 403) {
     return {
@@ -67,13 +63,20 @@ export default async function testConnection(
     }
   }
   if (res.ok) {
-    const org = parseJson<{ value?: Array<{ displayName?: string }> }>(res.body)
-    const name = org?.value?.[0]?.displayName
+    const org = parseJson<{ value?: Array<{ id?: string; displayName?: string }> }>(res.body)
+    const organization = org?.value?.[0]
+    if (!organization?.id) return { ok: false, message: 'Microsoft Graph organization response was incomplete; tenant identity not verified.', details, latencyMs }
+    if (/^[0-9a-f-]{36}$/i.test(cred.tenantId) && organization.id.toLowerCase() !== cred.tenantId.toLowerCase()) {
+      return { ok: false, message: 'Microsoft Graph returned a different tenant than the configured connection. Refusing to report readiness.', details, latencyMs }
+    }
+    const name = organization.displayName
+    const selected = String(ctx.settings.readiness_features ?? '').split(',').map(s => s.trim()).filter(Boolean)
+    const checks = await probeSelectedFeatures(client, selected)
     return {
-      ok: true,
-      message: `Connected to Microsoft Entra${name ? ` tenant "${name}"` : ''}.`,
-      details: [...details, ...(name ? [`Tenant name: ${name}`] : [])],
-      latencyMs,
+      ok: checks.every(c => c.ok),
+      message: `Connected to Microsoft Entra${name ? ` tenant "${name}"` : ''}. ${checks.some(c => !c.ok) ? "Selected feature checks failed." : "Organization read verified; write access and licensing remain unverified."}`,
+      details: [...details, ...(name ? [`Tenant name: ${name}`] : []), ...checks.map(c => c.detail)],
+      latencyMs: Date.now() - started,
     }
   }
   return { ok: false, message: `Microsoft Graph returned HTTP ${res.status}: ${graphErrorMessage(res)}`, details, latencyMs }

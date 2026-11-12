@@ -106,15 +106,15 @@ test('a role already gone (404) is not an error — rollback is idempotent', asy
   }
 })
 
-test('a restore target already gone (404) is likewise not an error', async () => {
+test('a restore target already gone (404) is likewise a failed restoration', async () => {
   const { restore } = recordFetch([TOKEN, notFound()])
   try {
     const result = await rollback(
       rollbackContext({ entries: [{ name: 'App Reader', existed: true, id: 'rd-1', prior: PRIOR }] }),
     )
 
-    assert.equal(result.success, true)
-    assert.match(String(result.message), /1 restored/)
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /Rollback had errors/)
   } finally {
     restore()
   }

@@ -1,6 +1,6 @@
 id: microsoft-entra-id
 name: Microsoft Entra ID
-version: "0.8.7"
+version: "0.9.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
@@ -991,4 +991,23 @@ settings:
     label: Request Timeout (seconds)
     description: Per-request timeout for Microsoft Graph API calls.
     default: 30
+    required: false
+
+  - key: readiness_features
+    type: string
+    label: Configuration types to test
+    description: Comma-separated configuration type IDs. Test checks selected read endpoints only; write access and licensing remain unverified.
+    default: ""
+    required: false
+  - key: azure_cloud
+    type: string
+    label: Microsoft cloud
+    description: "One of global, us-gov, us-gov-dod, china. Selects an allowlisted authority, Graph host and token scope."
+    default: global
+    required: false
+  - key: connection_tenants
+    type: string
+    label: Per-connection tenant overrides
+    description: 'JSON object keyed by credential ID, e.g. {"credential-id":{"tenantId":"directory-guid","cloud":"global"}}. Unmapped connections retain the Tenant ID setting.'
+    default: "{}"
     required: false

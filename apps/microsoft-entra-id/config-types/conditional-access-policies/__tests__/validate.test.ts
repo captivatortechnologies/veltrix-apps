@@ -92,7 +92,7 @@ describe('conditional-access-policies validate', () => {
   })
 
   it('warns when an enabled policy has no break-glass exclusion', () => {
-    const r = validate(ctxWith([{ name: 'P', fields: { ...validFields, name: 'P', state: 'enabled' } }]))
+    const r = validate(ctxWith([{ name: 'P', fields: { ...validFields, name: 'P', state: 'enabled', enforcementAcknowledged: true } }]))
     expect(r.valid).toBe(true)
     expect(r.warnings.some((w) => w.code === 'no_break_glass')).toBe(true)
   })

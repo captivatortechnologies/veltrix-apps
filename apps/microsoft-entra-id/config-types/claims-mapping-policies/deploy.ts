@@ -1,3 +1,4 @@
+import { reconciliationIssue } from '../../lib/reconciliation'
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import {
   buildGraphClient,
@@ -65,13 +66,15 @@ async function loadPriorEntries(ctx: DeployContext): Promise<RollbackEntry[]> {
 
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { success: false, message: MISSING_CREDENTIAL_MESSAGE }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractClaimsMappingSpecs(ctx.canvas).filter((s) => s.name)
 
   const listed = await client.getAll<LiveClaimsMappingPolicy>(`${BASE}${SELECT}`)
+  const listingIssue = reconciliationIssue(listed, specs.map(s => 'name' in s ? String(s.name) : ''))
+  if (listingIssue) return { success: false, message: listingIssue, rollbackData: { entries: [] } }
   if (!listed.ok) {
     return { success: false, message: `Failed to list claims mapping policies: ${graphErrorMessage(listed.lastError!)}` }
   }

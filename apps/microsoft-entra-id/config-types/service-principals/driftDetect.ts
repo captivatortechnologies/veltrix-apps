@@ -19,7 +19,7 @@ type Diffs = DriftResult['diffs']
 
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   // Without a usable credential we can't read live state — assert no drift.
   if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)

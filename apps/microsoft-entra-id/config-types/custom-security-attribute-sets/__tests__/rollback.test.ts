@@ -73,22 +73,22 @@ test('a set the deploy created is left completely untouched — it cannot be del
     )
 
     assert.equal(calls.length, 0, 'no delete, and no field-clearing PATCH either')
-    assert.equal(result.success, true)
-    assert.match(String(result.message), /created sets are not deletable/)
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /does not support deletion/)
   } finally {
     restore()
   }
 })
 
-test('a set already gone (404) is not an error — rollback is idempotent', async () => {
+test('a set already gone (404) is a failed restoration — rollback is idempotent', async () => {
   const { restore } = recordFetch([TOKEN, notFound()])
   try {
     const result = await rollback(
       rollbackContext({ entries: [{ name: 'Engineering', existed: true, id: 'Engineering', prior: PRIOR }] }),
     )
 
-    assert.equal(result.success, true)
-    assert.match(String(result.message), /1 restored/)
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /Rollback had errors/)
   } finally {
     restore()
   }

@@ -1,3 +1,4 @@
+import { reconciliationIssue } from '../../lib/reconciliation'
 import type { DriftContext, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildGraphClient, readGraphSettings, resolveGraphCredential } from '../../lib/graph'
 import {
@@ -25,14 +26,15 @@ type Diffs = DriftResult['diffs']
 
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   // Without a usable credential we can't read live state — assert no drift.
   if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractApplicationSpecs(ctx.deployedConfig).filter((s) => s.name)
   const listed = await client.getAll<LiveApplication>(`${BASE}${SELECT}`)
-  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
+  if (reconciliationIssue(listed, specs.map(s => 'name' in s ? String(s.name) : ''))) return { hasDrift: false, diffs: [], checked: false }
+  if (!listed.ok || listed.truncated) return { hasDrift: false, diffs: [], checked: false }
   const liveByUnique = new Map(
     listed.items.filter((a) => a.uniqueName).map((a) => [a.uniqueName!.toLowerCase(), a]),
   )

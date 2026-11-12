@@ -12,7 +12,7 @@ const BASE = '/policies/permissionGrantPolicies'
 
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { success: false, message: MISSING_CREDENTIAL_MESSAGE }
   const client = buildGraphClient(cred, settings)
 
@@ -29,7 +29,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
         displayName: e.prior.displayName,
         description: e.prior.description ?? null,
       })
-      if (!meta.ok && meta.status !== 404) {
+      if (!meta.ok) {
         failures.push(`restore ${e.name}: ${graphErrorMessage(meta)}`)
         continue
       }

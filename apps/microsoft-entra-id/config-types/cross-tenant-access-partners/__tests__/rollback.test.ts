@@ -127,15 +127,15 @@ test('a partner already gone (404) is treated as already undone', async () => {
   }
 })
 
-test('a 404 while restoring is likewise not an error', async () => {
+test('a 404 while restoring is likewise a failed restoration', async () => {
   const { restore } = recordFetch([TOKEN, notFound()])
   try {
     const result = await rollback(
       rollbackContext({ entries: [{ name: PARTNER, existed: true, id: PARTNER, prior: PRIOR }] }),
     )
 
-    assert.equal(result.success, true)
-    assert.match(String(result.message), /0 deleted, 1 restored/)
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /Rollback had errors/)
   } finally {
     restore()
   }

@@ -1,16 +1,12 @@
-// healthCheck for terms-of-use-agreements — the shared Entra probe contract, driven against a fake Graph.
-//
-// Every configuration type in this app health-checks the same way: resolve the
-// app-registration credential, fail closed when it or the tenant id is missing,
-// otherwise acquire a token and probe exactly ONE Graph endpoint. The shared
-// contract asserts that sequence; this file pins the endpoint and check name.
-
-import healthCheck from '../healthCheck'
-import { registerHealthCheckContract } from '../../../lib/__tests__/graphContracts'
-
-registerHealthCheckContract({
-  label: 'terms-of-use-agreements',
-  handler: healthCheck,
-  checkName: 'graph-terms-of-use-agreements',
-  path: '/identityGovernance/termsOfUse/agreements',
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import handler from '../healthCheck'
+import { recordFetch } from '../../../lib/__tests__/fakeGraph'
+test('healthCheck gates unsupported app-only agreement management without network calls', async () => {
+ const { calls, restore } = recordFetch([])
+ try {
+  const result = await handler({} as never)
+  assert.equal(calls.length, 0)
+  assert.equal(result.healthy, false)
+ } finally { restore() }
 })

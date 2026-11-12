@@ -237,7 +237,3 @@ test('an empty canvas is compared against nothing and reads the policy not at al
     restore()
   }
 })
-
-// The token exchange, imported under a local alias so the fixtures above read as
-// "token, then the singleton".
-import { TOKEN as TOKEN } from '../../../lib/__tests__/fakeGraph'

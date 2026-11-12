@@ -104,12 +104,12 @@ test('a context already gone (404) is treated as already undone, not as an error
   }
 })
 
-test('a 404 on the restore PATCH is likewise not an error', async () => {
+test('a 404 on the restore PATCH is likewise a failed restoration', async () => {
   const { restore } = recordFetch([TOKEN, notFound()])
   try {
     const result = await rollback(rollbackContext({ entries: [{ name: 'c3', existed: true, id: 'c3', prior: PRIOR }] }))
 
-    assert.equal(result.success, true)
+    assert.equal(result.success, false)
   } finally {
     restore()
   }

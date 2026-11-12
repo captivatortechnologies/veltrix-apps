@@ -65,9 +65,9 @@ describe('resolveAcrossMaps — priority-ordered multi-map resolution', () => {
     expect(resolveAcrossMaps('ops-app', [userMap, groupMap, spMap])).toEqual({ id: 'sp-ops', missing: false })
   })
 
-  it('a name colliding across maps resolves to whichever map is checked first', () => {
-    expect(resolveAcrossMaps('ops', [userMap, groupMap])).toEqual({ id: 'u-ops', missing: false })
-    expect(resolveAcrossMaps('ops', [groupMap, userMap])).toEqual({ id: 'g-ops', missing: false })
+  it('a name colliding across maps is rejected regardless of map order', () => {
+    expect(resolveAcrossMaps('ops', [userMap, groupMap])).toEqual({ id: '', missing: true })
+    expect(resolveAcrossMaps('ops', [groupMap, userMap])).toEqual({ id: '', missing: true })
   })
 
   it('reports an unresolved name as missing', () => {

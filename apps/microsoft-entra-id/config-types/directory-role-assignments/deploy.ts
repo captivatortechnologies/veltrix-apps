@@ -1,3 +1,4 @@
+import { reconciliationIssue } from '../../lib/reconciliation'
 // A unifiedRoleAssignment is IMMUTABLE — Graph exposes only List/Get/Create/Delete,
 // there is NO PATCH. So deploy never updates in place: a declared tuple that already
 // exists is a no-op, and a "changed" assignment is really a different tuple that gets
@@ -98,13 +99,15 @@ async function loadPriorEntries(ctx: DeployContext): Promise<RollbackEntry[]> {
 
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { success: false, message: MISSING_CREDENTIAL_MESSAGE }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractRoleAssignmentSpecs(ctx.canvas).filter((s) => s.roleDefinitionId && s.principalId)
 
   const listed = await client.getAll<LiveRoleAssignment>(BASE)
+  const listingIssue = reconciliationIssue(listed, specs.map(s => 'name' in s ? String(s.name) : ''))
+  if (listingIssue) return { success: false, message: listingIssue, rollbackData: { entries: [] } }
   if (!listed.ok) {
     return { success: false, message: `Failed to list role assignments: ${graphErrorMessage(listed.lastError!)}` }
   }

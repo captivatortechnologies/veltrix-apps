@@ -54,7 +54,7 @@ export function buildBody(spec: CrossTenantDefaultSpec): Record<string, unknown>
 
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { success: false, message: MISSING_CREDENTIAL_MESSAGE }
   const client = buildGraphClient(cred, settings)
 

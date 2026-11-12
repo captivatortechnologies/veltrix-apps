@@ -1,3 +1,4 @@
+import { buildNameMap, CheckedNameMap, describeLookup } from './checkedNames'
 // =============================================================================
 // Shared displayName -> id maps and id-aware value resolution for the Phase-2
 // batch-1 config types (directory-role-assignments, pim-role-eligibility,
@@ -29,16 +30,7 @@ export function isGuid(v: string): boolean {
 }
 
 /** Build a case-insensitive displayName -> id map from a simple `{id, displayName}` Graph collection. */
-async function nameToIdMap(client: GraphClient, path: string): Promise<Map<string, string>> {
-  const map = new Map<string, string>()
-  const listed = await client.getAll<{ id?: string; displayName?: string }>(path)
-  if (listed.ok) {
-    for (const r of listed.items) {
-      if (r.id && r.displayName) map.set(r.displayName.toLowerCase(), r.id)
-    }
-  }
-  return map
-}
+const nameToIdMap = buildNameMap
 
 /** roleManagement/directory/roleDefinitions displayName -> id (built-in roles' id IS their roleTemplateId). */
 export function buildRoleNameToId(client: GraphClient): Promise<Map<string, string>> {
@@ -120,19 +112,8 @@ export function buildTaskDefinitionNameToId(client: GraphClient): Promise<Map<st
 }
 
 /** Build a case-insensitive user displayName/UPN -> id map from the live directory. */
-export async function buildUserNameToId(client: GraphClient): Promise<Map<string, string>> {
-  const map = new Map<string, string>()
-  const listed = await client.getAll<{ id?: string; displayName?: string; userPrincipalName?: string }>(
-    '/users?$select=id,displayName,userPrincipalName'
-  )
-  if (listed.ok) {
-    for (const u of listed.items) {
-      if (!u.id) continue
-      if (u.displayName) map.set(u.displayName.toLowerCase(), u.id)
-      if (u.userPrincipalName) map.set(u.userPrincipalName.toLowerCase(), u.id)
-    }
-  }
-  return map
+export function buildUserNameToId(client: GraphClient): Promise<Map<string, string>> {
+  return buildNameMap(client, '/users?$select=id,displayName,userPrincipalName', true)
 }
 
 /**
@@ -155,30 +136,27 @@ export function resolveRefs(values: string[], nameToId: Map<string, string>): { 
   const missing: string[] = []
   for (const v of values) {
     const r = resolveRef(v, nameToId)
-    if (r.missing) missing.push(v)
+    if (r.missing) missing.push(describeLookup(nameToId, v))
     else if (r.id) ids.push(r.id)
   }
   return { ids, missing }
 }
 
 /**
- * Single-value GUID-or-name resolve across SEVERAL maps, tried in the given
- * order (first match wins) — for a field whose picker merges more than one
+ * Single-value GUID-or-name resolve across SEVERAL maps, requiring a unique
+ * match across kinds — for a field whose picker merges more than one
  * Graph collection (e.g. "directoryPrincipals" = users + groups + service
- * principals). A name that collides across kinds resolves to whichever map
- * is checked first; pick the entry from the live picker to avoid the
- * ambiguity entirely (its value is always the correct, unambiguous id).
+ * principals). A name that collides across kinds is rejected; pick the entry
+ * from the live picker to select an unambiguous identity (its value is always the correct, unambiguous id).
  */
 export function resolveAcrossMaps(value: string, maps: Array<Map<string, string>>): { id: string; missing: boolean } {
   const v = (value ?? '').trim()
   if (!v) return { id: '', missing: false }
   if (isGuid(v)) return { id: v, missing: false }
   const lower = v.toLowerCase()
-  for (const m of maps) {
-    const id = m.get(lower)
-    if (id) return { id, missing: false }
-  }
-  return { id: '', missing: true }
+  if (maps.some(m => m instanceof CheckedNameMap && (m.issue || m.ambiguous.has(lower)))) return { id: '', missing: true }
+  const ids = new Set(maps.map(m => m.get(lower)).filter((id): id is string => !!id))
+  return ids.size === 1 ? { id: [...ids][0], missing: false } : { id: '', missing: true }
 }
 
 /** Batch form of resolveAcrossMaps, for a multiselect field. */
@@ -217,21 +195,23 @@ export interface IdNameMap {
   idsLower: Map<string, string>
   /** lowercase displayName -> canonical id. */
   nameToId: Map<string, string>
+  incomplete?: boolean
 }
 
 /** Build a live id-set + displayName map for an opaque-string-id collection. */
 export async function buildIdNameMap(client: GraphClient, path: string): Promise<IdNameMap> {
   const idsLower = new Map<string, string>()
-  const nameToId = new Map<string, string>()
+  const nameToId = new CheckedNameMap()
   const listed = await client.getAll<{ id?: string; displayName?: string }>(path)
-  if (listed.ok) {
+  if (listed.ok && !listed.truncated) {
     for (const r of listed.items) {
       if (!r.id) continue
       idsLower.set(r.id.toLowerCase(), r.id)
       if (r.displayName) nameToId.set(r.displayName.toLowerCase(), r.id)
     }
   }
-  return { idsLower, nameToId }
+  nameToId.issue = !listed.ok ? 'failed' : listed.truncated ? 'incomplete' : undefined
+  return { idsLower, nameToId, incomplete: !listed.ok || listed.truncated }
 }
 
 /** Exact live-id match (case-insensitive) wins; else a displayName match; else missing. */
@@ -239,6 +219,7 @@ export function resolveByIdOrName(value: string, map: IdNameMap): { id: string; 
   const v = (value ?? '').trim()
   if (!v) return { id: '', missing: false }
   const lower = v.toLowerCase()
+  if (map.incomplete) return { id: '', missing: true }
   const idHit = map.idsLower.get(lower)
   if (idHit) return { id: idHit, missing: false }
   const nameHit = map.nameToId.get(lower)

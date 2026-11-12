@@ -8,8 +8,46 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "types": ["node", "jest"]
+    "types": [
+      "node",
+      "jest",
+      "react"
+    ],
+    "jsx": "react",
+    "baseUrl": ".",
+    "typeRoots": [
+      "./node_modules/@types",
+      "../../sdk/node_modules/@types"
+    ],
+    "paths": {
+      "react": [
+        "./node_modules/@types/react",
+        "../../sdk/node_modules/@types/react"
+      ],
+      "react-dom": [
+        "./node_modules/@types/react-dom",
+        "../../sdk/node_modules/@types/react-dom"
+      ],
+      "@veltrixsecops/app-sdk": [
+        "./node_modules/@veltrixsecops/app-sdk/dist/index.d.ts",
+        "../../sdk/dist/index.d.ts"
+      ],
+      "@veltrixsecops/app-sdk/*": [
+        "./node_modules/@veltrixsecops/app-sdk/dist/*/index.d.ts",
+        "../../sdk/dist/*/index.d.ts"
+      ]
+    }
   },
-  "include": ["config-types/**/*.ts", "handlers/**/*.ts", "hooks/**/*.ts", "lib/**/*.ts", "server/**/*.ts"],
-  "exclude": ["node_modules", "client"]
+  "include": [
+    "config-types/**/*.ts",
+    "handlers/**/*.ts",
+    "hooks/**/*.ts",
+    "lib/**/*.ts",
+    "server/**/*.ts",
+    "client/**/*.ts",
+    "client/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

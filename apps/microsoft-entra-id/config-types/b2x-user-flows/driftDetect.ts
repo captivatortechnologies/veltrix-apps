@@ -1,3 +1,4 @@
+import { reconciliationIssue } from '../../lib/reconciliation'
 import type { DriftContext, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildGraphClient, readGraphSettings, resolveGraphCredential } from '../../lib/graph'
 import { extractB2xUserFlowSpecs, resultingId, type LiveB2xUserFlow } from './validate'
@@ -13,13 +14,14 @@ function sortedJson(v: string[]): string {
 
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractB2xUserFlowSpecs(ctx.deployedConfig).filter((s) => s.id)
   const listed = await client.getAll<LiveB2xUserFlow>(`${BASE}?$select=id`)
-  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
+  if (reconciliationIssue(listed, specs.map(s => 'name' in s ? String(s.name) : ''))) return { hasDrift: false, diffs: [], checked: false }
+  if (!listed.ok || listed.truncated) return { hasDrift: false, diffs: [], checked: false }
   const liveIds = new Set(listed.items.filter((f) => f.id).map((f) => f.id!.toLowerCase()))
   const identityProviderMap = await buildIdNameMap(client, '/identity/identityProviders?$select=id,displayName')
   const attributeMaps = await buildAttributeMaps(client)

@@ -1,3 +1,4 @@
+import { capabilityWarnings } from '../../lib/capabilityReview'
 import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
 
 // --- Entra Conditional Access policy constraints -----------------------------
@@ -35,6 +36,7 @@ export interface CaPolicySpec {
   name: string
   /** 'report-only' | 'enabled' | 'disabled'. */
   state: string
+  enforcementAcknowledged?: boolean
   includeAllUsers: boolean
   /** Group display names (resolved to ids at deploy time). */
   includeGroups: string[]
@@ -110,6 +112,7 @@ export function extractPolicySpecs(canvas: CanvasSnapshot): CaPolicySpec[] {
       itemId: item.id,
       name: asString(f.name) || item.name,
       state: (asString(f.state) || 'report-only').toLowerCase(),
+      enforcementAcknowledged: asBool(f.enforcementAcknowledged),
       includeAllUsers: asBool(f.includeAllUsers),
       includeGroups: asStringArray(f.includeGroups),
       excludeGroups: asStringArray(f.excludeGroups),
@@ -137,6 +140,12 @@ export default function validate(ctx: PipelineContext): ValidationResult {
 
   specs.forEach((spec, i) => {
     const prefix = `items[${i}]`
+    if (spec.state === 'enabled' && (spec.includeAllUsers || spec.includeUsers.some(u => u.toLowerCase() === 'all')) && !spec.enforcementAcknowledged) {
+      errors.push({ field: `${prefix}.enforcementAcknowledged`, code: 'enforcement_acknowledgement_required',
+        message: 'Review tenant-wide enforcement, report-only results and emergency access, then acknowledge enforcement before deploying.' })
+    }
+    warnings.push({ field: `${prefix}.state`, code: 'deployment_review', message:
+      `Review ${spec.name}: state=${spec.state}; tenant=${String(ctx.settings?.tenant_id ?? 'connection tenant')}; users=${spec.includeAllUsers ? 'ALL' : [...spec.includeGroups, ...spec.includeUsers, ...spec.includeRoles].join(', ')}; apps=${spec.includeAllApps ? 'ALL' : spec.includeApps.join(', ')}; exclusions=${[...spec.excludeGroups, ...spec.excludeUsers, ...spec.excludeRoles].join(', ') || 'NONE'}. Exclusions do not prove emergency access works.` })
 
     // name — required, length, uniqueness
     if (!spec.name) {
@@ -245,5 +254,5 @@ export default function validate(ctx: PipelineContext): ValidationResult {
     }
   })
 
-  return { valid: errors.length === 0, errors, warnings }
+  return { valid: errors.length === 0, errors, warnings: [...warnings, ...capabilityWarnings('conditional-access-policies')] }
 }

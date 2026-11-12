@@ -211,14 +211,8 @@ test('a truncated listing reports "not verified", never a false "absent"', async
   try {
     const result = await driftDetect(driftContext([eligibilityItem()]))
 
-    assert.ok(
-      !result.diffs.some((d) => d.actual === 'absent'),
-      'absence cannot be proved from a partial listing',
-    )
-    const notice = result.diffs.find((d) => d.field === '(eligibility listing)')
-    assert.ok(notice, 'the operator has to be told the listing was incomplete')
-    assert.equal(notice.severity, 'info')
-    assert.match(String(notice.actual), /truncated/)
+    assert.equal(result.checked, false, 'a capped listing cannot verify managed resources')
+    assert.equal(result.diffs.some(d => d.actual === 'absent'), false)
   } finally {
     restore()
   }

@@ -1,3 +1,4 @@
+import { reconciliationIssue } from '../../lib/reconciliation'
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import {
   buildGraphClient,
@@ -35,13 +36,15 @@ function snapshotLive(live: LiveAttributeSet): Record<string, unknown> {
 
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { success: false, message: MISSING_CREDENTIAL_MESSAGE }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractAttributeSetSpecs(ctx.canvas).filter((s) => s.id)
 
   const listed = await client.getAll<LiveAttributeSet>(`${BASE}${SELECT}`)
+  const listingIssue = reconciliationIssue(listed, specs.map(s => 'name' in s ? String(s.name) : ''))
+  if (listingIssue) return { success: false, message: listingIssue, rollbackData: { entries: [] } }
   if (!listed.ok) {
     return { success: false, message: `Failed to list attribute sets: ${graphErrorMessage(listed.lastError!)}` }
   }

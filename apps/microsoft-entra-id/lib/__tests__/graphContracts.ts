@@ -103,8 +103,9 @@ export function registerHealthCheckContract(c: HealthCheckContract): void {
         graphCalls[0].url.includes(c.path),
         `probe hit ${graphCalls[0].url}, expected it to include ${c.path}`,
       )
-      assert.equal(result.healthy, true)
-      assert.equal(result.score, 100)
+      assert.equal(result.healthy, false)
+      assert.equal(result.score, 50)
+      assert.ok(result.checks.some(c => c.name === 'managed-configuration' && !c.passed))
 
       const check = result.checks.find((x) => x.name === c.checkName)
       assert.ok(check, `expected a "${c.checkName}" check, got ${result.checks.map((x) => x.name).join(', ')}`)

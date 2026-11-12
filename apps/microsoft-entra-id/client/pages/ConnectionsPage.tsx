@@ -19,7 +19,7 @@ export default function ConnectionsPage() {
       tokenLabel="Client secret"
       tokenUsernamePlaceholder="app registration Application (client) ID"
       endpointPlaceholder="https://graph.microsoft.com"
-      endpointHelper="Informational only — Microsoft Graph is reached at graph.microsoft.com; the directory (tenant) ID is set in the app's Tenant ID setting."
+      endpointHelper="Informational only — cloud hosts come from Microsoft cloud settings. Tenant ID is the fallback; Per-connection tenant overrides can bind this credential ID to a separate directory."
       componentType="entra-tenant"
     />
   )

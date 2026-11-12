@@ -152,7 +152,7 @@ test('a newly created provider is recorded with the id Graph assigned it', async
 
     const entries = (result.rollbackData as { entries: Array<Record<string, unknown>> }).entries
     assert.deepEqual(entries, [{ itemId: undefined, name: 'Google', existed: false, id: 'Google-OAUTH' }])
-    assert.equal(entries[0].prior, undefined, 'a provider this app created has no prior state to restore')
+    assert.equal((entries[0] as { prior?: unknown }).prior, undefined, 'a provider this app created has no prior state to restore')
   } finally {
     restore()
   }
@@ -193,14 +193,14 @@ test('deploy records the LIVE prior provider fields, and no secret with them', a
     assert.equal(entries[0].existed, true)
     assert.equal(entries[0].id, 'Google-OAUTH')
     // The tenant's own values, not the canvas's.
-    assert.deepEqual(entries[0].prior, {
+    assert.deepEqual((entries[0] as { prior?: unknown }).prior, {
       '@odata.type': SOCIAL,
       displayName: 'Google',
       clientId: 'old-client-id.apps.googleusercontent.com',
     })
-    assert.notDeepEqual(entries[0].prior, bodyOf(writeCalls(calls)[0]))
+    assert.notDeepEqual((entries[0] as { prior?: unknown }).prior, bodyOf(writeCalls(calls)[0]))
     // Graph never returns a client secret, so the recorded prior cannot carry one.
-    assert.equal(leaksProviderSecret(entries[0].prior), false)
+    assert.equal(leaksProviderSecret((entries[0] as { prior?: unknown }).prior), false)
   } finally {
     restore()
   }

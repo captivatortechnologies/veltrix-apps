@@ -6,7 +6,7 @@ const PATH = '/policies/identitySecurityDefaultsEnforcementPolicy'
 
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 

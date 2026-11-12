@@ -62,6 +62,12 @@ item:
             safe default. Switch to Enabled only after reviewing report-only
             sign-in impact.
 
+        - key: "enforcementAcknowledged"
+          label: "I reviewed tenant-wide enforcement and tested emergency access"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Required for enabled policies targeting all users. Review report-only results and Security Defaults compatibility before acknowledging."
+
     - name: "Users"
       icon: "users"
       description: "Who the policy applies to"

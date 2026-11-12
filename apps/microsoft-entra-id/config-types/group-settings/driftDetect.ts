@@ -1,3 +1,4 @@
+import { reconciliationIssue } from '../../lib/reconciliation'
 import type { DriftContext, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildGraphClient, readGraphSettings, resolveGraphCredential } from '../../lib/graph'
 import { canonicalValues, extractGroupSettingSpecs, parseValues, type LiveGroupSetting } from './validate'
@@ -8,13 +9,14 @@ type Diffs = DriftResult['diffs']
 
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { hasDrift: false, diffs: [], checked: false }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractGroupSettingSpecs(ctx.deployedConfig).filter((s) => s.templateId)
   const listed = await client.getAll<LiveGroupSetting>(BASE)
-  if (!listed.ok) return { hasDrift: false, diffs: [], checked: false }
+  if (reconciliationIssue(listed, specs.map(s => 'name' in s ? String(s.name) : ''))) return { hasDrift: false, diffs: [], checked: false }
+  if (!listed.ok || listed.truncated) return { hasDrift: false, diffs: [], checked: false }
   const liveByTemplate = new Map(
     listed.items.filter((s) => s.templateId).map((s) => [s.templateId!.toLowerCase(), s]),
   )

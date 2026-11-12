@@ -1,3 +1,4 @@
+import { capabilityWarnings } from '../../lib/capabilityReview'
 import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
 
 // --- Entra lifecycle-workflow constraints ------------------------------------
@@ -124,5 +125,5 @@ export default function validate(ctx: PipelineContext): ValidationResult {
     }
   })
 
-  return { valid: errors.length === 0, errors, warnings }
+  return { valid: errors.length === 0, errors, warnings: [...warnings, ...capabilityWarnings('lifecycle-workflows')] }
 }

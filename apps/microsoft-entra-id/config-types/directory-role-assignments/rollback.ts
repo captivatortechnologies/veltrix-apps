@@ -15,7 +15,7 @@ const BASE = '/roleManagement/directory/roleAssignments'
 
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { success: false, message: MISSING_CREDENTIAL_MESSAGE }
   const client = buildGraphClient(cred, settings)
 

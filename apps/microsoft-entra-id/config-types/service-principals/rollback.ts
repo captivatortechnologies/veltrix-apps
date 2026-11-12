@@ -11,7 +11,7 @@ import type { RollbackEntry } from './deploy'
 
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { success: false, message: MISSING_CREDENTIAL_MESSAGE }
   const client = buildGraphClient(cred, settings)
 
@@ -27,7 +27,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
     if (e.existed && e.prior) {
       // We updated a pre-existing SP — restore its prior managed fields (never delete it).
       const resp = await client.patch(`${SP_BASE}/${e.id}`, e.prior)
-      if (!resp.ok && resp.status !== 404) failures.push(`restore ${e.appId}: ${graphErrorMessage(resp)}`)
+      if (!resp.ok) failures.push(`restore ${e.appId}: ${graphErrorMessage(resp)}`)
       else restored++
     } else if (!e.existed) {
       // We created this SP — remove it (its owner references go with it).

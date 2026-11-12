@@ -431,9 +431,9 @@ test('deploy acquires a token first and creates a new policy REPORT-ONLY, never 
 })
 
 test('deploy sends state "enabled" only when the canvas explicitly asks for it', async () => {
-  const { calls, restore } = recordFetch([TOKEN, collection([]), ...nameMaps(), created({ id: 'p-new' })])
+  const { calls, restore } = recordFetch([TOKEN, ok({ isEnabled: false }), collection([]), ...nameMaps(), created({ id: 'p-new' })])
   try {
-    await deploy(deployContext([mfaItem({ state: 'enabled' })]))
+    await deploy(deployContext([mfaItem({ state: 'enabled', enforcementAcknowledged: true })]))
 
     const body = bodyOf(writeCalls(calls)[0])
     assert.ok(body)

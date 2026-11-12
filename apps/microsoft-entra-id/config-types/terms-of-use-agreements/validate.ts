@@ -96,7 +96,7 @@ export function buildTermsExpiration(spec: TermsOfUseSpec): TermsExpiration | un
   return undefined
 }
 
-export default function validate(ctx: PipelineContext): ValidationResult {
+export function validateShape(ctx: PipelineContext): ValidationResult {
   const errors: ValidationResult['errors'] = []
   const warnings: ValidationResult['warnings'] = []
   const specs = extractTermsOfUseSpecs(ctx.canvas)
@@ -184,4 +184,10 @@ export default function validate(ctx: PipelineContext): ValidationResult {
   })
 
   return { valid: errors.length === 0, errors, warnings }
+}
+
+export default function validate(ctx: PipelineContext): ValidationResult {
+ const result = validateShape(ctx)
+ return { ...result, valid: false, errors: [...result.errors, { field: 'configuration', code: 'unsupported_authentication',
+ message: 'Terms of Use agreement listing requires delegated authentication. Manage agreements in Entra and reference existing IDs in Conditional Access.' }] }
 }

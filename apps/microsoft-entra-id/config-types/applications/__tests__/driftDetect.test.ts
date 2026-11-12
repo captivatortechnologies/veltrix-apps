@@ -300,17 +300,8 @@ test('a truncated listing never becomes a false "absent" — it reports the gap 
   try {
     const result = await driftDetect(driftContext([appItem()]))
 
-    assert.equal(
-      result.diffs.some((d) => d.actual === 'absent'),
-      false,
-      'an unfetched page cannot prove a registration is gone',
-    )
-    const gap = result.diffs.find((d) => d.field === '(directory listing)')
-    assert.ok(gap, 'the incomplete listing itself has to be reported')
-    assert.equal(gap.expected, 'complete')
-    assert.equal(gap.severity, 'info')
-    assert.match(String(gap.actual), /truncated/)
-    assert.equal(writeCalls(calls).length, 0)
+    assert.equal(result.checked, false, 'a capped listing cannot verify managed resources')
+    assert.equal(result.diffs.some(d => d.actual === 'absent'), false)
   } finally {
     restore()
   }

@@ -12,7 +12,7 @@ const BASE = '/policies/authenticationStrengthPolicies'
 
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { success: false, message: MISSING_CREDENTIAL_MESSAGE }
   const client = buildGraphClient(cred, settings)
 
@@ -30,7 +30,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
         displayName: e.prior.displayName,
         description: e.prior.description ?? null,
       })
-      if (!patched.ok && patched.status !== 404) {
+      if (!patched.ok) {
         failures.push(`restore ${e.name}: ${graphErrorMessage(patched)}`)
         continue
       }
@@ -38,7 +38,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
         const combo = await client.post(`${BASE}/${e.id}/updateAllowedCombinations`, {
           allowedCombinations: e.prior.allowedCombinations,
         })
-        if (!combo.ok && combo.status !== 404) {
+        if (!combo.ok) {
           failures.push(`restore ${e.name}: ${graphErrorMessage(combo)}`)
           continue
         }

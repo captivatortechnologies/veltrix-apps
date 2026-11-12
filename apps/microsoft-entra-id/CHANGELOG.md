@@ -8,6 +8,33 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.9.0 - 2026-11-11
+
+### Improved
+
+- Added a shared registry for all 42 configuration types, selected-feature read probes, and capability/rollback guidance in setup and overview.
+- Added certificate and optional platform-broker authentication, cloud endpoint allowlists, per-credential tenant overrides, and support for secrets saved in the token field.
+- Added managed-field verification to health checks and included client TypeScript checks in the app typecheck.
+- Allowed metadata/settings access using the caller's selected configuration resource permission.
+
+### Fixed
+
+- Blocked unsupported app-only agreement management before network access.
+- Stopped blind retries after uncertain mutation outcomes and rejected foreign Graph/pagination URLs and redirects.
+- Rejected ambiguous or incomplete name resolution and unsafe reconciliation listings.
+- Reported missing restore targets and irreversible rollback remnants as failures.
+- Required acknowledgement for enabled all-user policies and checked Security Defaults before enforcement.
+- Fixed the seven existing test type errors recorded in the initial review.
+
+## 0.8.8 - 2026-11-11
+
+### Improved
+
+- Expanded the in-app setup guide with prerequisites, feature permission profiles, credential rotation, verification scope, deployment checks, and troubleshooting.
+- Replaced the template README with Entra setup and recovery instructions.
+- Documented the Terms of Use app-only limitation and resource-specific rollback limits.
+- Added a prioritized improvement plan with code evidence and acceptance criteria.
+
 ## 0.8.7 — 2026-09-16
 
 ### Fixed — drift no longer claims "in sync" from a run that could not look

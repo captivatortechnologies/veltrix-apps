@@ -1,3 +1,5 @@
+import { verifyManagedConfiguration } from '../../lib/verification'
+import driftDetect from './driftDetect'
 import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'
 import {
   buildGraphClient,
@@ -11,7 +13,7 @@ const BASE = '/identityGovernance/entitlementManagement/catalogs'
 export default async function healthCheck(ctx: HealthCheckContext): Promise<HealthCheckResult> {
   const checks: HealthCheckResult['checks'] = []
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
 
   if (!cred) {
     checks.push({
@@ -35,5 +37,5 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
     latencyMs,
   })
 
-  return { healthy: passed, score: passed ? 100 : 0, checks }
+  return verifyManagedConfiguration(ctx, checks, driftDetect, 'entitlement-access-package-catalogs')
 }

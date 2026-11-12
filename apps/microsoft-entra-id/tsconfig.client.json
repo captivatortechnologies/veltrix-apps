@@ -1,0 +1,39 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react",
+    "types": [
+      "react"
+    ],
+    "typeRoots": [
+      "../../sdk/node_modules/@types",
+      "./node_modules/@types"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "react": [
+        "./node_modules/@types/react",
+        "../../sdk/node_modules/@types/react"
+      ],
+      "react-dom": [
+        "./node_modules/@types/react-dom",
+        "../../sdk/node_modules/@types/react-dom"
+      ],
+      "@veltrixsecops/app-sdk": [
+        "./node_modules/@veltrixsecops/app-sdk/dist/index.d.ts",
+        "../../sdk/dist/index.d.ts"
+      ],
+      "@veltrixsecops/app-sdk/*": [
+        "./node_modules/@veltrixsecops/app-sdk/dist/*/index.d.ts",
+        "../../sdk/dist/*/index.d.ts"
+      ]
+    }
+  },
+  "include": [
+    "client/**/*.ts",
+    "client/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

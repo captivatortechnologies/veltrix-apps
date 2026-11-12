@@ -1,37 +1,27 @@
-// =============================================================================
-// Microsoft Graph API client for the Entra ID (Azure AD) app.
-//
-// Auth is OAuth2 client-credentials against an Entra app registration:
-//   POST https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token
-//   grant_type=client_credentials, scope=https://graph.microsoft.com/.default
-// The returned bearer token is cached until ~1 min before expiry.
-//
-// Convention for the Veltrix credential:
-//   username -> app registration (client) ID
-//   password -> client secret
-//   tenant   -> the `tenant_id` app setting (a GUID or verified domain)
-//
-// All routes are under https://graph.microsoft.com/v1.0. Graph rate-limits with
-// 429 + a `Retry-After` header (seconds); this retries once. Handlers run
-// in-process in the platform's Node runtime, so this uses fetch with an
-// AbortController timeout and no external HTTP dependency. It never throws on an
-// HTTP error status — callers inspect `status` so a 404 (object absent) is
-// distinguishable from a real failure.
-// =============================================================================
+// App-only Microsoft Graph client with tenant-bound secret, certificate, or host-broker
+// authentication. Authority, audience, v1.0 requests and pagination are restricted
+// to the selected Microsoft cloud. Tokens are cached per client instance.
+// Read transport errors retry once; uncertain mutations never retry blindly.
+// HTTP 429 retries once with a bounded wait. Redirects are refused.
 
+import { constants, createPrivateKey, randomUUID, sign, X509Certificate } from 'node:crypto'
 import type { CredentialRef } from '@veltrixsecops/app-sdk'
 
 const REQUEST_TIMEOUT_MS = 30_000
 const MAX_RATE_LIMIT_WAIT_MS = 20_000
-const GRAPH_BASE = 'https://graph.microsoft.com/v1.0'
-const LOGIN_BASE = 'https://login.microsoftonline.com'
-const GRAPH_SCOPE = 'https://graph.microsoft.com/.default'
 /** Refresh the token this many ms before its stated expiry. */
 const TOKEN_SKEW_MS = 60_000
+
+export interface GraphIdentity {
+  getAccessToken(opts: { tenantId: string; resource: string; cloud?: string }): Promise<string>
+}
 
 export interface GraphSettings {
   timeoutMs: number
   tenantId: string | null
+  cloud?: string
+  connections?: Record<string, { tenantId: string; cloud?: string }>
+  configurationError?: string
 }
 
 export function readGraphSettings(settings: Record<string, unknown>): GraphSettings {
@@ -42,13 +32,24 @@ export function readGraphSettings(settings: Record<string, unknown>): GraphSetti
       : REQUEST_TIMEOUT_MS
   const rawTenant = settings.tenant_id
   const tenantId = typeof rawTenant === 'string' && rawTenant.trim() ? rawTenant.trim() : null
-  return { timeoutMs, tenantId }
+  const connections = typeof settings.connection_tenants === 'object' ? settings.connection_tenants
+    : parseJson<unknown>(String(settings.connection_tenants ?? '{}'))
+  const valid = connections && typeof connections === 'object' && !Array.isArray(connections) &&
+    Object.values(connections).every(value => value && typeof value === 'object' &&
+      typeof (value as { tenantId?: unknown }).tenantId === 'string' &&
+      !!(value as { tenantId: string }).tenantId.trim() &&
+      ((value as { cloud?: unknown }).cloud === undefined || typeof (value as { cloud?: unknown }).cloud === 'string'))
+  return { timeoutMs, tenantId, configurationError: valid ? undefined : 'Invalid per-connection tenant overrides', cloud: typeof settings.azure_cloud === 'string' ? settings.azure_cloud : 'global',
+    connections: valid ? connections as GraphSettings['connections'] : {} }
 }
 
 export interface GraphCredential {
   tenantId: string
   clientId: string
   clientSecret: string
+  certificate?: string
+  cloud?: string
+  identity?: GraphIdentity
 }
 
 /**
@@ -57,20 +58,23 @@ export interface GraphCredential {
  */
 export function resolveGraphCredential(
   credential: CredentialRef | null,
-  settings: GraphSettings
+  settings: GraphSettings,
+  identity?: GraphIdentity,
 ): GraphCredential | null {
-  if (!credential) return null
+  if (!credential || settings.configurationError) return null
   const clientId = (credential.username ?? '').trim()
-  const clientSecret = (credential.password ?? '').trim()
-  const tenantId = (settings.tenantId ?? '').trim()
-  if (!clientId || !clientSecret || !tenantId) return null
-  return { tenantId, clientId, clientSecret }
+  const clientSecret = (credential.password || credential.apiToken || '').trim()
+  const override = settings.connections?.[credential.id]
+  const tenantId = (override?.tenantId ?? settings.tenantId ?? '').trim()
+  if ((!clientId && !identity) || (!clientSecret && !credential.certificate && !identity) || !tenantId) return null
+  return { tenantId, clientId, clientSecret, certificate: credential.certificate ?? undefined,
+    cloud: override?.cloud ?? settings.cloud ?? 'global', identity }
 }
 
 export const MISSING_CREDENTIAL_MESSAGE =
   'No usable Microsoft Entra credential — this app authenticates as an Entra app ' +
   'registration via OAuth2 client credentials. Store the application (client) ID in the ' +
-  'credential "username" field and a client secret in "password", and set the directory ' +
+  'credential "username" field and a client secret in "password" or "apiToken" (or a PEM certificate/private key in "certificate"), and set the directory ' +
   '(tenant) ID in the app\'s "Tenant ID" setting. The app registration needs the Graph ' +
   'application permissions for what this app manages (e.g. Policy.ReadWrite.ConditionalAccess, ' +
   'Group.ReadWrite.All), granted admin consent.'
@@ -81,11 +85,35 @@ export interface GraphResponse {
   body: string
   /** `@odata.nextLink` from the JSON body, when the collection is paginated. */
   nextUrl: string | null
+  uncertain?: boolean
+  stage?: 'authentication' | 'request' | 'configuration'
 }
 
 export type GraphMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+
+export const GRAPH_CLOUDS: Record<string, { login: string; graph: string }> = {
+  global: { login: 'https://login.microsoftonline.com', graph: 'https://graph.microsoft.com' },
+  'us-gov': { login: 'https://login.microsoftonline.us', graph: 'https://graph.microsoft.us' },
+  'us-gov-dod': { login: 'https://login.microsoftonline.us', graph: 'https://dod-graph.microsoft.us' },
+  china: { login: 'https://login.chinacloudapi.cn', graph: 'https://microsoftgraph.chinacloudapi.cn' },
+}
+
+/** Vault certificate field: PEM certificate and matching PEM private key. */
+export function certificateAssertion(pem: string, clientId: string, audience: string): string {
+  const cert = new X509Certificate(pem)
+  const key = createPrivateKey(pem)
+  if (!cert.checkPrivateKey(key)) throw new Error('Certificate and private key do not match')
+  const now = Math.floor(Date.now() / 1000)
+  const header = Buffer.from(JSON.stringify({ alg: 'PS256', typ: 'JWT',
+    'x5t#S256': Buffer.from(cert.fingerprint256.replace(/:/g, ''), 'hex').toString('base64url') })).toString('base64url')
+  const payload = Buffer.from(JSON.stringify({ aud: audience, iss: clientId, sub: clientId,
+    jti: randomUUID(), nbf: now - 30, exp: now + 300 })).toString('base64url')
+  const input = `${header}.${payload}`
+  return `${input}.${sign('sha256', Buffer.from(input), { key,
+    padding: constants.RSA_PKCS1_PSS_PADDING, saltLength: 32 }).toString('base64url')}`
+}
 
 export class GraphClient {
   private readonly cred: GraphCredential
@@ -103,13 +131,24 @@ export class GraphClient {
     if (this.token && Date.now() < this.tokenExpiresAt - TOKEN_SKEW_MS) {
       return { token: this.token }
     }
-    const url = `${LOGIN_BASE}/${encodeURIComponent(this.cred.tenantId)}/oauth2/v2.0/token`
+    const cloud = (Object.prototype.hasOwnProperty.call(GRAPH_CLOUDS, this.cred.cloud ?? 'global') ? GRAPH_CLOUDS[this.cred.cloud ?? 'global'] : undefined)
+    if (!cloud) return { error: 'Unsupported Microsoft cloud; choose global, us-gov, us-gov-dod, or china' }
+    if (this.cred.identity && !this.cred.clientSecret && !this.cred.certificate) {
+      try { return { token: await this.cred.identity.getAccessToken({ tenantId: this.cred.tenantId, resource: cloud.graph, cloud: this.cred.cloud }) } }
+      catch { return { error: 'Platform identity broker could not acquire a token' } }
+    }
+    const url = `${cloud.login}/${encodeURIComponent(this.cred.tenantId)}/oauth2/v2.0/token`
     const form = new URLSearchParams({
       client_id: this.cred.clientId,
-      client_secret: this.cred.clientSecret,
-      scope: GRAPH_SCOPE,
+      scope: `${cloud.graph}/.default`,
       grant_type: 'client_credentials',
     })
+    try {
+      if (this.cred.certificate) {
+        form.set('client_assertion_type', 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer')
+        form.set('client_assertion', certificateAssertion(this.cred.certificate, this.cred.clientId, url))
+      } else form.set('client_secret', this.cred.clientSecret)
+    } catch { return { error: 'Invalid certificate credential: expected matching PEM certificate and private key' } }
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), this.timeoutMs)
     try {
@@ -118,6 +157,7 @@ export class GraphClient {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: form.toString(),
         signal: controller.signal,
+          redirect: 'error',
       })
       const body = await res.text()
       if (!res.ok) {
@@ -146,11 +186,22 @@ export class GraphClient {
     body?: unknown,
     opts?: { headers?: Record<string, string> },
   ): Promise<GraphResponse> {
+    const cloud = (Object.prototype.hasOwnProperty.call(GRAPH_CLOUDS, this.cred.cloud ?? 'global') ? GRAPH_CLOUDS[this.cred.cloud ?? 'global'] : undefined)
+    let url: string
+    try {
+      if (!cloud) throw new Error('Unsupported Microsoft cloud')
+      const absolute = /^[a-z][a-z0-9+.-]*:/i.test(path)
+      const parsed = new URL(absolute ? path : `${cloud.graph}/v1.0/${path.replace(/^\//, '')}`)
+      if (parsed.origin !== cloud.graph || parsed.username || parsed.password || parsed.hash ||
+          !parsed.pathname.startsWith('/v1.0/')) throw new Error('Graph URL must use the selected cloud origin and v1.0 API')
+      url = absolute ? path : `${cloud.graph}/v1.0/${path.replace(/^\//, '')}`
+    } catch (err) {
+      return { status: 0, ok: false, body: err instanceof Error ? err.message : 'Invalid Graph URL', nextUrl: null, stage: 'configuration' }
+    }
     const auth = await this.ensureToken()
     if (auth.error || !auth.token) {
-      return { status: 0, ok: false, body: auth.error ?? 'no token', nextUrl: null }
+      return { status: 0, ok: false, body: auth.error ?? 'no token', nextUrl: null, stage: 'authentication' }
     }
-    const url = path.startsWith('http') ? path : `${GRAPH_BASE}${path.startsWith('/') ? path : `/${path}`}`
 
     for (let attempt = 0; attempt < 2; attempt++) {
       const controller = new AbortController()
@@ -164,8 +215,10 @@ export class GraphClient {
             Accept: 'application/json',
             ...(opts?.headers ?? {}),
           },
-          body: body === undefined ? undefined : JSON.stringify(body),
+          body: body === undefined ? undefined : JSON.stringify(body, (key, value) => key === '@odata.id' && typeof value === 'string'
+            ? value.replace(/^https:\/\/graph\.microsoft\.com\/v1\.0\//, `${cloud!.graph}/v1.0/`) : value),
           signal: controller.signal,
+          redirect: 'error',
         })
         const text = await res.text()
 
@@ -186,12 +239,13 @@ export class GraphClient {
         }
         return { status: res.status, ok: res.ok, body: text, nextUrl }
       } catch (err) {
-        if (attempt === 0) continue
+        if (method === 'GET' && attempt === 0) continue
         return {
           status: 0,
           ok: false,
-          body: err instanceof Error ? err.message : 'request error',
-          nextUrl: null,
+          body: method === 'GET' ? (err instanceof Error ? err.message : 'request error')
+            : 'Mutation outcome uncertain after transport failure. Inspect live state and reconcile stable IDs before retrying.',
+          nextUrl: null, uncertain: method !== 'GET', stage: 'request',
         }
       } finally {
         clearTimeout(timer)
@@ -237,7 +291,9 @@ export class GraphClient {
       const res: GraphResponse = await this.get(next)
       if (!res.ok) return { ok: false, items, truncated: false, lastError: res }
       const parsed = parseJson<{ value?: T[]; '@odata.nextLink'?: string }>(res.body)
-      if (parsed?.value) items.push(...parsed.value)
+      if (!Array.isArray(parsed?.value)) return { ok: false, items, truncated: false,
+        lastError: { ...res, ok: false, body: 'Invalid Graph collection response: expected value array' } }
+      items.push(...parsed.value)
       next = res.nextUrl
     }
     // Stopped because the page budget ran out with a nextLink still pending.

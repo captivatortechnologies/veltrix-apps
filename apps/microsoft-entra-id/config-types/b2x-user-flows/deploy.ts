@@ -1,3 +1,4 @@
+import { reconciliationIssue } from '../../lib/reconciliation'
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import {
   buildGraphClient,
@@ -156,13 +157,15 @@ export async function reconcileAttributeAssignments(
 
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { success: false, message: MISSING_CREDENTIAL_MESSAGE }
   const client = buildGraphClient(cred, settings)
 
   const specs = extractB2xUserFlowSpecs(ctx.canvas).filter((s) => s.id)
 
   const listed = await client.getAll<LiveB2xUserFlow>(`${BASE}?$select=id,userFlowType,userFlowTypeVersion`)
+  const listingIssue = reconciliationIssue(listed, specs.map(s => 'name' in s ? String(s.name) : ''))
+  if (listingIssue) return { success: false, message: listingIssue, rollbackData: { entries: [] } }
   if (!listed.ok) {
     return { success: false, message: `Failed to list b2x user flows: ${graphErrorMessage(listed.lastError!)}` }
   }

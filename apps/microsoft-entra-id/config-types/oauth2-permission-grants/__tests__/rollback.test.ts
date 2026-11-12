@@ -108,13 +108,13 @@ test('a grant already revoked (404) is not an error — rollback is idempotent',
   }
 })
 
-test('a 404 on the restore PATCH is likewise treated as already-undone', async () => {
+test('a 404 on the restore PATCH is likewise reported as a failed restoration', async () => {
   const { restore } = recordFetch([TOKEN, notFound()])
   try {
     const result = await rollback(rollbackContext({ entries: [updated()] }))
 
-    assert.equal(result.success, true)
-    assert.match(String(result.message), /1 restored/)
+    assert.equal(result.success, false)
+    assert.match(String(result.message), /Rollback had errors/)
   } finally {
     restore()
   }

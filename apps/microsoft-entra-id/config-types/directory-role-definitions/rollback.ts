@@ -12,7 +12,7 @@ const BASE = '/roleManagement/directory/roleDefinitions'
 
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { success: false, message: MISSING_CREDENTIAL_MESSAGE }
   const client = buildGraphClient(cred, settings)
 
@@ -26,7 +26,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
     if (!e.id) continue
     if (e.existed && e.prior) {
       const resp = await client.patch(`${BASE}/${e.id}`, e.prior)
-      if (!resp.ok && resp.status !== 404) failures.push(`restore ${e.name}: ${graphErrorMessage(resp)}`)
+      if (!resp.ok) failures.push(`restore ${e.name}: ${graphErrorMessage(resp)}`)
       else restored++
     } else if (!e.existed) {
       const resp = await client.delete(`${BASE}/${e.id}`)

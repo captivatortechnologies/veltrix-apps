@@ -12,7 +12,7 @@ const BASE = '/directory/attributeSets'
 
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const settings = readGraphSettings(ctx.settings)
-  const cred = resolveGraphCredential(ctx.credential, settings)
+  const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { success: false, message: MISSING_CREDENTIAL_MESSAGE }
   const client = buildGraphClient(cred, settings)
 
@@ -26,11 +26,12 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   for (const e of entries) {
     if (e.existed && e.prior && e.id) {
       const resp = await client.patch(`${BASE}/${e.id}`, e.prior)
-      if (!resp.ok && resp.status !== 404) failures.push(`restore ${e.name}: ${graphErrorMessage(resp)}`)
+      if (!resp.ok) failures.push(`restore ${e.name}: ${graphErrorMessage(resp)}`)
       else restored++
     }
   }
 
+  for (const e of entries) if (!e.existed) failures.push(`Created attribute set ${e.name} remains: Graph does not support deletion`)
   if (failures.length) {
     return { success: false, message: `Rollback had errors: ${failures.join('; ')}` }
   }
