@@ -2,6 +2,8 @@
 
 Manage Entra configuration through Microsoft Graph and the Veltrix Configuration Canvas. The manifest declares 42 configuration types, covering Conditional Access, directory resources, tenant policies, applications, external identities, branding, and identity governance. Each type supplies validation, deployment, rollback, health, status, and drift handlers. See [manifest.yaml](manifest.yaml) for the current inventory and [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md) for the prioritized roadmap.
 
+**Coverage:** this is selected Entra configuration management, not complete Entra administration. The [feature coverage audit](FEATURE-COVERAGE.md) maps existing, partial, missing and integration-dependent functionality across Entra ID and the wider Entra family.
+
 The in-app **Setup Guide** walks through registration, consent, credentials, verification, first deployment, and troubleshooting. This README also provides setup instructions for operators working from the repository.
 
 ## Prerequisites
@@ -87,7 +89,7 @@ npm --prefix apps/microsoft-entra-id run check:client
 npm --prefix apps/microsoft-entra-id run check:capabilities
 ```
 
-The main TypeScript configuration includes the client. CI also runs `check:client` to bundle and exercise the six setup tabs and overview, and `check:capabilities` to detect documentation drift. Tests use fake HTTP responses; validate real permissions and licensing in a sandbox tenant before release. Follow [CONTRIBUTING.md](../../CONTRIBUTING.md), keep manifest/package versions aligned, and update [CHANGELOG.md](CHANGELOG.md) with every release.
+The main TypeScript configuration includes the client. Run `check:client` to bundle and exercise the six setup tabs and overview, and `check:capabilities` to detect documentation drift. The default CI TypeScript check includes client pages. Tests use fake HTTP responses; validate real permissions and licensing in a sandbox tenant before release. Follow [CONTRIBUTING.md](../../CONTRIBUTING.md), keep manifest/package versions aligned, and update [CHANGELOG.md](CHANGELOG.md) with every release.
 
 ## Configuration type permission reference
 

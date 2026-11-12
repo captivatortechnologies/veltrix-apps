@@ -8,6 +8,14 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.9.1 - 2026-11-12
+
+### Documentation
+
+- Added a feature-level coverage audit spanning Entra ID and the wider Entra family.
+- Distinguished partial configuration support from full product functionality and identified missing administration, governance, protection, provisioning and product integrations.
+- Corrected the CI description to distinguish the active client typecheck from the additional workflow hooks awaiting GitHub workflow permission.
+
 ## 0.9.0 - 2026-11-11
 
 ### Improved
