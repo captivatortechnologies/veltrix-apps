@@ -1,0 +1,36 @@
+id: microsoft-entra-id-microsoft365-groups
+name: Microsoft 365 Groups Configuration
+toolType: microsoft-entra-id
+entityType: microsoft365-groups
+description: Manage Microsoft 365 Groups through documented Microsoft Graph operations.
+item:
+  label: Microsoft 365 Groups
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: Configuration
+      fields:
+        - key: name
+          label: Configuration name
+          fieldType: text
+          required: true
+        - key: resourceId
+          label: Existing resource ID
+          fieldType: text
+          required: false
+          helpText: >-
+            Leave empty to create or match by the declared identity; use an ID to update an existing
+            resource.
+        - key: properties
+          label: Managed properties (JSON)
+          fieldType: textarea
+          required: true
+          helpText: >-
+            Allowed properties: displayName, description, mailNickname, mailEnabled,
+            securityEnabled, groupTypes, membershipRule, membershipRuleProcessingState, visibility.
+            Only declared fields are managed. Example: {"displayName":"Pilot
+            m365","mailNickname":"pilot-m365","mailEnabled":true,"securityEnabled":false,"groupTypes":["Unified"]}.
+            Secret values are not accepted. Removing a canvas item does not delete the remote
+            resource.

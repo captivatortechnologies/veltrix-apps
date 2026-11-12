@@ -8,6 +8,26 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.10.0 - 2026-11-12
+
+### Added
+
+- Added 22 configuration types for user/device profiles, direct user/group licensing, domain federation, workload federation, application API/SSO settings, custom attribute assignments/values, advanced groups, provisioning schemas, lifecycle extensions, hybrid/cross-tenant synchronization, multitenant organization settings and access-package resource roles.
+- Added 40 permission-gated, explicitly confirmed administrative operations for directory lifecycle, relationships, provisioning, governance, PIM administration and identity-risk remediation.
+- Added 31 bounded, read-only reports and Operations/Reports pages using saved tenant credentials; report results filter sensitive and unrelated response fields.
+- Added complete preflight, immutable/source-authority guards, managed-field drift, snapshots and rollback contracts for the new configuration handlers.
+
+### Improved
+
+- Conditional Access now supports advanced risk/device/client/workload/external-user conditions and session controls, preserving base target fields.
+- Authentication method policies now support explicit targeting and method-specific configuration, preserving unmanaged nested settings during deploy and rollback.
+- Setup now explains scoped readiness, permissions, JSON field ownership, one-off operations, asynchronous verification and licensing inheritance.
+- Expanded regression and browser checks to cover new handlers, permission gates, action submission and report rendering.
+
+### Limitations
+
+- This release extends Graph v1.0 app-only administration; it does not provide full coverage of the entire Entra family. Delegated reviewer/activation flows and separate Verified ID, ARM, Global Secure Access and agent integrations remain open. See FEATURE-COVERAGE.md.
+
 ## 0.9.1 - 2026-11-12
 
 ### Documentation

@@ -64,3 +64,9 @@ item:
             - label: "Disabled"
               value: "disabled"
           helpText: "Whether the method is enabled for the tenant."
+
+        - key: configuration
+          label: "Method targeting and settings (JSON)"
+          fieldType: textarea
+          required: false
+          helpText: 'Optional method-specific settings, including includeTargets, excludeTargets, Authenticator featureSettings, FIDO2 keyRestrictions, TAP lifetimes and certificate user bindings. Leave blank to preserve the existing method settings.'

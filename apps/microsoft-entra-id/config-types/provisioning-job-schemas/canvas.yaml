@@ -1,0 +1,40 @@
+id: microsoft-entra-id-provisioning-job-schemas
+name: Provisioning Job Schemas Configuration
+toolType: microsoft-entra-id
+entityType: provisioning-job-schemas
+description: Manage Provisioning Job Schemas through documented Microsoft Graph operations.
+item:
+  label: Provisioning Job Schemas
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: Configuration
+      fields:
+        - key: name
+          label: Configuration name
+          fieldType: text
+          required: true
+        - key: parentId
+          label: Parent object ID
+          fieldType: text
+          required: true
+          helpText: >-
+            Application, enterprise application, or partner tenant object ID as described for this
+            configuration.
+        - key: resourceId
+          label: Existing resource ID
+          fieldType: text
+          required: true
+          helpText: >-
+            Existing object or provisioning job ID. This configuration never creates user or device
+            accounts.
+        - key: properties
+          label: Managed properties (JSON)
+          fieldType: textarea
+          required: true
+          helpText: >-
+            Allowed properties: directories, synchronizationRules, version. Only declared fields are
+            managed. Example: {"directories":[],"synchronizationRules":[]}. Secret values are not
+            accepted. Removing a canvas item does not delete the remote resource.

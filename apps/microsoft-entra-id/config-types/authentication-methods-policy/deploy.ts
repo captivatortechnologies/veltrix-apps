@@ -1,3 +1,4 @@
+import { managedProjection, mergeManaged } from '../../lib/managedResources'
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import {
   buildGraphClient,
@@ -26,7 +27,7 @@ export interface RollbackEntry {
 
 /** PATCH body: the required @odata.type discriminator plus the managed state. */
 export function buildBody(spec: AuthMethodSpec): Record<string, unknown> {
-  return { '@odata.type': METHOD_ODATA_TYPES[spec.method], state: spec.state }
+  return { '@odata.type': METHOD_ODATA_TYPES[spec.method], state: spec.state, ...spec.configuration }
 }
 
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
@@ -37,13 +38,14 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
   const specs = extractAuthMethodSpecs(ctx.canvas).filter((s) => s.method in METHOD_ODATA_TYPES)
 
+  if(specs.some(s=>s.configurationError))return {success:false,message:'Invalid authentication method settings; run validation before deploying',rollbackData:{entries:[]}}
   const entries: RollbackEntry[] = []
   const failures: string[] = []
 
   for (const spec of specs) {
     // Method configurations are fixed singletons — read current state for
     // rollback, then PATCH the managed state. No create/delete.
-    const getResp = await client.get(`${BASE}/${spec.method}?$select=id,state`)
+    const getResp = await client.get(`${BASE}/${spec.method}?$select=id,state${spec.configuration?','+Object.keys(spec.configuration).join(','):''}`)
     // A failed read used to fall through to 'disabled', which rollback would
     // then PATCH back — turning an undo into "switch this authentication method
     // off for the tenant". These configurations always exist, so an unreadable
@@ -53,19 +55,18 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       continue
     }
     const live = parseJson<LiveAuthMethodConfig>(getResp.body)
-    const priorState = live?.state ?? 'disabled'
+    if(!live || !['enabled','disabled'].includes(String(live.state))){failures.push(`${spec.method}: current state is incomplete`);continue}
+    const priorState = live.state!
 
-    const resp = await client.patch(`${BASE}/${spec.method}`, buildBody(spec))
+    const priorConfiguration=spec.configuration?managedProjection(live??{},spec.configuration):{}
+    entries.push({itemId:spec.itemId,method:spec.method,existed:true,prior:{'@odata.type':METHOD_ODATA_TYPES[spec.method],state:priorState,...priorConfiguration}})
+    const resp = await client.patch(`${BASE}/${spec.method}`, mergeManaged(live??{},buildBody(spec)))
     if (!resp.ok) {
+      if([400,401,403,404,409,422].includes(resp.status))entries.pop()
       failures.push(`${spec.method}: ${graphErrorMessage(resp)}`)
       continue
     }
-    entries.push({
-      itemId: spec.itemId,
-      method: spec.method,
-      existed: true,
-      prior: { '@odata.type': METHOD_ODATA_TYPES[spec.method], state: priorState },
-    })
+
   }
 
   if (failures.length) {

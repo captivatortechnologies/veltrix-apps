@@ -7,7 +7,7 @@ import { buildDeviceNameToId, buildGroupNameToId, buildServicePrincipalNameToId,
 import { listRefIds } from '../lib/refReconcile'
 
 const BASE = '/groups'
-const SELECT = '?$select=id,displayName,description,mailNickname,mailEnabled,securityEnabled,groupTypes'
+const SELECT = '?$select=id,displayName,description,mailNickname,mailEnabled,securityEnabled,groupTypes,isAssignableToRole'
 
 type Diffs = DriftResult['diffs']
 

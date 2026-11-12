@@ -1,0 +1,28 @@
+id: microsoft-entra-id-authentication-registration-policy
+name: Authentication Registration Policy Configuration
+toolType: microsoft-entra-id
+entityType: authentication-registration-policy
+description: Manage Authentication Registration Policy through documented Microsoft Graph operations.
+item:
+  label: Authentication Registration Policy
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: Configuration
+      fields:
+        - key: name
+          label: Configuration name
+          fieldType: text
+          required: true
+        - key: properties
+          label: Managed properties (JSON)
+          fieldType: textarea
+          required: true
+          helpText: >-
+            Allowed properties: registrationEnforcement, policyMigrationState. Only declared fields
+            are managed. Example:
+            {"registrationEnforcement":{"authenticationMethodsRegistrationCampaign":{"state":"disabled","snoozeDurationInDays":1,"enforceRegistrationAfterAllowedSnoozes":false,"includeTargets":[],"excludeTargets":[]}}}.
+            Secret values are not accepted. Removing a canvas item does not delete the remote
+            resource.

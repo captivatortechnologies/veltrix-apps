@@ -1,0 +1,42 @@
+id: microsoft-entra-id-domain-federation-configurations
+name: Domain Federation Configuration
+toolType: microsoft-entra-id
+entityType: domain-federation-configurations
+description: Manage Domain Federation through documented Microsoft Graph operations.
+item:
+  label: Domain Federation
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: Configuration
+      fields:
+        - key: name
+          label: Configuration name
+          fieldType: text
+          required: true
+        - key: parentId
+          label: Parent domain
+          fieldType: text
+          required: true
+          helpText: Verified domain DNS name
+        - key: resourceId
+          label: Existing resource ID
+          fieldType: text
+          required: false
+          helpText: >-
+            Leave empty to create or match by the declared identity; use an ID to update an existing
+            resource.
+        - key: properties
+          label: Managed properties (JSON)
+          fieldType: textarea
+          required: true
+          helpText: >-
+            Allowed properties: displayName, issuerUri, activeSignInUri, passiveSignInUri,
+            metadataExchangeUri, signOutUri, preferredAuthenticationProtocol, signingCertificate,
+            nextSigningCertificate, promptLoginBehavior, federatedIdpMfaBehavior,
+            isSignedAuthenticationRequestRequired. Only declared fields are managed. Example:
+            {"issuerUri":"https://idp.example.test","passiveSignInUri":"https://idp.example.test/signin","preferredAuthenticationProtocol":"saml","signingCertificate":"PUBLIC-CERTIFICATE-BASE64"}.
+            Secret values are not accepted. Removing a canvas item does not delete the remote
+            resource.

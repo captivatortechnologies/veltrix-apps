@@ -1,0 +1,33 @@
+id: microsoft-entra-id-on-premises-synchronization
+name: Hybrid Synchronization Settings Configuration
+toolType: microsoft-entra-id
+entityType: on-premises-synchronization
+description: Manage Hybrid Synchronization Settings through documented Microsoft Graph operations.
+item:
+  label: Hybrid Synchronization Settings
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: Configuration
+      fields:
+        - key: name
+          label: Configuration name
+          fieldType: text
+          required: true
+        - key: resourceId
+          label: Existing resource ID
+          fieldType: text
+          required: true
+          helpText: >-
+            Existing object or provisioning job ID. This configuration never creates user or device
+            accounts.
+        - key: properties
+          label: Managed properties (JSON)
+          fieldType: textarea
+          required: true
+          helpText: >-
+            Allowed properties: configuration, features. Only declared fields are managed. Example:
+            {"features":{"passwordSyncEnabled":true}}. Secret values are not accepted. Removing a
+            canvas item does not delete the remote resource.

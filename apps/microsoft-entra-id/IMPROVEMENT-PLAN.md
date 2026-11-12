@@ -1,5 +1,14 @@
 # Microsoft Entra ID improvement status
 
+## Version 0.10.0 implementation
+
+Implemented 22 additional configuration types (64 total), 40 administrative actions and 31 read-only reports. Added saved-connection Operations/Reports pages, expanded Conditional Access/authentication settings, direct licensing with inheritance protection, resource preflight/rollback/drift, provisioning/governance workflows and scoped readiness. Setup includes permissions, target IDs, managed JSON fields, asynchronous checks and irreversible effects.
+
+Current verification: 2,596 tests pass; the browser check submits a confirmed action and renders a truncated report alongside all six setup tabs and 64 capability profiles. TypeScript and manifest validation pass. These are local checks, not live tenant acceptance.
+
+The [current feature coverage matrix](FEATURE-COVERAGE.md) records implementation and remaining dependencies. Full Entra parity is still open, especially delegated workflows, credential generation/rotation and service-specific adapters. The earlier hardening record below describes version 0.9.0.
+
+
 Version 0.9.0 implements the repository changes from the initial review. The app now reports unsupported capabilities, separates read access from write readiness, validates client code in CI, and checks managed configuration rather than treating endpoint reachability as deployment health. Live licensing, host integration, and tenant deployment checks remain release activities requiring a sandbox.
 
 The [feature coverage audit](FEATURE-COVERAGE.md) separately records the much larger gap between these safety improvements and full Microsoft Entra functionality. Version 0.9.0 did not implement the missing Entra product features.
@@ -34,7 +43,7 @@ node scripts/handler-coverage.mjs microsoft-entra-id
 
 The regression suite retains handler behavior tests and adds failure-mode, tenant isolation, certificate signing, readiness, identity-verification and authorization checks. Tests for previously permitted unsafe behavior now assert the corrected outcomes. Obsolete agreement-write tests were replaced with tests proving the unsupported handlers cannot reach Graph; pure agreement body/schema tests remain.
 
-Local results: **2,314 tests passed**, zero failures or skips; backend and client typechecks passed; manifest validation passed with zero warnings; the client check exercised six setup tabs and 42 capability rows; generated capability documentation matched the registry. All 252 declared handlers have test coverage by the repository's presence-based coverage measure.
+Version 0.9.0 results: **2,314 tests passed**, zero failures or skips; backend and client typechecks passed; manifest validation passed with zero warnings; the client check exercised six setup tabs and 42 capability rows; generated capability documentation matched the registry. All 252 declared handlers have test coverage by the repository's presence-based coverage measure.
 
 ## Live release checks
 

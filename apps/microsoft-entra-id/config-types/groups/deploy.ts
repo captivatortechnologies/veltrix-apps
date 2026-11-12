@@ -22,7 +22,7 @@ import { reconcileRefCollection, type RefMemberEntry } from '../lib/refReconcile
 
 const BASE = '/groups'
 /** Trim the live group projection to just what we can list + reason about. */
-const SELECT = '?$select=id,displayName,description,mailNickname,mailEnabled,securityEnabled,groupTypes'
+const SELECT = '?$select=id,displayName,description,mailNickname,mailEnabled,securityEnabled,groupTypes,isAssignableToRole'
 
 export interface RollbackEntry {
   itemId?: string

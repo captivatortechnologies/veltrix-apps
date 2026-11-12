@@ -1,3 +1,4 @@
+import { canonical, managedProjection } from '../../lib/managedResources'
 import { reconciliationIssue } from '../../lib/reconciliation'
 import type { DriftContext, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildGraphClient, readGraphSettings, resolveGraphCredential } from '../../lib/graph'
@@ -238,5 +239,18 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
+  for(const spec of specs){
+    const live=liveByName.get(spec.name.toLowerCase())
+    if(!live)continue
+    if(spec.advancedErrors?.length)return {hasDrift:!!diffs.length,diffs,checked:false}
+    if(spec.advancedConditions){
+      const actual=managedProjection((live.conditions??{}) as Record<string,unknown>,spec.advancedConditions)
+      if(canonical(actual)!==canonical(spec.advancedConditions))diffs.push({field:`${spec.name}.advancedConditions`,expected:spec.advancedConditions,actual,severity:'warning'})
+    }
+    if(spec.sessionControls!==undefined){
+      const actual=spec.sessionControls===null?live.sessionControls??null:managedProjection(live.sessionControls??{},spec.sessionControls)
+      if(canonical(actual)!==canonical(spec.sessionControls))diffs.push({field:`${spec.name}.sessionControls`,expected:spec.sessionControls,actual,severity:'warning'})
+    }
+  }
   return { hasDrift: diffs.length > 0, diffs }
 }

@@ -1,0 +1,33 @@
+id: microsoft-entra-id-cross-tenant-identity-synchronization
+name: Cross-Tenant Identity Synchronization Configuration
+toolType: microsoft-entra-id
+entityType: cross-tenant-identity-synchronization
+description: Manage Cross-Tenant Identity Synchronization through documented Microsoft Graph operations.
+item:
+  label: Cross-Tenant Identity Synchronization
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: Configuration
+      fields:
+        - key: name
+          label: Configuration name
+          fieldType: text
+          required: true
+        - key: parentId
+          label: Parent object ID
+          fieldType: text
+          required: true
+          helpText: >-
+            Application, enterprise application, or partner tenant object ID as described for this
+            configuration.
+        - key: properties
+          label: Managed properties (JSON)
+          fieldType: textarea
+          required: true
+          helpText: >-
+            Allowed properties: userSyncInbound. Only declared fields are managed. Example:
+            {"userSyncInbound":{"isSyncAllowed":false}}. Secret values are not accepted. Removing a
+            canvas item does not delete the remote resource.

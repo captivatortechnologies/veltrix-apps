@@ -270,3 +270,16 @@ item:
             id from the Entra admin center (Identity Governance > Terms of
             use) and enter it directly — a hand-typed id or display name
             still resolves the same way at deploy time.
+
+    - name: "Advanced Conditions and Sessions"
+      fields:
+        - key: advancedConditions
+          label: "Risk, platform, device and workload conditions (JSON)"
+          fieldType: textarea
+          required: false
+          helpText: 'Optional object with clientAppTypes, platforms, devices, userRiskLevels, signInRiskLevels, servicePrincipalRiskLevels, clientApplications, authenticationFlows, external-user targeting, application exclusions or authentication contexts. Existing principal/application picker values remain authoritative.'
+        - key: sessionControls
+          label: "Session controls (JSON)"
+          fieldType: textarea
+          required: false
+          helpText: 'Optional session controls, e.g. {"signInFrequency":{"isEnabled":true,"type":"hours","value":1}}. Leave blank to leave session settings unmanaged; use null explicitly to clear them.'

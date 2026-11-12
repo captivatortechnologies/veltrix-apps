@@ -1,0 +1,26 @@
+id: microsoft-entra-id-multitenant-organization-settings
+name: Multitenant Organization Settings Configuration
+toolType: microsoft-entra-id
+entityType: multitenant-organization-settings
+description: Manage Multitenant Organization Settings through documented Microsoft Graph operations.
+item:
+  label: Multitenant Organization Settings
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: Configuration
+      fields:
+        - key: name
+          label: Configuration name
+          fieldType: text
+          required: true
+        - key: properties
+          label: Managed properties (JSON)
+          fieldType: textarea
+          required: true
+          helpText: >-
+            Allowed properties: displayName, description. Only declared fields are managed. Example:
+            {"displayName":"Organization","description":"Partner collaboration"}. Secret values are
+            not accepted. Removing a canvas item does not delete the remote resource.

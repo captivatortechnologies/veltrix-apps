@@ -1,10 +1,11 @@
+import { RESOURCE_DEFINITIONS } from './resourceDefinitions'
 // Shared by setup, readiness and deployment review. Keep contract tests aligned with manifest.yaml.
 export interface EntraCapability {
  id: string; name: string; endpoint: string; probe: string; apiVersion: string
  readPermissions: string[]; writePermissions: string[]; pickerDependencies: string[]; pickerPermissions: string[]
  appOnly: boolean; unsupportedReason?: string; licensing: string; licensingUrl: string; permissionUrl: string; rollbackLimits: string[]; optionalWritePermissions?: Record<string, string[]>
 }
-export const CAPABILITIES: EntraCapability[] = [
+const BASE_CAPABILITIES: EntraCapability[] = [
   {
     "id": "conditional-access-policies",
     "name": "Conditional Access Policies",
@@ -1017,5 +1018,16 @@ export const CAPABILITIES: EntraCapability[] = [
     "permissionUrl": "https://learn.microsoft.com/en-us/graph/permissions-reference",
     "rollbackLimits": []
   }
+]
+export const CAPABILITIES: EntraCapability[] = [
+  ...BASE_CAPABILITIES,
+  ...RESOURCE_DEFINITIONS.map(def => ({ id:def.id,name:def.name,endpoint:def.collection,
+    probe:def.parent?`${def.collection.replace('{parent}','{parentId}')}${def.suffix?'/{resourceId}'+def.suffix:''}`:def.singleton?def.collection:!def.create?`${def.collection}/{resourceId}?$select=id,${def.fields.join(',')}`:`${def.collection}?$top=1&$select=id`,
+    apiVersion:'v1.0',readPermissions:def.readPermissions,writePermissions:def.writePermissions,pickerDependencies:[],pickerPermissions:[],appOnly:true,
+    licensing:def.id.startsWith('lifecycle-')?'Entra ID Governance': 'Verify selected feature licensing',
+    licensingUrl:'https://learn.microsoft.com/en-us/entra/fundamentals/licensing',permissionUrl:def.documentation,
+    rollbackLimits: def.rollbackCreate?['Created allowed values cannot be deleted; rollback deactivates them and reports the remaining object.']:def.create?['Removing a canvas item does not delete the remote resource. Revoke resources through explicit operations.']:['Manages existing objects only. No account or device creation/deletion is performed.'],
+  })),
+  ...(['user','group'] as const).map(kind=>({id:`${kind}-license-assignments`,name:kind==='user'?'User License Assignments':'Group License Assignments',endpoint:`/${kind}s`,probe:`/${kind}s/{resourceId}?$select=id,assignedLicenses${kind==='user'?',licenseAssignmentStates':''}`,apiVersion:'v1.0',readPermissions:['LicenseAssignment.Read.All',kind==='user'?'User.Read.All':'Group.Read.All'],writePermissions:['LicenseAssignment.ReadWrite.All'],pickerDependencies:[],pickerPermissions:[],appOnly:true,licensing:'Subscribed SKU and available service plans; verify group licensing entitlement',licensingUrl:'https://learn.microsoft.com/en-us/entra/fundamentals/licensing',permissionUrl:`https://learn.microsoft.com/en-us/graph/api/${kind}-assignlicense?view=graph-rest-1.0`,rollbackLimits:['Changes reconcile direct assignments; inherited user licenses are preserved. Propagation is asynchronous.']})),
 ]
 export const capabilityFor = (id: string) => CAPABILITIES.find(c => c.id === id)

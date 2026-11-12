@@ -1,3 +1,4 @@
+import { mergeManaged } from '../../lib/managedResources'
 import { reconciliationIssue } from '../../lib/reconciliation'
 import { buildNameMap, describeLookup } from '../lib/checkedNames'
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
@@ -12,6 +13,7 @@ import {
 } from '../../lib/graph'
 import {
   extractPolicySpecs,
+  workloadPolicyErrors,
   mapCanvasStateToGraph,
   type CaPolicySpec,
   type LiveCaPolicy,
@@ -261,20 +263,24 @@ export function buildPolicyBody(spec: CaPolicySpec, resolved: ResolvedTargets): 
     grantControls.termsOfUse = resolved.termsOfUse
   }
 
+  const effectiveConditions={...conditions,...mergeManaged(conditions,spec.advancedConditions??{})}
+  if(spec.advancedConditions?.clientApplications){effectiveConditions.users=null;delete effectiveConditions.clientAppTypes}
   return {
     displayName: spec.name,
     state: mapCanvasStateToGraph(spec.state),
-    conditions,
+    conditions: effectiveConditions,
     grantControls,
+    ...(spec.sessionControls!==undefined?{sessionControls:spec.sessionControls}:{}),
   }
 }
 
-function snapshotLive(live: LiveCaPolicy): Record<string, unknown> {
+function snapshotLive(live: LiveCaPolicy, spec?: CaPolicySpec): Record<string, unknown> {
   return {
     displayName: live.displayName,
     state: live.state,
     conditions: live.conditions ?? {},
     grantControls: live.grantControls ?? null,
+    ...(spec?.sessionControls!==undefined?{sessionControls:live.sessionControls??null}:{}),
   }
 }
 
@@ -296,7 +302,8 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
   const specs = extractPolicySpecs(ctx.canvas).filter((s) => s.name)
 
-  const unsafe = specs.find(s => s.state === 'enabled' && (s.includeAllUsers || s.includeUsers.some(u => u.toLowerCase() === 'all')) && !s.enforcementAcknowledged)
+  if(specs.some(s=>s.advancedErrors?.length||workloadPolicyErrors(s).length))return {success:false,message:'Invalid advanced policy settings; run validation before deploying',rollbackData:{entries:[]}}
+  const unsafe = specs.find(s => s.state === 'enabled' && (s.includeAllUsers || s.includeUsers.some(u => u.toLowerCase() === 'all') || ((s.advancedConditions?.clientApplications as {includeServicePrincipals?:string[]}|undefined)?.includeServicePrincipals??[]).includes('ServicePrincipalsInMyTenant')) && !s.enforcementAcknowledged)
   if (unsafe) return { success: false, message: `Policy ${unsafe.name}: tenant-wide enforcement acknowledgement required`, rollbackData: { entries: [] } }
   if (specs.some(s => s.state === 'enabled')) {
     const defaults = await client.get('/policies/identitySecurityDefaultsEnforcementPolicy?$select=isEnabled')
@@ -380,7 +387,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       (priorEntry?.id ? liveById.get(priorEntry.id) : undefined) ?? liveByName.get(spec.name.toLowerCase()) ?? null
 
     if (liveMatch?.id) {
-      entries.push({ itemId: spec.itemId, name: spec.name, existed: true, id: liveMatch.id, prior: snapshotLive(liveMatch) })
+      entries.push({ itemId: spec.itemId, name: spec.name, existed: true, id: liveMatch.id, prior: snapshotLive(liveMatch,spec) })
       const resp = await client.patch(`${BASE}/${liveMatch.id}`, body)
       if (!resp.ok) {
         failures.push(`${spec.name}: ${graphErrorMessage(resp)}`)

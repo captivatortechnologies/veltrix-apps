@@ -1,0 +1,40 @@
+id: microsoft-entra-id-custom-security-attribute-allowed-values
+name: Custom Attribute Allowed Values Configuration
+toolType: microsoft-entra-id
+entityType: custom-security-attribute-allowed-values
+description: Manage Custom Attribute Allowed Values through documented Microsoft Graph operations.
+item:
+  label: Custom Attribute Allowed Values
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: Configuration
+      fields:
+        - key: name
+          label: Configuration name
+          fieldType: text
+          required: true
+        - key: parentId
+          label: Parent object ID
+          fieldType: text
+          required: true
+          helpText: >-
+            Application, enterprise application, or partner tenant object ID as described for this
+            configuration.
+        - key: resourceId
+          label: Existing resource ID
+          fieldType: text
+          required: false
+          helpText: >-
+            Leave empty to create or match by the declared identity; use an ID to update an existing
+            resource.
+        - key: properties
+          label: Managed properties (JSON)
+          fieldType: textarea
+          required: true
+          helpText: >-
+            Allowed properties: id, isActive. Only declared fields are managed. Example:
+            {"id":"Internal","isActive":true}. Secret values are not accepted. Removing a canvas
+            item does not delete the remote resource.

@@ -28,6 +28,7 @@ export interface LiveGroup {
   displayName?: string
   description?: string | null
   mailNickname?: string | null
+  isAssignableToRole?: boolean
   mailEnabled?: boolean
   securityEnabled?: boolean
   groupTypes?: string[]
@@ -66,6 +67,7 @@ export function effectiveNickname(spec: GroupSpec): string {
  * protects built-in and other-purpose groups that happen to share a name.
  */
 export function isManageableSecurityGroup(live: LiveGroup): boolean {
+  if (live.isAssignableToRole === true) return false
   if (live.mailEnabled === true) return false
   const types = live.groupTypes ?? []
   if (types.includes('Unified') || types.includes('DynamicMembership')) return false

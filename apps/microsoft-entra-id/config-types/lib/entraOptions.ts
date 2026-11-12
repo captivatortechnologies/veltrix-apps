@@ -402,7 +402,7 @@ const entraOptions: OptionsProvider = async (ctx): Promise<OptionItem[]> => {
   if (!spec) return []
 
   const settings = readGraphSettings(ctx.settings ?? {})
-  const cred = resolveGraphCredential(ctx.credential ?? null, settings)
+  const cred = resolveGraphCredential(ctx.credential ?? null, settings, (ctx as { identity?: import('../../lib/graph').GraphIdentity }).identity)
   if (!cred) {
     throw new Error(MISSING_CREDENTIAL_MESSAGE)
   }

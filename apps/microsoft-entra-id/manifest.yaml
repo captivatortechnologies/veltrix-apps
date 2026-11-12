@@ -1,6 +1,6 @@
 id: microsoft-entra-id
 name: Microsoft Entra ID
-version: "0.9.1"
+version: "0.10.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
@@ -15,6 +15,9 @@ description: >
   packages, assignment policies, connected organizations, access reviews, lifecycle
   workflows and PIM role activation policies); plus company branding — with
   validation, drift detection and rollback handled by the Security-as-Code pipeline.
+  Adds user/device profiles, direct licensing, advanced groups, federation, provisioning,
+  application API/SSO, custom attribute assignments and synchronization configuration;
+  plus confirmed lifecycle operations and bounded read-only audit, risk and governance reports.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id
@@ -162,6 +165,90 @@ permissions:
     - resource: cross-tenant-access-default
       actions: [read, write]
       description: Manage the Entra cross-tenant access DEFAULT policy (tenant-wide B2B defaults)
+
+    - resource: directory-user-profiles
+      actions: [read, write, delete]
+      description: Manage User Profiles
+    - resource: directory-device-profiles
+      actions: [read, write, delete]
+      description: Manage Device Profiles
+    - resource: domain-federation-configurations
+      actions: [read, write, delete]
+      description: Manage Domain Federation
+    - resource: application-federated-credentials
+      actions: [read, write, delete]
+      description: Manage Federated Application Credentials
+    - resource: service-principal-app-role-assignments
+      actions: [read, write, delete]
+      description: Manage Enterprise Application Role Assignments
+    - resource: user-custom-security-attributes
+      actions: [read, write, delete]
+      description: Manage User Custom Security Attributes
+    - resource: service-principal-custom-security-attributes
+      actions: [read, write, delete]
+      description: Manage Workload Custom Security Attributes
+    - resource: lifecycle-custom-task-extensions
+      actions: [read, write, delete]
+      description: Manage Lifecycle Custom Task Extensions
+    - resource: provisioning-job-schemas
+      actions: [read, write, delete]
+      description: Manage Provisioning Job Schemas
+    - resource: application-api-settings
+      actions: [read, write, delete]
+      description: Manage Application API and Token Settings
+    - resource: enterprise-application-sso
+      actions: [read, write, delete]
+      description: Manage Enterprise Application SSO Settings
+    - resource: authentication-registration-policy
+      actions: [read, write, delete]
+      description: Manage Authentication Registration Policy
+    - resource: on-premises-synchronization
+      actions: [read, write, delete]
+      description: Manage Hybrid Synchronization Settings
+    - resource: cross-tenant-identity-synchronization
+      actions: [read, write, delete]
+      description: Manage Cross-Tenant Identity Synchronization
+    - resource: user-license-assignments
+      actions: [read, write, delete]
+      description: Manage User License Assignments
+    - resource: group-license-assignments
+      actions: [read, write, delete]
+      description: Manage Group License Assignments
+
+    - resource: directory-reports
+      actions: [read, write, delete]
+      description: Read directory-reports and perform explicitly authorized lifecycle actions
+    - resource: identity-risk-reports
+      actions: [read, write, delete]
+      description: Read identity-risk-reports and perform explicitly authorized lifecycle actions
+    - resource: governance-reports
+      actions: [read, write, delete]
+      description: Read governance-reports and perform explicitly authorized lifecycle actions
+    - resource: provisioning-reports
+      actions: [read, write, delete]
+      description: Read provisioning-reports and perform explicitly authorized lifecycle actions
+
+    - resource: dynamic-security-groups
+      actions: [read, write, delete]
+      description: Manage Dynamic Security Groups
+    - resource: microsoft365-groups
+      actions: [read, write, delete]
+      description: Manage Microsoft 365 Groups
+    - resource: role-assignable-groups
+      actions: [read, write, delete]
+      description: Manage Role-Assignable Groups
+    - resource: custom-security-attribute-allowed-values
+      actions: [read, write, delete]
+      description: Manage Custom Attribute Allowed Values
+    - resource: multitenant-organization-settings
+      actions: [read, write, delete]
+      description: Manage Multitenant Organization Settings
+    - resource: entitlement-resource-role-scopes
+      actions: [read, write, delete]
+      description: Manage Access Package Resource Roles
+
+
+
 
 pipeline:
   configurationTypes:
@@ -937,6 +1024,402 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
+    - id: directory-user-profiles
+      group: "Directory and Identity"
+      name: User Profiles
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/directory-user-profiles/canvas.yaml
+      defaultConfig: config-types/directory-user-profiles/defaults.yaml
+      handlers:
+        validate: config-types/directory-user-profiles/validate
+        deploy: config-types/directory-user-profiles/deploy
+        rollback: config-types/directory-user-profiles/rollback
+        healthCheck: config-types/directory-user-profiles/healthCheck
+        driftDetect: config-types/directory-user-profiles/driftDetect
+        getStatus: config-types/directory-user-profiles/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: directory-device-profiles
+      group: "Directory and Identity"
+      name: Device Profiles
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/directory-device-profiles/canvas.yaml
+      defaultConfig: config-types/directory-device-profiles/defaults.yaml
+      handlers:
+        validate: config-types/directory-device-profiles/validate
+        deploy: config-types/directory-device-profiles/deploy
+        rollback: config-types/directory-device-profiles/rollback
+        healthCheck: config-types/directory-device-profiles/healthCheck
+        driftDetect: config-types/directory-device-profiles/driftDetect
+        getStatus: config-types/directory-device-profiles/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: domain-federation-configurations
+      group: "Directory and Identity"
+      name: Domain Federation
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/domain-federation-configurations/canvas.yaml
+      defaultConfig: config-types/domain-federation-configurations/defaults.yaml
+      handlers:
+        validate: config-types/domain-federation-configurations/validate
+        deploy: config-types/domain-federation-configurations/deploy
+        rollback: config-types/domain-federation-configurations/rollback
+        healthCheck: config-types/domain-federation-configurations/healthCheck
+        driftDetect: config-types/domain-federation-configurations/driftDetect
+        getStatus: config-types/domain-federation-configurations/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: application-federated-credentials
+      group: "Directory and Identity"
+      name: Federated Application Credentials
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/application-federated-credentials/canvas.yaml
+      defaultConfig: config-types/application-federated-credentials/defaults.yaml
+      handlers:
+        validate: config-types/application-federated-credentials/validate
+        deploy: config-types/application-federated-credentials/deploy
+        rollback: config-types/application-federated-credentials/rollback
+        healthCheck: config-types/application-federated-credentials/healthCheck
+        driftDetect: config-types/application-federated-credentials/driftDetect
+        getStatus: config-types/application-federated-credentials/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: service-principal-app-role-assignments
+      group: "Directory and Identity"
+      name: Enterprise Application Role Assignments
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/service-principal-app-role-assignments/canvas.yaml
+      defaultConfig: config-types/service-principal-app-role-assignments/defaults.yaml
+      handlers:
+        validate: config-types/service-principal-app-role-assignments/validate
+        deploy: config-types/service-principal-app-role-assignments/deploy
+        rollback: config-types/service-principal-app-role-assignments/rollback
+        healthCheck: config-types/service-principal-app-role-assignments/healthCheck
+        driftDetect: config-types/service-principal-app-role-assignments/driftDetect
+        getStatus: config-types/service-principal-app-role-assignments/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: user-custom-security-attributes
+      group: "Directory and Identity"
+      name: User Custom Security Attributes
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/user-custom-security-attributes/canvas.yaml
+      defaultConfig: config-types/user-custom-security-attributes/defaults.yaml
+      handlers:
+        validate: config-types/user-custom-security-attributes/validate
+        deploy: config-types/user-custom-security-attributes/deploy
+        rollback: config-types/user-custom-security-attributes/rollback
+        healthCheck: config-types/user-custom-security-attributes/healthCheck
+        driftDetect: config-types/user-custom-security-attributes/driftDetect
+        getStatus: config-types/user-custom-security-attributes/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: service-principal-custom-security-attributes
+      group: "Directory and Identity"
+      name: Workload Custom Security Attributes
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/service-principal-custom-security-attributes/canvas.yaml
+      defaultConfig: config-types/service-principal-custom-security-attributes/defaults.yaml
+      handlers:
+        validate: config-types/service-principal-custom-security-attributes/validate
+        deploy: config-types/service-principal-custom-security-attributes/deploy
+        rollback: config-types/service-principal-custom-security-attributes/rollback
+        healthCheck: config-types/service-principal-custom-security-attributes/healthCheck
+        driftDetect: config-types/service-principal-custom-security-attributes/driftDetect
+        getStatus: config-types/service-principal-custom-security-attributes/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: lifecycle-custom-task-extensions
+      group: "Directory and Identity"
+      name: Lifecycle Custom Task Extensions
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/lifecycle-custom-task-extensions/canvas.yaml
+      defaultConfig: config-types/lifecycle-custom-task-extensions/defaults.yaml
+      handlers:
+        validate: config-types/lifecycle-custom-task-extensions/validate
+        deploy: config-types/lifecycle-custom-task-extensions/deploy
+        rollback: config-types/lifecycle-custom-task-extensions/rollback
+        healthCheck: config-types/lifecycle-custom-task-extensions/healthCheck
+        driftDetect: config-types/lifecycle-custom-task-extensions/driftDetect
+        getStatus: config-types/lifecycle-custom-task-extensions/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: provisioning-job-schemas
+      group: "Directory and Identity"
+      name: Provisioning Job Schemas
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/provisioning-job-schemas/canvas.yaml
+      defaultConfig: config-types/provisioning-job-schemas/defaults.yaml
+      handlers:
+        validate: config-types/provisioning-job-schemas/validate
+        deploy: config-types/provisioning-job-schemas/deploy
+        rollback: config-types/provisioning-job-schemas/rollback
+        healthCheck: config-types/provisioning-job-schemas/healthCheck
+        driftDetect: config-types/provisioning-job-schemas/driftDetect
+        getStatus: config-types/provisioning-job-schemas/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: application-api-settings
+      group: "Directory and Identity"
+      name: Application API and Token Settings
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/application-api-settings/canvas.yaml
+      defaultConfig: config-types/application-api-settings/defaults.yaml
+      handlers:
+        validate: config-types/application-api-settings/validate
+        deploy: config-types/application-api-settings/deploy
+        rollback: config-types/application-api-settings/rollback
+        healthCheck: config-types/application-api-settings/healthCheck
+        driftDetect: config-types/application-api-settings/driftDetect
+        getStatus: config-types/application-api-settings/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: enterprise-application-sso
+      group: "Directory and Identity"
+      name: Enterprise Application SSO Settings
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/enterprise-application-sso/canvas.yaml
+      defaultConfig: config-types/enterprise-application-sso/defaults.yaml
+      handlers:
+        validate: config-types/enterprise-application-sso/validate
+        deploy: config-types/enterprise-application-sso/deploy
+        rollback: config-types/enterprise-application-sso/rollback
+        healthCheck: config-types/enterprise-application-sso/healthCheck
+        driftDetect: config-types/enterprise-application-sso/driftDetect
+        getStatus: config-types/enterprise-application-sso/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: authentication-registration-policy
+      group: "Directory and Identity"
+      name: Authentication Registration Policy
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/authentication-registration-policy/canvas.yaml
+      defaultConfig: config-types/authentication-registration-policy/defaults.yaml
+      handlers:
+        validate: config-types/authentication-registration-policy/validate
+        deploy: config-types/authentication-registration-policy/deploy
+        rollback: config-types/authentication-registration-policy/rollback
+        healthCheck: config-types/authentication-registration-policy/healthCheck
+        driftDetect: config-types/authentication-registration-policy/driftDetect
+        getStatus: config-types/authentication-registration-policy/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: on-premises-synchronization
+      group: "Directory and Identity"
+      name: Hybrid Synchronization Settings
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/on-premises-synchronization/canvas.yaml
+      defaultConfig: config-types/on-premises-synchronization/defaults.yaml
+      handlers:
+        validate: config-types/on-premises-synchronization/validate
+        deploy: config-types/on-premises-synchronization/deploy
+        rollback: config-types/on-premises-synchronization/rollback
+        healthCheck: config-types/on-premises-synchronization/healthCheck
+        driftDetect: config-types/on-premises-synchronization/driftDetect
+        getStatus: config-types/on-premises-synchronization/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cross-tenant-identity-synchronization
+      group: "Directory and Identity"
+      name: Cross-Tenant Identity Synchronization
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/cross-tenant-identity-synchronization/canvas.yaml
+      defaultConfig: config-types/cross-tenant-identity-synchronization/defaults.yaml
+      handlers:
+        validate: config-types/cross-tenant-identity-synchronization/validate
+        deploy: config-types/cross-tenant-identity-synchronization/deploy
+        rollback: config-types/cross-tenant-identity-synchronization/rollback
+        healthCheck: config-types/cross-tenant-identity-synchronization/healthCheck
+        driftDetect: config-types/cross-tenant-identity-synchronization/driftDetect
+        getStatus: config-types/cross-tenant-identity-synchronization/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: user-license-assignments
+      group: "Licensing"
+      name: User License Assignments
+      description: "Direct license reconciliation with rollback"
+      canvasTemplate: config-types/user-license-assignments/canvas.yaml
+      defaultConfig: config-types/user-license-assignments/defaults.yaml
+      handlers:
+        validate: config-types/user-license-assignments/validate
+        deploy: config-types/user-license-assignments/deploy
+        rollback: config-types/user-license-assignments/rollback
+        healthCheck: config-types/user-license-assignments/healthCheck
+        driftDetect: config-types/user-license-assignments/driftDetect
+        getStatus: config-types/user-license-assignments/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: group-license-assignments
+      group: "Licensing"
+      name: Group License Assignments
+      description: "Direct license reconciliation with rollback"
+      canvasTemplate: config-types/group-license-assignments/canvas.yaml
+      defaultConfig: config-types/group-license-assignments/defaults.yaml
+      handlers:
+        validate: config-types/group-license-assignments/validate
+        deploy: config-types/group-license-assignments/deploy
+        rollback: config-types/group-license-assignments/rollback
+        healthCheck: config-types/group-license-assignments/healthCheck
+        driftDetect: config-types/group-license-assignments/driftDetect
+        getStatus: config-types/group-license-assignments/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: dynamic-security-groups
+      group: "Directory and Identity"
+      name: Dynamic Security Groups
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/dynamic-security-groups/canvas.yaml
+      defaultConfig: config-types/dynamic-security-groups/defaults.yaml
+      handlers:
+        validate: config-types/dynamic-security-groups/validate
+        deploy: config-types/dynamic-security-groups/deploy
+        rollback: config-types/dynamic-security-groups/rollback
+        healthCheck: config-types/dynamic-security-groups/healthCheck
+        driftDetect: config-types/dynamic-security-groups/driftDetect
+        getStatus: config-types/dynamic-security-groups/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: microsoft365-groups
+      group: "Directory and Identity"
+      name: Microsoft 365 Groups
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/microsoft365-groups/canvas.yaml
+      defaultConfig: config-types/microsoft365-groups/defaults.yaml
+      handlers:
+        validate: config-types/microsoft365-groups/validate
+        deploy: config-types/microsoft365-groups/deploy
+        rollback: config-types/microsoft365-groups/rollback
+        healthCheck: config-types/microsoft365-groups/healthCheck
+        driftDetect: config-types/microsoft365-groups/driftDetect
+        getStatus: config-types/microsoft365-groups/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: role-assignable-groups
+      group: "Directory and Identity"
+      name: Role-Assignable Groups
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/role-assignable-groups/canvas.yaml
+      defaultConfig: config-types/role-assignable-groups/defaults.yaml
+      handlers:
+        validate: config-types/role-assignable-groups/validate
+        deploy: config-types/role-assignable-groups/deploy
+        rollback: config-types/role-assignable-groups/rollback
+        healthCheck: config-types/role-assignable-groups/healthCheck
+        driftDetect: config-types/role-assignable-groups/driftDetect
+        getStatus: config-types/role-assignable-groups/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-security-attribute-allowed-values
+      group: "Directory and Identity"
+      name: Custom Attribute Allowed Values
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/custom-security-attribute-allowed-values/canvas.yaml
+      defaultConfig: config-types/custom-security-attribute-allowed-values/defaults.yaml
+      handlers:
+        validate: config-types/custom-security-attribute-allowed-values/validate
+        deploy: config-types/custom-security-attribute-allowed-values/deploy
+        rollback: config-types/custom-security-attribute-allowed-values/rollback
+        healthCheck: config-types/custom-security-attribute-allowed-values/healthCheck
+        driftDetect: config-types/custom-security-attribute-allowed-values/driftDetect
+        getStatus: config-types/custom-security-attribute-allowed-values/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: multitenant-organization-settings
+      group: "Directory and Identity"
+      name: Multitenant Organization Settings
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/multitenant-organization-settings/canvas.yaml
+      defaultConfig: config-types/multitenant-organization-settings/defaults.yaml
+      handlers:
+        validate: config-types/multitenant-organization-settings/validate
+        deploy: config-types/multitenant-organization-settings/deploy
+        rollback: config-types/multitenant-organization-settings/rollback
+        healthCheck: config-types/multitenant-organization-settings/healthCheck
+        driftDetect: config-types/multitenant-organization-settings/driftDetect
+        getStatus: config-types/multitenant-organization-settings/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: entitlement-resource-role-scopes
+      group: "Directory and Identity"
+      name: Access Package Resource Roles
+      description: "Managed fields through documented Microsoft Graph resource operations"
+      canvasTemplate: config-types/entitlement-resource-role-scopes/canvas.yaml
+      defaultConfig: config-types/entitlement-resource-role-scopes/defaults.yaml
+      handlers:
+        validate: config-types/entitlement-resource-role-scopes/validate
+        deploy: config-types/entitlement-resource-role-scopes/deploy
+        rollback: config-types/entitlement-resource-role-scopes/rollback
+        healthCheck: config-types/entitlement-resource-role-scopes/healthCheck
+        driftDetect: config-types/entitlement-resource-role-scopes/driftDetect
+        getStatus: config-types/entitlement-resource-role-scopes/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
   pipelineEvents:
     - canvas:validated
     - canvas:deployed
@@ -962,6 +1445,16 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    - path: /operations
+      component: OperationsPage
+      label: Operations
+      icon: play
+      nav: sidebar
+    - path: /reports
+      component: ReportsPage
+      label: Reports
+      icon: list
+      nav: sidebar
     - path: /connections
       component: ConnectionsPage
       label: Connections
@@ -977,6 +1470,626 @@ hooks:
 # running the OAuth2 client-credentials exchange and calling GET /organization.
 connectivity:
   testHandler: handlers/testConnection
+
+operations:
+  - id: create-domain
+    name: Add Domain
+    description: Adds an unverified domain; publish DNS proof before verification.
+    handler: operations/create-domain
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: domain-federation-configurations
+      action: write
+  - id: verify-domain
+    name: Verify Domain
+    description: Verifies ownership using DNS proof already published by the operator.
+    handler: operations/verify-domain
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: domain-federation-configurations
+      action: write
+  - id: delete-unverified-domain
+    name: Remove Unverified Domain
+    description: Removes only a noninitial, nondefault, unverified domain.
+    handler: operations/delete-unverified-domain
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: domain-federation-configurations
+      action: delete
+  - id: invite-guest
+    name: Invite Guest User
+    description: Creates a guest invitation. Sending the invitation email is optional and defaults to false.
+    handler: operations/invite-guest
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: directory-user-profiles
+      action: write
+  - id: set-user-manager
+    name: Assign User Manager
+    description: Assigns a manager by object ID.
+    handler: operations/set-user-manager
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: directory-user-profiles
+      action: write
+  - id: clear-user-manager
+    name: Remove User Manager
+    description: Removes the manager relationship without deleting either user.
+    handler: operations/clear-user-manager
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: directory-user-profiles
+      action: delete
+  - id: revoke-user-sessions
+    name: Revoke User Sessions
+    description: Invalidates refresh tokens and sessions; external-user sessions belong to the home tenant.
+    handler: operations/revoke-user-sessions
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: directory-user-profiles
+      action: write
+  - id: delete-cloud-user
+    name: Delete Cloud User
+    description: Soft-deletes a cloud-managed user. Synchronized users must be managed at their source.
+    handler: operations/delete-cloud-user
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: directory-user-profiles
+      action: delete
+  - id: delete-device
+    name: Delete Device Registration
+    description: Deletes the directory device registration; this action does not wipe an endpoint.
+    handler: operations/delete-device
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: directory-device-profiles
+      action: delete
+  - id: restore-directory-object
+    name: Restore Deleted Directory Object
+    description: Requests restoration of a supported soft-deleted directory object.
+    handler: operations/restore-directory-object
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: directory-reports
+      action: write
+  - id: permanently-delete-directory-object
+    name: Permanently Delete Directory Object
+    description: Permanently deletes an already soft-deleted object. This cannot be rolled back.
+    handler: operations/permanently-delete-directory-object
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: directory-reports
+      action: delete
+  - id: revoke-app-role-assignment
+    name: Revoke Application Role Assignment
+    description: Removes a specific application permission or user/group app-role assignment.
+    handler: operations/revoke-app-role-assignment
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: service-principal-app-role-assignments
+      action: delete
+  - id: delete-federated-credential
+    name: Remove Federated Application Credential
+    description: Removes the selected workload identity trust.
+    handler: operations/delete-federated-credential
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: application-federated-credentials
+      action: delete
+  - id: create-provisioning-job
+    name: Create Provisioning Job
+    description: Creates a provisioning job from a documented synchronization template.
+    handler: operations/create-provisioning-job
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: provisioning-job-schemas
+      action: write
+  - id: start-provisioning-job
+    name: Start Provisioning Job
+    description: start the selected provisioning job.
+    handler: operations/start-provisioning-job
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: provisioning-job-schemas
+      action: write
+  - id: pause-provisioning-job
+    name: Pause Provisioning Job
+    description: pause the selected provisioning job.
+    handler: operations/pause-provisioning-job
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: provisioning-job-schemas
+      action: write
+  - id: restart-provisioning-job
+    name: Restart Provisioning Job
+    description: Restarts provisioning with a full reset; inspect mappings before submitting.
+    handler: operations/restart-provisioning-job
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: provisioning-job-schemas
+      action: write
+  - id: provision-on-demand
+    name: Provision Subjects On Demand
+    description: Runs provisioning for the specified rule and subject objects.
+    handler: operations/provision-on-demand
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: provisioning-job-schemas
+      action: write
+  - id: execute-lifecycle-workflow
+    name: Execute Lifecycle Workflow
+    description: Requests on-demand workflow execution for explicit user IDs.
+    handler: operations/execute-lifecycle-workflow
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: lifecycle-workflows
+      action: write
+  - id: review-apply-decisions
+    name: Apply Access Review Decisions
+    description: Applies reviewed access decisions to the reviewed resources.
+    handler: operations/review-apply-decisions
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: access-review-definitions
+      action: write
+  - id: review-stop
+    name: Stop Access Review
+    description: stop for the selected review instance.
+    handler: operations/review-stop
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: access-review-definitions
+      action: write
+  - id: review-reset-decisions
+    name: Reset Access Review Decisions
+    description: resetDecisions for the selected review instance.
+    handler: operations/review-reset-decisions
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: access-review-definitions
+      action: write
+  - id: risky-users-dismiss
+    name: Dismiss User Risk
+    description: Changes risk state for explicit users; investigate the detections before submitting.
+    handler: operations/risky-users-dismiss
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: identity-risk-reports
+      action: write
+  - id: risky-users-confirm-compromised
+    name: Confirm Users Compromised
+    description: Changes risk state for explicit users; investigate the detections before submitting.
+    handler: operations/risky-users-confirm-compromised
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: identity-risk-reports
+      action: write
+  - id: request-directory-role-assignment
+    name: Request Scheduled Directory Role Assignment
+    description: Submits an administrative PIM schedule request. Approval and activation are asynchronous.
+    handler: operations/request-directory-role-assignment
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: pim-role-eligibility
+      action: write
+  - id: request-group-eligibility
+    name: Request Group Eligibility
+    description: Submits a PIM for Groups administrative request; verify approval and resulting schedule.
+    handler: operations/request-group-eligibility
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: pim-role-eligibility
+      action: write
+  - id: request-group-assignment
+    name: Request Group Assignment
+    description: Submits a PIM for Groups administrative request; verify approval and resulting schedule.
+    handler: operations/request-group-assignment
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: pim-role-eligibility
+      action: write
+  - id: add-group-member
+    name: Add Group Member
+    description: >-
+      Changes a specific relationship without deleting the referenced directory object. Dynamic membership and
+      role-assignable groups remain subject to Graph restrictions.
+    handler: operations/add-group-member
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: groups
+      action: write
+  - id: remove-group-member
+    name: Remove Group Member
+    description: >-
+      Changes a specific relationship without deleting the referenced directory object. Dynamic membership and
+      role-assignable groups remain subject to Graph restrictions.
+    handler: operations/remove-group-member
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: groups
+      action: delete
+  - id: add-group-owner
+    name: Add Group Owner
+    description: >-
+      Changes a specific relationship without deleting the referenced directory object. Dynamic membership and
+      role-assignable groups remain subject to Graph restrictions.
+    handler: operations/add-group-owner
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: groups
+      action: write
+  - id: remove-group-owner
+    name: Remove Group Owner
+    description: >-
+      Changes a specific relationship without deleting the referenced directory object. Dynamic membership and
+      role-assignable groups remain subject to Graph restrictions.
+    handler: operations/remove-group-owner
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: groups
+      action: delete
+  - id: request-access-package-assignment
+    name: Request Access Package Assignment
+    description: Requests an access package assignment or removal. Review and fulfillment may be asynchronous.
+    handler: operations/request-access-package-assignment
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: entitlement-assignment-policies
+      action: write
+  - id: request-catalog-resource
+    name: Onboard or Remove Catalog Resource
+    description: >-
+      Requests catalog resource onboarding or removal. The app also needs permission to manage the source
+      group, application, or SharePoint resource.
+    handler: operations/request-catalog-resource
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: entitlement-access-package-catalogs
+      action: write
+  - id: cancel-access-package-request
+    name: Cancel Access Package Request
+    description: cancel the specified assignment request; check the resulting request state in Reports.
+    handler: operations/cancel-access-package-request
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: entitlement-assignment-policies
+      action: write
+  - id: reprocess-access-package-request
+    name: Reprocess Access Package Request
+    description: reprocess the specified assignment request; check the resulting request state in Reports.
+    handler: operations/reprocess-access-package-request
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: entitlement-assignment-policies
+      action: write
+  - id: remove-access-package-resource-role
+    name: Remove Access Package Resource Role
+    description: Removes a resource role from the access package and can affect existing assignments.
+    handler: operations/remove-access-package-resource-role
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: entitlement-resource-role-scopes
+      action: delete
+  - id: create-multitenant-organization
+    name: Create Multitenant Organization
+    description: Creates the organization owned by the selected tenant.
+    handler: operations/create-multitenant-organization
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: multitenant-organization-settings
+      action: write
+  - id: add-multitenant-member
+    name: Add Multitenant Organization Member
+    description: Adds a tenant to the organization; that tenant must separately accept the join request.
+    handler: operations/add-multitenant-member
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: multitenant-organization-settings
+      action: write
+  - id: join-multitenant-organization
+    name: Join Multitenant Organization
+    description: Accepts the organization invitation from the specified owner tenant. Joining completes asynchronously.
+    handler: operations/join-multitenant-organization
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: multitenant-organization-settings
+      action: write
+  - id: remove-multitenant-member
+    name: Remove Multitenant Organization Member
+    description: Removes the selected tenant from the organization.
+    handler: operations/remove-multitenant-member
+    requiresCredential: true
+    destructive: true
+    requiresPermission:
+      resource: multitenant-organization-settings
+      action: delete
+  - id: report-users
+    name: Users
+    description: Read-only report; User.Read.All application permission required.
+    handler: operations/report-users
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
+  - id: report-devices
+    name: Devices
+    description: Read-only report; Device.Read.All application permission required.
+    handler: operations/report-devices
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
+  - id: report-domains
+    name: Domains
+    description: Read-only report; Domain.Read.All application permission required.
+    handler: operations/report-domains
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
+  - id: report-domain-dns-proof
+    name: Domain Verification DNS Records
+    description: Read-only report; Domain.Read.All application permission required.
+    handler: operations/report-domain-dns-proof
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
+  - id: report-license-catalog
+    name: Subscribed Licenses and Service Plans
+    description: Read-only report; LicenseAssignment.Read.All application permission required.
+    handler: operations/report-license-catalog
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
+  - id: report-user-license-details
+    name: User License Assignment State
+    description: Read-only report; User.Read.All application permission required.
+    handler: operations/report-user-license-details
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
+  - id: report-sign-ins
+    name: Sign-in Logs
+    description: Read-only report; AuditLog.Read.All application permission required.
+    handler: operations/report-sign-ins
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
+  - id: report-directory-audit
+    name: Directory Audit Logs
+    description: Read-only report; AuditLog.Read.All application permission required.
+    handler: operations/report-directory-audit
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
+  - id: report-provisioning-audit
+    name: Provisioning Logs
+    description: Read-only report; AuditLog.Read.All application permission required.
+    handler: operations/report-provisioning-audit
+    requiresCredential: true
+    requiresPermission:
+      resource: provisioning-reports
+      action: read
+  - id: report-risky-users
+    name: Risky Users
+    description: Read-only report; IdentityRiskyUser.Read.All application permission required.
+    handler: operations/report-risky-users
+    requiresCredential: true
+    requiresPermission:
+      resource: identity-risk-reports
+      action: read
+  - id: report-risk-detections
+    name: Identity Risk Detections
+    description: Read-only report; IdentityRiskEvent.Read.All application permission required.
+    handler: operations/report-risk-detections
+    requiresCredential: true
+    requiresPermission:
+      resource: identity-risk-reports
+      action: read
+  - id: report-deleted-user
+    name: Deleted user Objects
+    description: Read-only report; Directory.Read.All application permission required.
+    handler: operations/report-deleted-user
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
+  - id: report-deleted-group
+    name: Deleted group Objects
+    description: Read-only report; Directory.Read.All application permission required.
+    handler: operations/report-deleted-group
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
+  - id: report-deleted-application
+    name: Deleted application Objects
+    description: Read-only report; Directory.Read.All application permission required.
+    handler: operations/report-deleted-application
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
+  - id: report-deleted-servicePrincipal
+    name: Deleted servicePrincipal Objects
+    description: Read-only report; Directory.Read.All application permission required.
+    handler: operations/report-deleted-servicePrincipal
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
+  - id: report-provisioning-jobs
+    name: Provisioning Jobs
+    description: Read-only report; Synchronization.Read.All application permission required.
+    handler: operations/report-provisioning-jobs
+    requiresCredential: true
+    requiresPermission:
+      resource: provisioning-reports
+      action: read
+  - id: report-provisioning-templates
+    name: Provisioning Templates
+    description: Read-only report; Synchronization.Read.All application permission required.
+    handler: operations/report-provisioning-templates
+    requiresCredential: true
+    requiresPermission:
+      resource: provisioning-reports
+      action: read
+  - id: report-review-instances
+    name: Access Review Instances
+    description: Read-only report; AccessReview.Read.All application permission required.
+    handler: operations/report-review-instances
+    requiresCredential: true
+    requiresPermission:
+      resource: governance-reports
+      action: read
+  - id: report-review-decisions
+    name: Access Review Decisions
+    description: Read-only report; AccessReview.Read.All application permission required.
+    handler: operations/report-review-decisions
+    requiresCredential: true
+    requiresPermission:
+      resource: governance-reports
+      action: read
+  - id: report-workflow-runs
+    name: Lifecycle Workflow Runs
+    description: Read-only report; LifecycleWorkflows.Read.All application permission required.
+    handler: operations/report-workflow-runs
+    requiresCredential: true
+    requiresPermission:
+      resource: governance-reports
+      action: read
+  - id: report-role-assignment-requests
+    name: PIM Role Assignment Requests
+    description: Read-only report; RoleAssignmentSchedule.Read.Directory application permission required.
+    handler: operations/report-role-assignment-requests
+    requiresCredential: true
+    requiresPermission:
+      resource: governance-reports
+      action: read
+  - id: report-role-eligibility-requests
+    name: PIM Role Eligibility Requests
+    description: Read-only report; RoleEligibilitySchedule.Read.Directory application permission required.
+    handler: operations/report-role-eligibility-requests
+    requiresCredential: true
+    requiresPermission:
+      resource: governance-reports
+      action: read
+  - id: report-group-eligibility-requests
+    name: PIM Group eligibility Requests
+    description: Read-only report; PrivilegedEligibilitySchedule.Read.AzureADGroup application permission required.
+    handler: operations/report-group-eligibility-requests
+    requiresCredential: true
+    requiresPermission:
+      resource: governance-reports
+      action: read
+  - id: report-group-assignment-requests
+    name: PIM Group assignment Requests
+    description: Read-only report; PrivilegedAssignmentSchedule.Read.AzureADGroup application permission required.
+    handler: operations/report-group-assignment-requests
+    requiresCredential: true
+    requiresPermission:
+      resource: governance-reports
+      action: read
+  - id: report-catalog-resources
+    name: Entitlement Catalog Resources
+    description: Read-only report; EntitlementManagement.Read.All application permission required.
+    handler: operations/report-catalog-resources
+    requiresCredential: true
+    requiresPermission:
+      resource: governance-reports
+      action: read
+  - id: report-access-package-assignments
+    name: Access Package Assignments
+    description: Read-only report; EntitlementManagement.Read.All application permission required.
+    handler: operations/report-access-package-assignments
+    requiresCredential: true
+    requiresPermission:
+      resource: governance-reports
+      action: read
+  - id: report-access-package-requests
+    name: Access Package Assignment Requests
+    description: Read-only report; EntitlementManagement.Read.All application permission required.
+    handler: operations/report-access-package-requests
+    requiresCredential: true
+    requiresPermission:
+      resource: governance-reports
+      action: read
+  - id: report-catalog-resource-requests
+    name: Catalog Resource Requests
+    description: Read-only report; EntitlementManagement.Read.All application permission required.
+    handler: operations/report-catalog-resource-requests
+    requiresCredential: true
+    requiresPermission:
+      resource: governance-reports
+      action: read
+  - id: report-application-role-assignments
+    name: Enterprise Application Role Assignments
+    description: Read-only report; Application.Read.All application permission required.
+    handler: operations/report-application-role-assignments
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
+  - id: report-group-members
+    name: Group Members
+    description: Read-only report; GroupMember.Read.All application permission required.
+    handler: operations/report-group-members
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
+  - id: report-multitenant-members
+    name: Multitenant Organization Members
+    description: Read-only report; MultiTenantOrganization.Read.All application permission required.
+    handler: operations/report-multitenant-members
+    requiresCredential: true
+    requiresPermission:
+      resource: directory-reports
+      action: read
 
 settings:
   - key: tenant_id
@@ -1009,5 +2122,12 @@ settings:
     type: string
     label: Per-connection tenant overrides
     description: 'JSON object keyed by credential ID, e.g. {"credential-id":{"tenantId":"directory-guid","cloud":"global"}}. Unmapped connections retain the Tenant ID setting.'
+    default: "{}"
+    required: false
+
+  - key: readiness_targets
+    type: string
+    label: Scoped readiness targets
+    description: 'JSON object keyed by configuration type ID with parentId and/or resourceId for scoped feature probes.'
     default: "{}"
     required: false

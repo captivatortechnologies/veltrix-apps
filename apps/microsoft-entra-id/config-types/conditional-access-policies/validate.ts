@@ -1,3 +1,4 @@
+import { assertSafeProperties } from '../../lib/managedResources'
 import { capabilityWarnings } from '../../lib/capabilityReview'
 import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
 
@@ -36,6 +37,9 @@ export interface CaPolicySpec {
   name: string
   /** 'report-only' | 'enabled' | 'disabled'. */
   state: string
+  advancedConditions?: Record<string, unknown>
+  sessionControls?: Record<string, unknown> | null
+  advancedErrors?: string[]
   enforcementAcknowledged?: boolean
   includeAllUsers: boolean
   /** Group display names (resolved to ids at deploy time). */
@@ -79,6 +83,7 @@ export interface LiveCaPolicy {
     applications?: { includeApplications?: string[] }
     locations?: { includeLocations?: string[]; excludeLocations?: string[] }
   }
+  sessionControls?: Record<string, unknown> | null
   grantControls?: {
     operator?: string
     builtInControls?: string[]
@@ -104,11 +109,47 @@ export function asStringArray(v: unknown): string[] {
     .filter((t) => t.length > 0)
 }
 
+export function workloadPolicyErrors(spec:CaPolicySpec):string[]{
+  const target=spec.advancedConditions?.clientApplications as {includeServicePrincipals?:unknown}|undefined
+  if(!target)return []
+  const errors:string[]=[]
+  if(!Array.isArray(target.includeServicePrincipals)||!target.includeServicePrincipals.length||target.includeServicePrincipals.some(v=>typeof v!=='string'||v!=='ServicePrincipalsInMyTenant'&&!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(v)))errors.push('Workload targets require service-principal object GUIDs or ServicePrincipalsInMyTenant')
+  if(spec.includeAllUsers||spec.includeUsers.length||spec.includeGroups.length||spec.includeRoles.length||spec.excludeUsers.length||spec.excludeGroups.length||spec.excludeRoles.length||spec.advancedConditions?.users)errors.push('Workload policies cannot also target user populations')
+  if(spec.builtInControls.length!==1||spec.builtInControls[0]!=='block'||spec.authenticationStrength||spec.termsOfUse.length)errors.push('Workload policies support only the Block access grant control')
+  if(spec.sessionControls)errors.push('User session controls do not apply to workload identities')
+  if(['platforms','devices','userRiskLevels','signInRiskLevels','authenticationFlows','clientAppTypes'].some(key=>spec.advancedConditions?.[key]!==undefined))errors.push('Workload policies support workload risk and location conditions; user/device/client conditions are invalid')
+  return errors
+}
+
+const CONDITION_FIELDS = ['clientAppTypes','platforms','devices','userRiskLevels','signInRiskLevels','servicePrincipalRiskLevels','clientApplications','authenticationFlows','applications','users']
+const SESSION_FIELDS = ['applicationEnforcedRestrictions','cloudAppSecurity','persistentBrowser','signInFrequency','continuousAccessEvaluation','secureSignInSession','disableResilienceDefaults']
+function advancedFields(fields:Record<string,unknown>):Partial<CaPolicySpec> {
+  const result:Partial<CaPolicySpec>={},errors:string[]=[]
+  for(const [key,allowed] of [['advancedConditions',CONDITION_FIELDS],['sessionControls',SESSION_FIELDS]] as const){
+    if(fields[key]===undefined || fields[key]==='')continue
+    try {
+      const value=typeof fields[key]==='string'?JSON.parse(fields[key] as string):fields[key]
+      if(key==='sessionControls' && value===null){result.sessionControls=null;continue}
+      assertSafeProperties(value)
+      const invalid=Object.keys(value).filter(k=>!allowed.includes(k))
+      if(invalid.length)throw new Error(`Unsupported ${key}: ${invalid.join(', ')}`)
+      if(key==='advancedConditions'){
+        if(value.users && Object.keys(value.users as object).some(k=>!['includeGuestsOrExternalUsers','excludeGuestsOrExternalUsers'].includes(k)))throw new Error('Use the user/group/role fields for principal targeting; advanced users only supports external-user targeting')
+        if(value.applications && Object.keys(value.applications as object).some(k=>!['excludeApplications','includeAuthenticationContextClassReferences','applicationFilter'].includes(k)))throw new Error('Use the application picker for included applications')
+        result.advancedConditions=value
+      }else result.sessionControls=value
+    }catch(error){errors.push(error instanceof Error?error.message:'Invalid advanced policy settings')}
+  }
+  if(errors.length)result.advancedErrors=errors
+  return result
+}
+
 export function extractPolicySpecs(canvas: CanvasSnapshot): CaPolicySpec[] {
   const items = canvas.items ?? canvas.sections ?? []
   return items.map((item) => {
     const f = item.fields ?? {}
     return {
+      ...advancedFields(f),
       itemId: item.id,
       name: asString(f.name) || item.name,
       state: (asString(f.state) || 'report-only').toLowerCase(),
@@ -140,7 +181,8 @@ export default function validate(ctx: PipelineContext): ValidationResult {
 
   specs.forEach((spec, i) => {
     const prefix = `items[${i}]`
-    if (spec.state === 'enabled' && (spec.includeAllUsers || spec.includeUsers.some(u => u.toLowerCase() === 'all')) && !spec.enforcementAcknowledged) {
+    for(const message of [...spec.advancedErrors??[],...workloadPolicyErrors(spec)])errors.push({field:`${prefix}.advancedConditions`,code:'invalid_advanced_policy',message})
+    if (spec.state === 'enabled' && (spec.includeAllUsers || spec.includeUsers.some(u => u.toLowerCase() === 'all') || ((spec.advancedConditions?.clientApplications as {includeServicePrincipals?:string[]}|undefined)?.includeServicePrincipals??[]).includes('ServicePrincipalsInMyTenant')) && !spec.enforcementAcknowledged) {
       errors.push({ field: `${prefix}.enforcementAcknowledged`, code: 'enforcement_acknowledgement_required',
         message: 'Review tenant-wide enforcement, report-only results and emergency access, then acknowledge enforcement before deploying.' })
     }
@@ -183,7 +225,9 @@ export default function validate(ctx: PipelineContext): ValidationResult {
       !spec.includeAllUsers &&
       spec.includeGroups.length === 0 &&
       spec.includeUsers.length === 0 &&
-      spec.includeRoles.length === 0
+      spec.includeRoles.length === 0 &&
+      !spec.advancedConditions?.clientApplications &&
+      !(spec.advancedConditions?.users as Record<string,unknown>|undefined)?.includeGuestsOrExternalUsers
     ) {
       errors.push({
         field: `${prefix}.includeGroups`,
@@ -194,7 +238,7 @@ export default function validate(ctx: PipelineContext): ValidationResult {
     }
 
     // applications — at least one include target
-    if (!spec.includeAllApps && spec.includeApps.length === 0) {
+    if (!spec.includeAllApps && spec.includeApps.length === 0 && !(spec.advancedConditions?.applications as Record<string,unknown>|undefined)?.includeAuthenticationContextClassReferences) {
       errors.push({
         field: `${prefix}.includeApps`,
         message: 'Target at least one cloud app: enable "All cloud apps" or list at least one app id / keyword',
@@ -210,7 +254,7 @@ export default function validate(ctx: PipelineContext): ValidationResult {
         code: 'invalid_operator',
       })
     }
-    if (spec.builtInControls.length === 0) {
+    if (spec.builtInControls.length === 0 && !spec.authenticationStrength && spec.termsOfUse.length === 0) {
       errors.push({
         field: `${prefix}.builtInControls`,
         message: 'Select at least one grant control (e.g. mfa), or Block access',
@@ -227,7 +271,7 @@ export default function validate(ctx: PipelineContext): ValidationResult {
           code: 'invalid_grant_control',
         })
       }
-      if (spec.builtInControls.includes('block') && spec.builtInControls.length > 1) {
+      if (spec.builtInControls.includes('block') && (spec.builtInControls.length > 1 || !!spec.authenticationStrength || spec.termsOfUse.length > 0)) {
         errors.push({
           field: `${prefix}.builtInControls`,
           message: '"block" cannot be combined with other grant controls — it must be the only one',

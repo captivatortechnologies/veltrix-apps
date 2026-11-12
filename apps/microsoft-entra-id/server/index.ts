@@ -1,3 +1,4 @@
+import { registerReports } from '../lib/reports'
 import { capabilityFor } from '../lib/capabilities'
 // =============================================================================
 // Microsoft Entra ID — Server Entry Module
@@ -17,6 +18,7 @@ export default async function registerRoutes(
   ctx: AppRouteContext,
 ): Promise<void> {
   const { hasPermission, db, manifest } = ctx
+  registerReports(fastify,ctx)
 
   // Select an existing app permission explicitly, rather than requiring every operator
   // to hold Conditional Access permission. The platform still performs the RBAC check.
@@ -60,7 +62,7 @@ export default async function registerRoutes(
         where: { app: { appId: ctx.appId }, customerId, enabled: true },
       })
       const saved = (installation?.settings || {}) as Record<string, unknown>
-      const allowed = ['tenant_id', 'request_timeout_seconds', 'azure_cloud', 'readiness_features', 'connection_tenants']
+      const allowed = ['tenant_id', 'request_timeout_seconds', 'azure_cloud', 'readiness_features', 'readiness_targets', 'connection_tenants']
       reply.send({ settings: Object.fromEntries(allowed.filter(k => k in saved).map(k => [k, saved[k]])) })
     },
   })

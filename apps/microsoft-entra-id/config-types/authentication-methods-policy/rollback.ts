@@ -1,7 +1,9 @@
+import { mergeManaged } from '../../lib/managedResources'
 import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
 import {
   buildGraphClient,
   graphErrorMessage,
+  parseJson,
   readGraphSettings,
   resolveGraphCredential,
   MISSING_CREDENTIAL_MESSAGE,
@@ -23,7 +25,14 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
 
   for (const e of entries) {
     if (e.prior) {
-      const resp = await client.patch(`${BASE}/${e.method}`, e.prior)
+      let prior=e.prior
+      if(Object.keys(prior).some(k=>!['@odata.type','state'].includes(k))){
+        const current=await client.get(`${BASE}/${e.method}`)
+        const live=parseJson<Record<string,unknown>>(current.body)
+        if(!current.ok||!live){failures.push(`restore ${e.method}: current method settings unavailable`);continue}
+        prior=mergeManaged(live,prior)
+      }
+      const resp = await client.patch(`${BASE}/${e.method}`, prior)
       if (!resp.ok) failures.push(`restore ${e.method}: ${graphErrorMessage(resp)}`)
       else restored++
     }

@@ -1,0 +1,42 @@
+id: microsoft-entra-id-application-federated-credentials
+name: Federated Application Credentials Configuration
+toolType: microsoft-entra-id
+entityType: application-federated-credentials
+description: Manage Federated Application Credentials through documented Microsoft Graph operations.
+item:
+  label: Federated Application Credentials
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: Configuration
+      fields:
+        - key: name
+          label: Configuration name
+          fieldType: text
+          required: true
+        - key: parentId
+          label: Parent object ID
+          fieldType: text
+          required: true
+          helpText: >-
+            Application, enterprise application, or partner tenant object ID as described for this
+            configuration.
+        - key: resourceId
+          label: Existing resource ID
+          fieldType: text
+          required: false
+          helpText: >-
+            Leave empty to create or match by the declared identity; use an ID to update an existing
+            resource.
+        - key: properties
+          label: Managed properties (JSON)
+          fieldType: textarea
+          required: true
+          helpText: >-
+            Allowed properties: name, issuer, subject, audiences, description. Only declared fields
+            are managed. Example:
+            {"name":"github-main","issuer":"https://token.actions.githubusercontent.com","subject":"repo:example/project:ref:refs/heads/main","audiences":["api://AzureADTokenExchange"]}.
+            Secret values are not accepted. Removing a canvas item does not delete the remote
+            resource.

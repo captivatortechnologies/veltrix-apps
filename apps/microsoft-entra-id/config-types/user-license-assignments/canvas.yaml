@@ -1,0 +1,30 @@
+id: microsoft-entra-id-user-license-assignments
+name: User License Assignments Configuration
+toolType: microsoft-entra-id
+entityType: user-license-assignments
+description: Reconcile direct license assignments with a captured prior state.
+item:
+  label: User License Assignments
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: Configuration
+      fields:
+        - key: name
+          label: Configuration name
+          fieldType: text
+          required: true
+        - key: resourceId
+          label: Existing resource ID
+          fieldType: text
+          required: true
+          helpText: User or group object ID.
+        - key: licenses
+          label: Direct license assignments (JSON)
+          fieldType: textarea
+          required: true
+          helpText: >-
+            Declare [{"skuId":"GUID","disabledPlans":["PLAN-GUID"]}]. An explicit [] removes direct
+            assignments. Inherited user licenses are preserved.

@@ -1,0 +1,36 @@
+id: microsoft-entra-id-enterprise-application-sso
+name: Enterprise Application SSO Settings Configuration
+toolType: microsoft-entra-id
+entityType: enterprise-application-sso
+description: Manage Enterprise Application SSO Settings through documented Microsoft Graph operations.
+item:
+  label: Enterprise Application SSO Settings
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: Configuration
+      fields:
+        - key: name
+          label: Configuration name
+          fieldType: text
+          required: true
+        - key: resourceId
+          label: Existing resource ID
+          fieldType: text
+          required: true
+          helpText: >-
+            Existing object or provisioning job ID. This configuration never creates user or device
+            accounts.
+        - key: properties
+          label: Managed properties (JSON)
+          fieldType: textarea
+          required: true
+          helpText: >-
+            Allowed properties: samlSingleSignOnSettings, replyUrls, preferredSingleSignOnMode,
+            preferredTokenSigningKeyThumbprint, loginUrl, logoutUrl, appRoleAssignmentRequired. Only
+            declared fields are managed. Example:
+            {"preferredSingleSignOnMode":"saml","samlSingleSignOnSettings":{"relayState":"https://app.example.test"}}.
+            Secret values are not accepted. Removing a canvas item does not delete the remote
+            resource.

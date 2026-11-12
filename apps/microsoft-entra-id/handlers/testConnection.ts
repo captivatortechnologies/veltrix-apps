@@ -71,7 +71,7 @@ export default async function testConnection(
     }
     const name = organization.displayName
     const selected = String(ctx.settings.readiness_features ?? '').split(',').map(s => s.trim()).filter(Boolean)
-    const checks = await probeSelectedFeatures(client, selected)
+    const checks = await probeSelectedFeatures(client, selected, parseJson<Record<string, Record<string,string>>>(String(ctx.settings.readiness_targets ?? '{}')) ?? {})
     return {
       ok: checks.every(c => c.ok),
       message: `Connected to Microsoft Entra${name ? ` tenant "${name}"` : ''}. ${checks.some(c => !c.ok) ? "Selected feature checks failed." : "Organization read verified; write access and licensing remain unverified."}`,

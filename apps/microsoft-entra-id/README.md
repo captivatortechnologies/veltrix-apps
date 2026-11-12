@@ -1,8 +1,10 @@
 # Microsoft Entra ID
 
-Manage Entra configuration through Microsoft Graph and the Veltrix Configuration Canvas. The manifest declares 42 configuration types, covering Conditional Access, directory resources, tenant policies, applications, external identities, branding, and identity governance. Each type supplies validation, deployment, rollback, health, status, and drift handlers. See [manifest.yaml](manifest.yaml) for the current inventory and [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md) for the prioritized roadmap.
+Manage Entra configuration through Microsoft Graph and the Veltrix Configuration Canvas. The manifest declares 64 configuration types, covering Conditional Access, directory resources, tenant policies, applications, external identities, branding, and identity governance. Each type supplies validation, deployment, rollback, health, status, and drift handlers. See [manifest.yaml](manifest.yaml) for the current inventory and [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md) for the prioritized roadmap.
 
 **Coverage:** this is selected Entra configuration management, not complete Entra administration. The [feature coverage audit](FEATURE-COVERAGE.md) maps existing, partial, missing and integration-dependent functionality across Entra ID and the wider Entra family.
+
+The app also supplies **40 confirmed administrative actions** and **31 read-only reports** on dedicated Operations and Reports pages.
 
 The in-app **Setup Guide** walks through registration, consent, credentials, verification, first deployment, and troubleshooting. This README also provides setup instructions for operators working from the repository.
 
@@ -27,7 +29,7 @@ The client uses Graph `v1.0` with client secrets, certificate assertions, or an 
 
 Start with `Organization.Read.All` for the current connection test. For Conditional Access authoring, add `Policy.Read.All` and `Policy.ReadWrite.ConditionalAccess`; add `Group.Read.All`, `User.Read.All`, `RoleManagement.Read.Directory`, and `Application.Read.All` only for the group, user, role, and application references you use. Group management needs `Group.ReadWrite.All` instead of group read alone.
 
-The in-app guide and the generated table below use the same registry for all 42 types. Optional reference permissions apply only to fields and assignment operations you use; some write permissions also authorize reads. Select the combination appropriate to each operation: consult the [Graph permission reference](https://learn.microsoft.com/en-us/graph/permissions-reference) and each endpoint's Application permission requirements for your selected operations, related resources, and pickers. Do not grant all profiles or broad directory write access merely to pass Test. [Conditional Access creation requirements](https://learn.microsoft.com/en-us/graph/api/conditionalaccessroot-post-policies?view=graph-rest-1.0) document its permission combination.
+The in-app guide and the generated table below use the same registry for all 64 types. Optional reference permissions apply only to fields and assignment operations you use; some write permissions also authorize reads. Select the combination appropriate to each operation: consult the [Graph permission reference](https://learn.microsoft.com/en-us/graph/permissions-reference) and each endpoint's Application permission requirements for your selected operations, related resources, and pickers. Do not grant all profiles or broad directory write access merely to pass Test. [Conditional Access creation requirements](https://learn.microsoft.com/en-us/graph/api/conditionalaccessroot-post-policies?view=graph-rest-1.0) document its permission combination.
 
 **Terms of Use is a current capability limitation.** The manifest exposes agreement management, but its deploy handler first lists agreements. Microsoft documents that [listing agreements](https://learn.microsoft.com/en-us/graph/api/termsofusecontainer-list-agreements?view=graph-rest-1.0) does not support application permissions. This flow therefore cannot complete agreement management, and the picker can fail. Manage agreements in Entra and supply an existing agreement ID in Conditional Access grant controls. Additional application permissions do not fix the unsupported listing.
 
@@ -48,6 +50,24 @@ Tenant ID is the installation fallback. **Per-connection tenant overrides** (`co
 3. Set **Configuration types to test** (`readiness_features`) to comma-separated IDs, such as `groups,conditional-access-policies`, then run Test for additional read-only feature probes. Open the relevant pickers and validate a test configuration.
 
 **What Test proves:** the handler acquires a token and reads `/organization?$select=id,displayName`. Test verifies the returned organization identity and any selected feature read endpoints. It reports denied and unsupported features separately. It does not verify write access, conditional picker permissions, licensing, or full deployment readiness.
+
+Scoped readiness probes need explicit targets. For example, set `readiness_features` to `application-federated-credentials` and `readiness_targets` to `{"application-federated-credentials":{"parentId":"APPLICATION-OBJECT-GUID"}}`. Existing-object probes also require `resourceId` when prompted. These settings contain IDs, never secrets.
+
+## Operations and reports
+
+Open **Operations**, select the saved connection, select an action, and enter its target IDs and parameters. The page shows the required Graph application permission. Grant the corresponding Veltrix resource write/delete permission separately. Type the action ID to confirm before submitting. These are immediate administrative actions: configuration rollback does not undo invitations, risk remediation, session revocation, provisioning execution or permanent deletion. Inspect the target tenant before confirming.
+
+Open **Reports** and select the same connection to inspect users/devices, licenses, domain DNS proof, deleted objects, sign-in/audit/provisioning logs, user risk, governance requests and provisioning status. Scoped reports require explicit resource IDs. Audit windows default to 24 hours and cannot exceed 90 days. Reports show at most 200 records with an explicit truncation notice; they are not a complete export. Permission failures remain errors. Submitted requests can finish asynchronously; inspect their request/job state before retrying.
+
+For domain onboarding, add the domain, read its DNS verification records, publish the proof in your DNS provider, then verify. For provisioning, read available templates, create a job, inspect its schema, apply reviewed mappings, then start. Provisioning credentials and agent installation require separate supported integration. For catalog onboarding, the app also needs permissions on the underlying group, application or SharePoint resource.
+
+## Author the new configuration types
+
+The added canvas types use a typed resource boundary with an allowlisted **Managed properties** JSON object. Set the parent ID for nested resources and the resource ID for existing users, devices, applications, synchronization jobs and tenant settings. The canvas provides the supported field list and a sample. Profile types update existing objects; they do not create accounts or devices.
+
+Only specified fields are compared and updated. Nested objects preserve unspecified siblings; explicit arrays replace their managed collection. Removing an item does not delete a resource. Use an explicit operation where provided. Creating an app-role assignment or access-package role scope is immutable: replace it through a separate new assignment and explicit revocation. Provisioning schema PUT replaces the declared schema collections, so export and review mappings first.
+
+License types manage **direct** assignments. Supply explicit SKU IDs and disabled service plans from the license reports. User assignments inherited from groups remain unchanged. An explicit empty list revokes direct assignments. Group licensing and dynamic membership propagate asynchronously; a successful request does not prove every member was processed. Custom attribute allowed values cannot be deleted by Graph: creation rollback deactivates them and reports the retained object.
 
 ## Make the first deployment
 
@@ -140,4 +160,26 @@ This table is generated from [the capability registry](lib/capabilities.ts). Rea
 | service-principals | Application.Read.All | Application.ReadWrite.All | Application.Read.All; User.Read.All | Managed fields only; see deployment review |
 | terms-of-use-agreements | Unsupported | Unsupported | None | Graph agreement listing does not support application permissions. Manage agreements in Entra and reference existing agreement IDs in Conditional Access. |
 | cross-tenant-access-default | Policy.Read.All | Policy.ReadWrite.CrossTenantAccess | None | Managed fields only; see deployment review |
+| directory-user-profiles | User.Read.All | User.ReadWrite.All, User.EnableDisableAccount.All | None | Manages existing objects only. No account or device creation/deletion is performed. |
+| directory-device-profiles | Device.Read.All | Device.ReadWrite.All | None | Manages existing objects only. No account or device creation/deletion is performed. |
+| domain-federation-configurations | Domain.Read.All | Domain.ReadWrite.All | None | Removing a canvas item does not delete the remote resource. Revoke resources through explicit operations. |
+| application-federated-credentials | Application.Read.All | Application.ReadWrite.All | None | Removing a canvas item does not delete the remote resource. Revoke resources through explicit operations. |
+| service-principal-app-role-assignments | Application.Read.All | AppRoleAssignment.ReadWrite.All, Application.Read.All | None | Removing a canvas item does not delete the remote resource. Revoke resources through explicit operations. |
+| user-custom-security-attributes | CustomSecAttributeAssignment.Read.All | CustomSecAttributeAssignment.ReadWrite.All | None | Manages existing objects only. No account or device creation/deletion is performed. |
+| service-principal-custom-security-attributes | CustomSecAttributeAssignment.Read.All | CustomSecAttributeAssignment.ReadWrite.All | None | Manages existing objects only. No account or device creation/deletion is performed. |
+| lifecycle-custom-task-extensions | LifecycleWorkflows.Read.All | LifecycleWorkflows.ReadWrite.All | None | Removing a canvas item does not delete the remote resource. Revoke resources through explicit operations. |
+| provisioning-job-schemas | Synchronization.Read.All | Synchronization.ReadWrite.All | None | Manages existing objects only. No account or device creation/deletion is performed. |
+| application-api-settings | Application.Read.All | Application.ReadWrite.All | None | Manages existing objects only. No account or device creation/deletion is performed. |
+| enterprise-application-sso | Application.Read.All | Application.ReadWrite.All | None | Manages existing objects only. No account or device creation/deletion is performed. |
+| authentication-registration-policy | Policy.Read.AuthenticationMethod | Policy.ReadWrite.AuthenticationMethod | None | Manages existing objects only. No account or device creation/deletion is performed. |
+| on-premises-synchronization | OnPremDirectorySynchronization.Read.All | OnPremDirectorySynchronization.ReadWrite.All | None | Manages existing objects only. No account or device creation/deletion is performed. |
+| cross-tenant-identity-synchronization | Policy.Read.All | Policy.ReadWrite.CrossTenantAccess | None | Manages existing objects only. No account or device creation/deletion is performed. |
+| dynamic-security-groups | Group.Read.All | Group.ReadWrite.All | None | Removing a canvas item does not delete the remote resource. Revoke resources through explicit operations. |
+| microsoft365-groups | Group.Read.All | Group.ReadWrite.All | None | Removing a canvas item does not delete the remote resource. Revoke resources through explicit operations. |
+| role-assignable-groups | Group.Read.All | Group.ReadWrite.All, RoleManagement.ReadWrite.Directory | None | Removing a canvas item does not delete the remote resource. Revoke resources through explicit operations. |
+| custom-security-attribute-allowed-values | CustomSecAttributeDefinition.Read.All | CustomSecAttributeDefinition.ReadWrite.All | None | Created allowed values cannot be deleted; rollback deactivates them and reports the remaining object. |
+| multitenant-organization-settings | MultiTenantOrganization.Read.All | MultiTenantOrganization.ReadWrite.All | None | Manages existing objects only. No account or device creation/deletion is performed. |
+| entitlement-resource-role-scopes | EntitlementManagement.Read.All | EntitlementManagement.ReadWrite.All | None | Removing a canvas item does not delete the remote resource. Revoke resources through explicit operations. |
+| user-license-assignments | LicenseAssignment.Read.All, User.Read.All | LicenseAssignment.ReadWrite.All | None | Changes reconcile direct assignments; inherited user licenses are preserved. Propagation is asynchronous. |
+| group-license-assignments | LicenseAssignment.Read.All, Group.Read.All | LicenseAssignment.ReadWrite.All | None | Changes reconcile direct assignments; inherited user licenses are preserved. Propagation is asynchronous. |
 <!-- capabilities:end -->

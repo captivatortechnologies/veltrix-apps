@@ -1,0 +1,34 @@
+id: microsoft-entra-id-service-principal-custom-security-attributes
+name: Workload Custom Security Attributes Configuration
+toolType: microsoft-entra-id
+entityType: service-principal-custom-security-attributes
+description: Manage Workload Custom Security Attributes through documented Microsoft Graph operations.
+item:
+  label: Workload Custom Security Attributes
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: Configuration
+      fields:
+        - key: name
+          label: Configuration name
+          fieldType: text
+          required: true
+        - key: resourceId
+          label: Existing resource ID
+          fieldType: text
+          required: true
+          helpText: >-
+            Existing object or provisioning job ID. This configuration never creates user or device
+            accounts.
+        - key: properties
+          label: Managed properties (JSON)
+          fieldType: textarea
+          required: true
+          helpText: >-
+            Allowed properties: customSecurityAttributes. Only declared fields are managed. Example:
+            {"customSecurityAttributes":{"Security":{"@odata.type":"#Microsoft.DirectoryServices.CustomSecurityAttributeValue","Classification":"Internal"}}}.
+            Secret values are not accepted. Removing a canvas item does not delete the remote
+            resource.

@@ -1,6 +1,8 @@
 import React from 'react'
 import { Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
+import { ENTRA_OPERATIONS } from '../../lib/operationDefinitions'
+import { ENTRA_REPORTS } from '../../lib/reportDefinitions'
 import { CAPABILITIES } from '../../lib/capabilities'
 
 export default function SetupGuidePage() {
@@ -31,7 +33,7 @@ export default function SetupGuidePage() {
           <li>Verify consent shows as granted. Delegated permissions do not authorize this app-only connection.</li>
         </ol>
         <p>Choose only the profiles you need. Add read permissions for referenced objects and live pickers.
-          The registry covers every configuration type. Check endpoint permissions for the specific operations and references you use.</p>
+          The registry covers every configuration type. Operations and Reports display the additional Graph permission for each action; grant its Veltrix resource permission separately. Check endpoint permissions for the specific operations and references you use.</p>
         <div style={{ overflowX: 'auto' }}><table>
           <caption>Application permission profiles by feature</caption>
           <thead><tr><th scope="col">Feature</th><th scope="col">Permissions</th></tr></thead>
@@ -85,6 +87,7 @@ export default function SetupGuidePage() {
           <li>Choose <strong>Test</strong> and confirm the returned tenant name and IDs match the intended directory.</li>
           <li>Open the pickers for your chosen configuration type and validate a test configuration.</li>
         </ol>
+        <p>Set <code>readiness_features</code> to selected configuration IDs. For scoped features, supply <code>readiness_targets</code> as a JSON object keyed by configuration ID with parentId and, where required, resourceId. Missing scope IDs are reported as unverified.</p>
         <p><strong>Test scope:</strong> Test exchanges a token and reads <code>/organization</code> using{' '}
           <code>Organization.Read.All</code>. Success confirms that read operation; selected feature probes verify their read endpoints only. Write permissions,
           licensing, and unselected features remain unverified.</p>
@@ -103,6 +106,9 @@ export default function SetupGuidePage() {
             compatibility before changing either tenant-wide control.</li>
         </ol>
         <p>The default is a starting value: explicitly choosing Enabled enforces the policy on deployment. Tenant-wide enforcement requires the canvas acknowledgement; deployment checks that Security Defaults is readable and disabled.</p>
+        <p>The added resource types accept an allowlisted Managed properties JSON object. Supply existing object IDs and parent IDs for nested resources. Omitted fields remain unmanaged; explicit arrays replace the managed collection. Review provisioning schema replacement before enabling a job.</p>
+        <p>Open <strong>Operations</strong> for {ENTRA_OPERATIONS.length} one-off administrative actions. Select the saved connection and target, inspect the required permission, then type the action ID to confirm. These actions run immediately and do not have configuration rollback.</p>
+        <p>Open <strong>Reports</strong> for {ENTRA_REPORTS.length} read-only views, including licenses, DNS verification, audit logs, risk and provisioning/governance requests. Results stop at 200 records and indicate truncation. Verify asynchronous requests here before retrying. User licensing preserves group-inherited assignments; an explicit empty license list removes direct assignments.</p>
         <p>Review rollback limits: external identity-provider secrets are write-only and cannot be restored from Graph;
           created custom attribute sets cannot be deleted. Preserve an independent recovery path.</p>
       </>,

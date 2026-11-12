@@ -112,7 +112,7 @@ test('capability registry covers the manifest exactly, including unsupported agr
  const manifest=readFileSync('apps/microsoft-entra-id/manifest.yaml','utf8')
  const ids=[...manifest.matchAll(/^    - id: ([\w-]+)$/gm)].map(m=>m[1]).sort()
  assert.deepEqual(CAPABILITIES.map(c=>c.id).sort(),ids)
- assert.equal(new Set(CAPABILITIES.map(c=>c.id)).size,42)
+ assert.equal(new Set(CAPABILITIES.map(c=>c.id)).size,ids.length)
  const unsupported=CAPABILITIES.filter(c=>!c.appOnly)
  assert.deepEqual(unsupported.map(c=>c.id),['terms-of-use-agreements'])
  for(const cap of CAPABILITIES.filter(c=>c.appOnly)) { assert.ok(cap.readPermissions.length);assert.ok(cap.writePermissions.length);assert.equal(cap.apiVersion,'v1.0') }

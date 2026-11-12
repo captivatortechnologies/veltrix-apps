@@ -1,0 +1,36 @@
+id: microsoft-entra-id-role-assignable-groups
+name: Role-Assignable Groups Configuration
+toolType: microsoft-entra-id
+entityType: role-assignable-groups
+description: Manage Role-Assignable Groups through documented Microsoft Graph operations.
+item:
+  label: Role-Assignable Groups
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: Configuration
+      fields:
+        - key: name
+          label: Configuration name
+          fieldType: text
+          required: true
+        - key: resourceId
+          label: Existing resource ID
+          fieldType: text
+          required: false
+          helpText: >-
+            Leave empty to create or match by the declared identity; use an ID to update an existing
+            resource.
+        - key: properties
+          label: Managed properties (JSON)
+          fieldType: textarea
+          required: true
+          helpText: >-
+            Allowed properties: displayName, description, mailNickname, mailEnabled,
+            securityEnabled, groupTypes, membershipRule, membershipRuleProcessingState, visibility,
+            isAssignableToRole. Only declared fields are managed. Example: {"displayName":"Pilot
+            role","mailNickname":"pilot-role","mailEnabled":false,"securityEnabled":true,"groupTypes":[],"isAssignableToRole":true,"visibility":"Private"}.
+            Secret values are not accepted. Removing a canvas item does not delete the remote
+            resource.
