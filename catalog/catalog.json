@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-11-12T15:09:24.634Z",
+  "generatedAt": "2026-11-12T16:44:20.269Z",
   "apps": [
     {
       "appId": "akamai",
@@ -945,7 +945,7 @@
     {
       "appId": "microsoft-entra-id",
       "name": "Microsoft Entra ID",
-      "version": "0.10.0",
+      "version": "0.10.1",
       "vendor": "Veltrix",
       "description": "Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the Microsoft Graph API. Covers Conditional Access, named locations, security groups, administrative units, custom roles and authentication strengths/contexts; the tenant authorization, security-defaults, authentication-methods, authentication-flows, admin-consent-request, permission-grant, cross-tenant access, app-management, token-issuance / lifetime / claims-mapping, home-realm-discovery, activity-timeout and feature-rollout policies; group directory settings, custom security attributes, external identity providers, delegated permission grants, user-flow attributes and self-service sign-up flows; and identity governance (entitlement catalogs, access packages, assignment policies, connected organizations, access reviews, lifecycle workflows and PIM role activation policies); plus company branding — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Adds user/device profiles, direct licensing, advanced groups, federation, provisioning, application API/SSO, custom attribute assignments and synchronization configuration; plus confirmed lifecycle operations and bounded read-only audit, risk and governance reports.",
       "category": "IAM",
@@ -954,11 +954,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.10.0/microsoft-entra-id.zip",
-      "sha256": "c2505c35e616518b0e10ac196beb73d7a0f867375e2e4c11894e13d752d56bca",
-      "sizeBytes": 1323928,
-      "publishedAt": "2026-11-12T15:09:24.602Z",
-      "releaseNotes": "## 0.10.0 - 2026-11-12\n\n### Added\n\n- Added 22 configuration types for user/device profiles, direct user/group licensing, domain federation, workload federation, application API/SSO settings, custom attribute assignments/values, advanced groups, provisioning schemas, lifecycle extensions, hybrid/cross-tenant synchronization, multitenant organization settings and access-package resource roles.\n- Added 40 permission-gated, explicitly confirmed administrative operations for directory lifecycle, relationships, provisioning, governance, PIM administration and identity-risk remediation.\n- Added 31 bounded, read-only reports and Operations/Reports pages using saved tenant credentials; report results filter sensitive and unrelated response fields.\n- Added complete preflight, immutable/source-authority guards, managed-field drift, snapshots and rollback contracts for the new configuration handlers.\n\n### Improved\n\n- Conditional Access now supports advanced risk/device/client/workload/external-user conditions and session controls, preserving base target fields.\n- Authentication method policies now support explicit targeting and method-specific configuration, preserving unmanaged nested settings during deploy and rollback.\n- Setup now explains scoped readiness, permissions, JSON field ownership, one-off operations, asynchronous verification and licensing inheritance.\n- Expanded regression and browser checks to cover new handlers, permission gates, action submission and report rendering.\n\n### Limitations\n\n- This release extends Graph v1.0 app-only administration; it does not provide full coverage of the entire Entra family. Delegated reviewer/activation flows and separate Verified ID, ARM, Global Secure Access and agent integrations remain open. See FEATURE-COVERAGE.md.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.10.1/microsoft-entra-id.zip",
+      "sha256": "4e9dc81c36280b0f2ae6da69ed3d4270a3e4e880dd3bb61f4ce28541882eba72",
+      "sizeBytes": 1324244,
+      "publishedAt": "2026-11-12T16:44:20.232Z",
+      "releaseNotes": "## 0.10.1 - 2026-11-12\n\n### Fixed\n\n- Declared bounded resource authorization for metadata/settings routes so the platform recognizes their dynamic resource permission checks and does not deny them as ungated.\n- Requires the platform update that supports `requiresAppPermission.resourceFromQuery`; existing inline permission checks remain active.",
       "releasedAt": "2026-11-12T00:00:00.000Z"
     },
     {
