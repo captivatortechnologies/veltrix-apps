@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-11-12T03:56:40.159Z",
+  "generatedAt": "2026-11-12T14:01:17.641Z",
   "apps": [
     {
       "appId": "akamai",
@@ -945,7 +945,7 @@
     {
       "appId": "microsoft-entra-id",
       "name": "Microsoft Entra ID",
-      "version": "0.8.7",
+      "version": "0.9.0",
       "vendor": "Veltrix",
       "description": "Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the Microsoft Graph API. Covers Conditional Access, named locations, security groups, administrative units, custom roles and authentication strengths/contexts; the tenant authorization, security-defaults, authentication-methods, authentication-flows, admin-consent-request, permission-grant, cross-tenant access, app-management, token-issuance / lifetime / claims-mapping, home-realm-discovery, activity-timeout and feature-rollout policies; group directory settings, custom security attributes, external identity providers, delegated permission grants, user-flow attributes and self-service sign-up flows; and identity governance (entitlement catalogs, access packages, assignment policies, connected organizations, access reviews, lifecycle workflows and PIM role activation policies); plus company branding — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -954,12 +954,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.8.7/microsoft-entra-id.zip",
-      "sha256": "61411334720b7fa983e3a812f6c6aa70b3da412b8c87afa40e38c9918304e140",
-      "sizeBytes": 929314,
-      "publishedAt": "2026-09-17T02:46:17.315Z",
-      "releaseNotes": "## 0.8.7 — 2026-09-16\n\n### Fixed — drift no longer claims \"in sync\" from a run that could not look\n\n`driftDetect` returned `{ hasDrift: false, diffs: [] }` when it had no usable\ncredential, and again when the vendor refused the read. That is not \"I checked\nand found nothing\" — it is \"I never looked\". The platform cannot tell the\ndifference: it treats `hasDrift: false` as a positive assurance and resolves the\ncomponent's outstanding drift record with `drift_cleared`.\n\nSo a rotated credential, a de-scoped API user or a vendor maintenance window\nsilently wiped real drift on the next scheduled run, and the console showed a\nclean estate.\n\nThose paths now return `checked: false` (`DriftResult.checked`, SDK 3.9.0), on\nwhich the platform records nothing and clears nothing. Where a handler loops\nover several objects and skips the ones it could not read, the run reports\n`checked: false` too, rather than \"in sync\" from a partial view. A return that\ngenuinely established \"nothing is deployed, so there is no drift\" is unchanged.\n\n`veltrix validate` now rejects the bare form, so it cannot come back.",
-      "releasedAt": "2026-09-16T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.9.0/microsoft-entra-id.zip",
+      "sha256": "0299175a690aefb521eb994a3d803675a375dd2d4ced9b764a9d209a3456c4a1",
+      "sizeBytes": 994683,
+      "publishedAt": "2026-11-12T14:01:17.588Z",
+      "releaseNotes": "## 0.9.0 - 2026-11-11\n\n### Improved\n\n- Added a shared registry for all 42 configuration types, selected-feature read probes, and capability/rollback guidance in setup and overview.\n- Added certificate and optional platform-broker authentication, cloud endpoint allowlists, per-credential tenant overrides, and support for secrets saved in the token field.\n- Added managed-field verification to health checks and included client TypeScript checks in the app typecheck.\n- Allowed metadata/settings access using the caller's selected configuration resource permission.\n\n### Fixed\n\n- Blocked unsupported app-only agreement management before network access.\n- Stopped blind retries after uncertain mutation outcomes and rejected foreign Graph/pagination URLs and redirects.\n- Rejected ambiguous or incomplete name resolution and unsafe reconciliation listings.\n- Reported missing restore targets and irreversible rollback remnants as failures.\n- Required acknowledgement for enabled all-user policies and checked Security Defaults before enforcement.\n- Fixed the seven existing test type errors recorded in the initial review.",
+      "releasedAt": "2026-11-11T00:00:00.000Z"
     },
     {
       "appId": "microsoft-intune",
