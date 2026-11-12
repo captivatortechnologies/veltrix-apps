@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-11-12T14:09:27.531Z",
+  "generatedAt": "2026-11-12T15:09:24.634Z",
   "apps": [
     {
       "appId": "akamai",
@@ -945,20 +945,20 @@
     {
       "appId": "microsoft-entra-id",
       "name": "Microsoft Entra ID",
-      "version": "0.9.1",
+      "version": "0.10.0",
       "vendor": "Veltrix",
-      "description": "Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the Microsoft Graph API. Covers Conditional Access, named locations, security groups, administrative units, custom roles and authentication strengths/contexts; the tenant authorization, security-defaults, authentication-methods, authentication-flows, admin-consent-request, permission-grant, cross-tenant access, app-management, token-issuance / lifetime / claims-mapping, home-realm-discovery, activity-timeout and feature-rollout policies; group directory settings, custom security attributes, external identity providers, delegated permission grants, user-flow attributes and self-service sign-up flows; and identity governance (entitlement catalogs, access packages, assignment policies, connected organizations, access reviews, lifecycle workflows and PIM role activation policies); plus company branding — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "description": "Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the Microsoft Graph API. Covers Conditional Access, named locations, security groups, administrative units, custom roles and authentication strengths/contexts; the tenant authorization, security-defaults, authentication-methods, authentication-flows, admin-consent-request, permission-grant, cross-tenant access, app-management, token-issuance / lifetime / claims-mapping, home-realm-discovery, activity-timeout and feature-rollout policies; group directory settings, custom security attributes, external identity providers, delegated permission grants, user-flow attributes and self-service sign-up flows; and identity governance (entitlement catalogs, access packages, assignment policies, connected organizations, access reviews, lifecycle workflows and PIM role activation policies); plus company branding — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Adds user/device profiles, direct licensing, advanced groups, federation, provisioning, application API/SSO, custom attribute assignments and synchronization configuration; plus confirmed lifecycle operations and bounded read-only audit, risk and governance reports.",
       "category": "IAM",
       "icon": "🔷",
       "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjggNDAiIHdpZHRoPSIxNjgiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iTWljcm9zb2Z0IEVudHJhIElEIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idmVpZGciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMDA3OEQ0Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzUwRTZGRiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPCEtLSBPcmlnaW5hbCBhYnN0cmFjdCBpZGVudGl0eSBtYXJrOiBhIHNoaWVsZCBmb3JtZWQgZnJvbSB0d28gZmFjZXRzLCB3aXRoIGFuCiAgICAgICBpbnNldCBmaWd1cmUuIE5vdCB0aGUgdHJhZGVtYXJrZWQgTWljcm9zb2Z0IEVudHJhIGxvZ28uIC0tPgogIDxwYXRoIGQ9Ik0xOCA0IEwzMSA5IFYyMSBDMzEgMjguNSAyNS40IDMzLjYgMTggMzYgQzEwLjYgMzMuNiA1IDI4LjUgNSAyMSBWOSBaIiBmaWxsPSJ1cmwoI3ZlaWRnKSIvPgogIDxwYXRoIGQ9Ik0xOCA0IEwxOCAzNiBDMTAuNiAzMy42IDUgMjguNSA1IDIxIFY5IFoiIGZpbGw9IiMwMDc4RDQiIG9wYWNpdHk9IjAuMjUiLz4KICA8Y2lyY2xlIGN4PSIxOCIgY3k9IjE2LjUiIHI9IjMuNiIgZmlsbD0iI2ZmZiIvPgogIDxwYXRoIGQ9Ik0xMS41IDI3IEMxMS41IDIyLjQgMTQuNCAyMC4yIDE4IDIwLjIgQzIxLjYgMjAuMiAyNC41IDIyLjQgMjQuNSAyNyBaIiBmaWxsPSIjZmZmIi8+CiAgPHRleHQgeD0iNDIiIHk9IjI2IiBmb250LWZhbWlseT0iU2Vnb2UgVUksIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSJjdXJyZW50Q29sb3IiPk1pY3Jvc29mdCBFbnRyYSBJRDwvdGV4dD4KPC9zdmc+Cg==",
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.9.1/microsoft-entra-id.zip",
-      "sha256": "c9659a4368ea430731c931fddbb8e217e52e29ed5ffc40833103503eaf669442",
-      "sizeBytes": 999347,
-      "publishedAt": "2026-11-12T14:09:27.485Z",
-      "releaseNotes": "## 0.9.1 - 2026-11-12\n\n### Documentation\n\n- Added a feature-level coverage audit spanning Entra ID and the wider Entra family.\n- Distinguished partial configuration support from full product functionality and identified missing administration, governance, protection, provisioning and product integrations.\n- Corrected the CI description to distinguish the active client typecheck from the additional workflow hooks awaiting GitHub workflow permission.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.10.0/microsoft-entra-id.zip",
+      "sha256": "c2505c35e616518b0e10ac196beb73d7a0f867375e2e4c11894e13d752d56bca",
+      "sizeBytes": 1323928,
+      "publishedAt": "2026-11-12T15:09:24.602Z",
+      "releaseNotes": "## 0.10.0 - 2026-11-12\n\n### Added\n\n- Added 22 configuration types for user/device profiles, direct user/group licensing, domain federation, workload federation, application API/SSO settings, custom attribute assignments/values, advanced groups, provisioning schemas, lifecycle extensions, hybrid/cross-tenant synchronization, multitenant organization settings and access-package resource roles.\n- Added 40 permission-gated, explicitly confirmed administrative operations for directory lifecycle, relationships, provisioning, governance, PIM administration and identity-risk remediation.\n- Added 31 bounded, read-only reports and Operations/Reports pages using saved tenant credentials; report results filter sensitive and unrelated response fields.\n- Added complete preflight, immutable/source-authority guards, managed-field drift, snapshots and rollback contracts for the new configuration handlers.\n\n### Improved\n\n- Conditional Access now supports advanced risk/device/client/workload/external-user conditions and session controls, preserving base target fields.\n- Authentication method policies now support explicit targeting and method-specific configuration, preserving unmanaged nested settings during deploy and rollback.\n- Setup now explains scoped readiness, permissions, JSON field ownership, one-off operations, asynchronous verification and licensing inheritance.\n- Expanded regression and browser checks to cover new handlers, permission gates, action submission and report rendering.\n\n### Limitations\n\n- This release extends Graph v1.0 app-only administration; it does not provide full coverage of the entire Entra family. Delegated reviewer/activation flows and separate Verified ID, ARM, Global Secure Access and agent integrations remain open. See FEATURE-COVERAGE.md.",
       "releasedAt": "2026-11-12T00:00:00.000Z"
     },
     {
