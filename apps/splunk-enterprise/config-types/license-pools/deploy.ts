@@ -21,7 +21,7 @@ import { NO_ADDRESS_MESSAGE, buildSplunkUrl, buildAuthHeader, getEntityContent, 
 
 export const LICENSE_POOLS_PATH = '/services/licenser/pools'
 
-/** Pool settings snapshotted for rollback (stack_id is immutable, kept for reference only). */
+/** Pool settings snapshotted for rollback (stack_id is immutable and needed to restore a recreated pool). */
 const ROLLBACK_KEYS = ['quota', 'peers', 'description', 'stack_id'] as const
 
 /** A field the View modal renders. */
@@ -46,11 +46,12 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     return { success: false, message: NO_ADDRESS_MESSAGE }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider, ctx.settings)
   const auth = buildAuthHeader(credential)
 
   const rollbackSnapshot: Record<string, unknown>[] = []
   const createdPools: string[] = []
+  const recreatedPools: string[] = []
   const deployedPools: string[] = []
   const resources: DeployedResource[] = []
   const notes: string[] = []
@@ -70,6 +71,14 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       const poolPath = `${LICENSE_POOLS_PATH}/${encodeURIComponent(name)}`
       let existing = await getEntityContent(baseUrl, auth, poolPath)
 
+      if (existing) {
+        const snapshot: Record<string, unknown> = { name }
+        for (const key of ROLLBACK_KEYS) {
+          if (existing[key] !== undefined) snapshot[key] = existing[key]
+        }
+        rollbackSnapshot.push(snapshot)
+      }
+
       // The stack a pool belongs to is fixed at creation — Splunk has no
       // "move pool to another stack" operation. Reconcile by recreating: the
       // canvas is the declarative source of truth, so a changed stackId means
@@ -88,16 +97,11 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
           )
         }
         notes.push(`Recreated pool "${name}" to move it from stack "${existing.stack_id}" to "${stackId}"`)
+        recreatedPools.push(name)
         existing = null
       }
 
       if (existing) {
-        const snapshot: Record<string, unknown> = { name }
-        for (const key of ROLLBACK_KEYS) {
-          if (existing[key] !== undefined) snapshot[key] = existing[key]
-        }
-        rollbackSnapshot.push(snapshot)
-
         await postForm(baseUrl, auth, poolPath, {
           quota,
           peers,
@@ -112,10 +116,10 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
           peers,
           description,
         })
-        createdPools.push(name)
+        if (!recreatedPools.includes(name)) createdPools.push(name)
       }
 
-      const final = await getEntityContent(baseUrl, auth, poolPath)
+      const final = await getEntityContent(baseUrl, auth, poolPath).catch(() => null)
       if (final) resources.push(buildPoolResource(name, component.hostname, final))
 
       deployedPools.push(name)
@@ -126,14 +130,14 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       success: true,
       message: `Deployed ${deployedPools.length} license pool(s): ${deployedPools.join(', ')}${noteSuffix}`,
       artifacts: { deployedPools, createdPools, resources },
-      rollbackData: { previousState: rollbackSnapshot, createdPools },
+      rollbackData: { previousState: rollbackSnapshot, createdPools, recreatedPools },
     }
   } catch (error) {
     return {
       success: false,
       message: `License pool deployment failed after ${deployedPools.length} pool(s): ${error instanceof Error ? error.message : 'Unknown error'}`,
       artifacts: { deployedPools, createdPools, failedAt: canvas.sections[deployedPools.length]?.fields?.name },
-      rollbackData: { previousState: rollbackSnapshot, createdPools },
+      rollbackData: { previousState: rollbackSnapshot, createdPools, recreatedPools },
     }
   }
 }

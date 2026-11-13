@@ -9,8 +9,98 @@ Runtime release packages exclude `infra/`, which contains standalone worker/CI
 provisioning tools. Run those tools from the source checkout; they cannot be
 imported by the app's in-process handlers.
 
-The app also tracks the current Splunk Enterprise release lines
+The app also tracks seeded Splunk Enterprise release lines
 (9.4.x–10.4.x, seeded by `hooks/onInstall.ts`) for BYOL upgrade planning.
+
+## Connect and make a safe first deployment
+
+1. Start in a sandbox with a backup. In **Connections**, save the splunkd
+   management URL (`https://splunk.internal:8089`), environment and credential.
+   Use a **Splunk authentication token** (Bearer) or username/password (Basic).
+   **HEC ingestion tokens cannot authenticate to the management API.** Splunk
+   Web (8000), HEC ingestion (8088) and SSO login pages are different endpoints.
+2. Register/select the inventory component with the correct Splunk role,
+   hostname and management port; attach the saved credential. Use a reachable
+   private route or configure **Access Servers / managed ZTNA**. A saved endpoint
+   alone does not create a tunnel. Directly reachable targets need no separate
+   connectivity record for deploy, health, drift or rollback.
+3. Run **Test**. It must return actual Splunk server information and a version;
+   an HTML login page or redirect is an error. A bare host defaults to 8089.
+   Explicit HTTP(S) URLs retain their port and proxy path. Managed connectivity
+   takes precedence over the hostname.
+4. Grant a dedicated service account only the capabilities needed for the chosen
+   feature, plus corresponding Veltrix app permissions. Review `list_settings`
+   for Test; `install_apps` / `edit_local_apps` for app management;
+   `list_token_http` / `edit_token_http` for HEC; `license_read` / `license_edit`
+   for licensing; and the appropriate own/all token capabilities for API tokens.
+   Token Authentication must be enabled for authentication tokens. Endpoint ACLs
+   and version-specific requirements still apply. Consult the
+   [Splunk capabilities reference](https://help.splunk.com/en/splunk-enterprise/administer/manage-users-and-security/10.4/manage-splunk-platform-users-and-roles/define-roles-on-the-splunk-platform-with-capabilities).
+5. Create a **Splunk Apps** configuration, select **Author files inline**, use
+   a unique app ID and ship a small `default/*.conf`. Indexes and roles are
+   authored here through `indexes.conf` / `authorize.conf`. Select each item's
+   target roles and exact deployment component, validate, deploy, inspect health
+   and drift, then practice rollback on a disposable new app.
+6. Before modifying existing apps, back up both installed packages and staging
+   directories. Metadata snapshots cannot restore previous package bytes.
+   HEC and API-token deployment can enable instance-wide HEC / Token
+   Authentication; rollback does not disable these global settings.
+
+Test proves management **read** access, not deployment permissions, event
+receipt, license entitlement or successful cluster distribution. Confirm those
+separately. Rotate credentials before expiry and keep a separate recovery account.
+See the in-app **Setup Guide** for the complete six-step checklist.
+
+### Clusters and rollback boundaries
+
+For inline content, choose the distribution role and directory: cluster manager
+`etc/manager-apps`, deployment server `etc/deployment-apps`, or search-head
+`deployer` `etc/shcluster/apps`. These placements require managed ZTNA remote
+execution and run their corresponding bundle/reload command. A selected staging
+placement fails before installation when remote execution is unavailable; choose
+only `etc/apps` for a local REST install. Server classes and peer/member rollout
+still need to be verified in Splunk. See Splunk's
+[app deployment overview](https://help.splunk.com/en/splunk-enterprise/administer/admin-manual/10.0/meet-splunk-apps/app-deployment-overview).
+
+Rollback restores captured settings and removes newly created objects. License
+pool stack changes retain the original pool settings and can recreate it on the
+original stack, including when creation on the new stack failed. Incomplete
+cleanup and failed remote commands return failure. Existing staged app content
+is preserved when no previous copy was captured. Package replacements report
+that backup restoration is required; changing a version label cannot undo a
+package upgrade. Replaced API token secrets cannot be restored.
+
+### Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| 401 | Authentication-token type/expiry, Token Authentication setting, username/password; do not use a HEC token |
+| 403 | Splunk capabilities and endpoint ACLs, then Veltrix app resource permissions |
+| Redirect / HTML / missing version | Management URL and port; remove Web/SSO endpoints |
+| DNS / refusal / timeout | Runtime route, firewall, custom management port, access server and managed device enrollment |
+| HEC health mismatch | Global HEC input, desired enabled/disabled state and routing indexes; verify ingestion with a separate test event |
+| Drift HTTP failure | Restore read access; failed reads are not evidence of no drift |
+| Incomplete rollback | Inspect partial artifacts, restore the original package/staging backup and re-apply bundles |
+
+### Remaining priorities after the November 2026 review
+
+- **TLS server identity:** the current shared transport accepts self-signed
+  certificates and does not enforce peer certificate validation. Use trusted
+  private management routing. Add an explicit verified-TLS/custom-CA policy
+  across every lifecycle before enabling untrusted network paths.
+- **Package recovery:** add durable backups of installed and staged package bytes
+  before replacement, with restore and bundle verification. This release makes
+  the missing-backup limitation explicit and avoids deleting existing staging
+  content during rollback.
+- **End-to-end readiness:** run live multi-role pilots for cluster distribution,
+  HEC ingestion, token rotation, license stacks and BYOL worker recovery. Automated
+  tests use fixtures and a local HTTP server; they do not replace a real Splunk
+  acceptance environment.
+- **Version catalog maintenance:** seeded versions and support dates are a
+  historical planning snapshot, not a live vendor release feed. Validate installer
+  availability and support against Splunk before planning an upgrade. The Upgrades
+  page records plans; it does not by itself execute them. Recording license XML
+  likewise does not install a license on a server.
 
 ## Configuration types
 
@@ -48,7 +138,7 @@ settings — including a `[default]` stanza for shared baselines).
 
 ### `hec-tokens` — HTTP Event Collector tokens (`/servicesNS/admin/splunk_httpinput/data/inputs/http`)
 
-Targets: `indexer`, `heavy-forwarder` components.
+Targets: `search-head`, `indexer`, `heavy-forwarder` components.
 
 | Canvas field | Splunk REST parameter | Notes |
 |---|---|---|
@@ -66,7 +156,7 @@ addition to per-token existence/state.
 ### `apps` — Splunk apps & add-ons (`/services/apps/local`, `/services/apps/appinstall`)
 
 Targets: `search-head`, `indexer`, `deployment-server`, `heavy-forwarder`,
-`cluster-manager` components.
+`cluster-manager`, `deployer` components.
 
 | Canvas field | Splunk REST parameter | Notes |
 |---|---|---|

@@ -17,7 +17,7 @@
 // =============================================================================
 
 import type { AppRouteContext, CredentialRef } from '@veltrixsecops/app-sdk'
-import { buildAuthHeader, getJson } from './splunkApi'
+import { buildAuthHeader, getJson, normalizeSplunkUrl } from './splunkApi'
 
 const LIVE_TIMEOUT_MS = 12_000
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -49,13 +49,6 @@ export interface LiveLicenseResult {
   /** The Splunk management endpoint the status was read from (when available). */
   endpoint?: string
   stacks?: LiveLicenseStack[]
-}
-
-/** Normalize a stored endpoint into an https base URL with no trailing slash. */
-function normalizeBaseUrl(raw: string): string {
-  const trimmed = raw.trim()
-  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
-  return withScheme.replace(/\/+$/, '')
 }
 
 // --- Response mapping (pure) ------------------------------------------------
@@ -136,24 +129,29 @@ export async function getLiveLicenseStatus(
   customerId: string,
   credentialId: string,
 ): Promise<LiveLicenseResult> {
-  const conn = await resolveConnection(customerId, credentialId)
+  let conn: Awaited<ReturnType<typeof resolveConnection>>
+  try { conn = await resolveConnection(customerId, credentialId) } catch { return { available: false, reason: 'error', message: 'Could not resolve the saved connection' } }
   if (!conn || !conn.endpoint) return { available: false, reason: 'no-connection' }
 
-  const baseUrl = normalizeBaseUrl(conn.endpoint)
-  // buildAuthHeader only reads apiToken/username/password; a ResolvedConnection
-  // carries the rest of CredentialRef too, so this is auth material only.
-  const auth = buildAuthHeader({
-    apiToken: conn.apiToken,
-    username: conn.username,
-    password: conn.password,
-  } as CredentialRef)
+  let baseUrl: string
+  let auth: Record<string, string>
+  try {
+    baseUrl = normalizeSplunkUrl(conn.endpoint)
+    // buildAuthHeader only reads apiToken/username/password; a ResolvedConnection
+    // carries the rest of CredentialRef too, so this is auth material only.
+    auth = buildAuthHeader({
+      apiToken: conn.apiToken,
+      username: conn.username,
+      password: conn.password,
+    } as CredentialRef)
+  } catch { return { available: false, reason: 'error', message: 'Configure a valid management URL and authentication credential' } }
 
   let licensesJson: any
   try {
     licensesJson = await getJson(baseUrl, auth, '/services/licenser/licenses', LIVE_TIMEOUT_MS)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    const reason: LiveUnavailableReason = /\b401\b|auth/i.test(message) ? 'auth' : 'unreachable'
+    const reason: LiveUnavailableReason = /\b40[13]\b|auth/i.test(message) ? 'auth' : 'unreachable'
     return { available: false, reason, message, endpoint: baseUrl }
   }
 

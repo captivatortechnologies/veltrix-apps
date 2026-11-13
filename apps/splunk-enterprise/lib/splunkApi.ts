@@ -13,6 +13,19 @@ import type { ComponentRef, ConnectivityRef, CredentialRef } from '@veltrixsecop
 const DEFAULT_MANAGEMENT_PORT = '8089'
 const REQUEST_TIMEOUT_MS = 30_000
 
+/** Accept management base URLs or bare hosts; bare hosts use splunkd's port. */
+export function normalizeSplunkUrl(raw: string, defaultPort: string | number = DEFAULT_MANAGEMENT_PORT): string {
+  const value = raw.trim()
+  const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(value)
+  const url = new URL(hasScheme ? value : `https://${value}`)
+  if (!['http:', 'https:'].includes(url.protocol) || !url.hostname || url.username || url.password || url.search || url.hash) {
+    throw new Error('Use a Splunk management HTTP(S) URL without embedded credentials, query parameters or fragments')
+  }
+  const explicitPort = /:\d+$/.test(value.split('/')[0])
+  if (!hasScheme && !url.port && !explicitPort) url.port = String(defaultPort)
+  return url.href.replace(/\/+$/, '')
+}
+
 /**
  * Resolve the base URL for the Splunk management API on a component. Prefers an
  * explicit connectivity URL/device IP, then the managed-ZTNA tailnet address
@@ -26,13 +39,14 @@ export function buildSplunkUrl(
   // with `deviceAddress` for managed ZTNA; typed minimally to avoid the SDK's two
   // ConnectivityProviderRef exports (the AppContext one has no config).
   connectivityProvider?: { config?: Record<string, unknown> | null } | null,
+  settings: Record<string, unknown> = {},
 ): string {
-  const port = component.port || DEFAULT_MANAGEMENT_PORT
-  if (connectivity?.httpsUrl) return connectivity.httpsUrl
-  if (connectivity?.tailscaleDeviceIP) return `https://${connectivity.tailscaleDeviceIP}:${port}`
+  const port = component.port || String(settings.splunk_api_port || DEFAULT_MANAGEMENT_PORT)
+  if (connectivity?.httpsUrl) return normalizeSplunkUrl(connectivity.httpsUrl)
+  if (connectivity?.tailscaleDeviceIP) return normalizeSplunkUrl(connectivity.tailscaleDeviceIP, port)
   const deviceAddress = (connectivityProvider?.config as Record<string, unknown> | undefined)?.deviceAddress
-  if (typeof deviceAddress === 'string' && deviceAddress) return `https://${deviceAddress}:${port}`
-  return `https://${component.hostname}:${port}`
+  if (typeof deviceAddress === 'string' && deviceAddress) return normalizeSplunkUrl(deviceAddress, port)
+  return normalizeSplunkUrl(component.hostname, port)
 }
 
 /**
@@ -56,9 +70,10 @@ export const NO_ADDRESS_MESSAGE =
 
 /** Bearer token when an API token is configured, otherwise HTTP Basic. */
 export function buildAuthHeader(credential: CredentialRef): Record<string, string> {
-  if (credential.apiToken) {
-    return { Authorization: `Bearer ${credential.apiToken}` }
+  if (credential.apiToken?.trim()) {
+    return { Authorization: `Bearer ${credential.apiToken.trim()}` }
   }
+  if (!credential.username?.trim() || !credential.password) throw new Error('Attach a Splunk authentication token or a username and password; HEC ingestion tokens cannot authenticate to the management API')
   const encoded = Buffer.from(`${credential.username}:${credential.password}`).toString('base64')
   return { Authorization: `Basic ${encoded}` }
 }
@@ -81,8 +96,9 @@ export interface SplunkFetchResponse {
  * fetch() against the Splunk management API. splunkd listens on 8089 with a
  * SELF-SIGNED certificate by default, which the global `fetch` (undici) rejects
  * with an opaque "fetch failed". The connection already rides the managed tailnet
- * (WireGuard-encrypted end to end), so TLS verification here is redundant — we
- * accept the cert via node:https (no undici dispatcher needed).
+ * (WireGuard-encrypted end to end). This legacy transport accepts self-signed
+ * certificates; it does not verify server identity. Use trusted private routing
+ * until an explicit verified-TLS/custom-CA policy is implemented.
  */
 export interface SplunkFetchInit {
   method?: string
@@ -110,6 +126,10 @@ function nodeHttpsTransport(url: string, init: SplunkFetchInit): Promise<SplunkF
       u = new URL(url)
     } catch (err) {
       reject(err as Error)
+      return
+    }
+    if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password) {
+      reject(new Error('Invalid Splunk management URL'))
       return
     }
     // Normalize the body to a Buffer up front so we can send an explicit
@@ -141,6 +161,8 @@ function nodeHttpsTransport(url: string, init: SplunkFetchInit): Promise<SplunkF
       },
       (res) => {
         const chunks: Buffer[] = []
+        res.on('error', reject)
+        res.on('aborted', () => reject(new Error('Splunk response was interrupted')))
         res.on('data', (c: Buffer) => chunks.push(c))
         res.on('end', () => {
           const bodyText = Buffer.concat(chunks).toString('utf8')
@@ -150,7 +172,8 @@ function nodeHttpsTransport(url: string, init: SplunkFetchInit): Promise<SplunkF
       },
     )
     const timeoutMs = init.timeoutMs ?? REQUEST_TIMEOUT_MS
-    req.setTimeout(timeoutMs, () => req.destroy(new Error(`Splunk request timed out after ${timeoutMs}ms`)))
+    const deadline = setTimeout(() => req.destroy(new Error(`Splunk request timed out after ${timeoutMs}ms`)), timeoutMs)
+    req.on('close', () => clearTimeout(deadline))
     req.on('error', reject)
     if (bodyBuf) req.write(bodyBuf)
     req.end()
@@ -174,23 +197,26 @@ export async function splunkRequest(url: string, options: SplunkRequestOptions):
 
 /**
  * GET a single Splunk REST entity and return its `entry[0].content`,
- * or null when the entity does not exist / the request fails.
+ * or null ONLY when Splunk confirms that the entity does not exist.
+ * Unreadable state must never be mistaken for permission to create/replace it.
  */
 export async function getEntityContent(
   baseUrl: string,
   auth: Record<string, string>,
   entityPath: string,
 ): Promise<Record<string, unknown> | null> {
-  try {
-    const res = await splunkRequest(`${baseUrl}${entityPath}?output_mode=json`, {
-      method: 'GET',
-      headers: auth,
-    })
-    const data = JSON.parse(res)
-    return (data?.entry?.[0]?.content as Record<string, unknown>) || null
-  } catch {
-    return null
-  }
+  const res = await splunkFetch(`${baseUrl}${entityPath}?output_mode=json`, { method: 'GET', headers: auth })
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`Could not read Splunk entity (HTTP ${res.status})`)
+  return parseEntityContent(await res.text())
+}
+
+/** Reject login pages and malformed successful reads before trusting live state. */
+export function parseEntityContent(body: string): Record<string, unknown> {
+  const data = JSON.parse(body)
+  const content = data?.entry?.[0]?.content
+  if (!content || typeof content !== 'object' || Array.isArray(content)) throw new Error('Splunk entity response has no valid content')
+  return content as Record<string, unknown>
 }
 
 /**

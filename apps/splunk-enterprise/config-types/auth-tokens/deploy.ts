@@ -87,18 +87,14 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     return { success: false, message: NO_ADDRESS_MESSAGE }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider, ctx.settings)
   const auth = buildAuthHeader(credential)
 
   // Idempotent, best-effort: token creation 400s while the feature is
   // disabled (its default state), mirroring the HEC "enable the global
   // input before creating tokens" precedent.
   let tokenAuthEnabled = true
-  try {
-    await postForm(baseUrl, auth, TOKEN_AUTH_ENABLE_PATH, { disabled: 'false' })
-  } catch {
-    tokenAuthEnabled = false
-  }
+  let enableAttempted = false
 
   const rollbackEntries: RollbackEntry[] = []
   const deployedTokens: string[] = []
@@ -117,6 +113,11 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       const desiredEnabled = fields.enabled !== false
 
       const existing = await findToken(baseUrl, auth, username, audience)
+
+      if (!enableAttempted) {
+        enableAttempted = true
+        try { await postForm(baseUrl, auth, TOKEN_AUTH_ENABLE_PATH, { disabled: 'false' }) } catch { tokenAuthEnabled = false }
+      }
 
       let matched = existing
       if (existing) {
@@ -192,17 +193,14 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
 /** Find a live token belonging to `username` whose audience matches, or null. Best-effort per-field mapping. */
 async function findToken(baseUrl: string, auth: Record<string, string>, username: string, audience: string): Promise<TokenEntry | null> {
-  try {
-    const data = await getJson<{ entry?: Array<{ content?: TokenEntry }> }>(
-      baseUrl,
-      auth,
-      `${AUTH_TOKENS_PATH}?username=${encodeURIComponent(username)}&count=0`,
-    )
-    const entries = (data.entry ?? []).map((e) => e.content).filter((c): c is TokenEntry => Boolean(c))
-    return entries.find((c) => c.audience === audience) ?? null
-  } catch {
-    return null
-  }
+  const data = await getJson<{ entry?: Array<{ content?: TokenEntry }> }>(
+    baseUrl,
+    auth,
+    `${AUTH_TOKENS_PATH}?username=${encodeURIComponent(username)}&count=0`,
+  )
+  if (!Array.isArray(data.entry)) throw new Error('Splunk token response has no valid entry list')
+  const entries = data.entry.map((e) => e.content).filter((c): c is TokenEntry => Boolean(c))
+  return entries.find((c) => c.audience === audience) ?? null
 }
 
 async function createToken(

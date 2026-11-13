@@ -1,5 +1,5 @@
 import type { DriftContext, DriftResult, DriftDiff } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader, splunkFetch } from '../../lib/splunkApi'
+import { hasSplunkAddress, buildSplunkUrl, buildAuthHeader, parseEntityContent, splunkFetch } from '../../lib/splunkApi'
 import { auditClientFromBase, attachDriftActor, veltrixActorLogins } from '../lib/splunkAudit'
 import { LICENSE_POOLS_PATH, parseQuotaBytes } from './deploy'
 
@@ -24,9 +24,9 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { component, credential, connectivity, connectivityProvider, deployedConfig } = ctx
   const diffs: DriftDiff[] = []
 
-  if (!credential || (!connectivity && !connectivityProvider)) return { hasDrift: false, diffs: [], checked: false }
+  if (!credential || !hasSplunkAddress(component, connectivity, connectivityProvider)) return { hasDrift: false, diffs: [], checked: false }
 
-  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider, ctx.settings)
   const auth = buildAuthHeader(credential)
 
   const auditClient = auditClientFromBase(baseUrl, auth)
@@ -46,10 +46,11 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       if (!res.ok) {
         if (res.status === 404) {
           objectDiffs.push({ field: name, expected: 'exists', actual: 'missing', severity: 'critical' })
+        } else {
+          objectDiffs.push({ field: name, expected: 'readable', actual: `HTTP ${res.status}`, severity: 'critical' })
         }
       } else {
-        const data = JSON.parse(await res.text())
-        const actual = data?.entry?.[0]?.content || {}
+        const actual = parseEntityContent(await res.text())
 
         if (typeof fields.stackId === 'string' && fields.stackId) {
           const actualStack = String(actual.stack_id ?? '')

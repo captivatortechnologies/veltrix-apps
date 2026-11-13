@@ -1,5 +1,5 @@
 import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader, splunkFetch } from '../../lib/splunkApi'
+import { hasSplunkAddress, buildSplunkUrl, buildAuthHeader, parseEntityContent, splunkFetch } from '../../lib/splunkApi'
 import { LICENSE_POOLS_PATH } from './deploy'
 
 /**
@@ -15,16 +15,18 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   const { component, credential, connectivity, connectivityProvider, canvas } = ctx
   const checks: HealthCheckResult['checks'] = []
 
-  if (!credential || (!connectivity && !connectivityProvider)) {
-    return { healthy: false, score: 0, checks: [{ name: 'connectivity', passed: false, message: 'Missing credential or connectivity' }] }
+  if (!credential || !hasSplunkAddress(component, connectivity, connectivityProvider)) {
+    return { healthy: false, score: 0, checks: [{ name: 'connectivity', passed: false, message: 'Missing credential or Splunk management address' }] }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider, ctx.settings)
   const auth = buildAuthHeader(credential)
 
   checks.push(await timedCheck('server_reachable', async () => {
     const res = await splunkFetch(`${baseUrl}/services/server/info?output_mode=json`, { method: 'GET', headers: auth, timeoutMs: 10_000 })
     if (!res.ok) throw new Error(`Server returned ${res.status}`)
+    const server = parseEntityContent(await res.text())
+    if (typeof server.version !== 'string' || !server.version) throw new Error('Endpoint did not return Splunk server information')
     return 'Splunk instance is reachable'
   }))
 
@@ -45,8 +47,7 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
         missing.push(pool.name)
         continue
       }
-      const data = JSON.parse(await res.text())
-      const content = data?.entry?.[0]?.content
+      const content = parseEntityContent(await res.text())
       if (pool.stackId && content?.stack_id && String(content.stack_id) !== pool.stackId) {
         wrongStack.push(`${pool.name} (on ${content.stack_id}, expected ${pool.stackId})`)
       }

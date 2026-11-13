@@ -1,5 +1,5 @@
 import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader, postForm, splunkRequest, toFormBody } from '../../lib/splunkApi'
+import { hasSplunkAddress, buildSplunkUrl, buildAuthHeader, postForm, splunkRequest, toFormBody } from '../../lib/splunkApi'
 import { AUTH_TOKENS_PATH } from './deploy'
 
 interface RollbackEntry {
@@ -20,8 +20,8 @@ interface RollbackEntry {
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const { component, credential, connectivity, connectivityProvider, rollbackData } = ctx
 
-  if (!credential || (!connectivity && !connectivityProvider)) {
-    return { success: false, message: 'Missing credential or connectivity for rollback' }
+  if (!credential || !hasSplunkAddress(component, connectivity, connectivityProvider)) {
+    return { success: false, message: 'Missing credential or Splunk management address for rollback' }
   }
 
   const entries = ((rollbackData as { entries?: RollbackEntry[] } | null)?.entries ?? []).filter((e) => e.id)
@@ -29,7 +29,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
     return { success: false, message: 'No previous state available for API access token rollback' }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider, ctx.settings)
   const auth = buildAuthHeader(credential)
   const undeletable: string[] = []
   let restored = 0
@@ -63,7 +63,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
     if (undeletable.length > 0) {
       actions.push(`could NOT delete ${undeletable.length} token(s) (${undeletable.join(', ')}) — remove manually if unwanted`)
     }
-    return { success: true, message: `Rollback complete: ${actions.join('; ') || 'no changes needed'}` }
+    return { success: undeletable.length === 0, message: `Rollback ${undeletable.length ? 'incomplete' : 'complete'}: ${actions.join('; ') || 'no changes needed'}` }
   } catch (error) {
     return { success: false, message: `Rollback failed: ${error instanceof Error ? error.message : 'Unknown error'}` }
   }

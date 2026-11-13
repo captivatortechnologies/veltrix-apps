@@ -1,27 +1,29 @@
 import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader, splunkFetch } from '../../lib/splunkApi'
+import { hasSplunkAddress, buildSplunkUrl, buildAuthHeader, parseEntityContent, splunkFetch } from '../../lib/splunkApi'
 import { HEC_BASE_PATH } from './deploy'
 
 /**
  * Health check for HEC token configuration.
  * Verifies the instance is reachable, the global HEC input is enabled,
- * and every token declared on the canvas exists and is enabled.
+ * and every token declared on the canvas exists in its desired state.
  */
 export default async function healthCheck(ctx: HealthCheckContext): Promise<HealthCheckResult> {
   const { component, credential, connectivity, connectivityProvider, canvas } = ctx
   const checks: HealthCheckResult['checks'] = []
 
-  if (!credential || (!connectivity && !connectivityProvider)) {
-    return { healthy: false, score: 0, checks: [{ name: 'connectivity', passed: false, message: 'Missing credential or connectivity' }] }
+  if (!credential || !hasSplunkAddress(component, connectivity, connectivityProvider)) {
+    return { healthy: false, score: 0, checks: [{ name: 'connectivity', passed: false, message: 'Missing credential or Splunk management address' }] }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider, ctx.settings)
   const auth = buildAuthHeader(credential)
 
   // Check 1: Server reachable
   checks.push(await timedCheck('server_reachable', async () => {
     const res = await splunkFetch(`${baseUrl}/services/server/info?output_mode=json`, { method: 'GET', headers: auth, timeoutMs: 10_000 })
     if (!res.ok) throw new Error(`Server returned ${res.status}`)
+    const server = parseEntityContent(await res.text())
+    if (typeof server.version !== 'string' || !server.version) throw new Error('Endpoint did not return Splunk server information')
     return 'Splunk instance is reachable'
   }))
 
@@ -29,9 +31,8 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   checks.push(await timedCheck('hec_enabled', async () => {
     const res = await splunkFetch(`${baseUrl}${HEC_BASE_PATH}/http?output_mode=json`, { method: 'GET', headers: auth, timeoutMs: 10_000 })
     if (!res.ok) throw new Error(`HEC global settings endpoint returned ${res.status}`)
-    const data = JSON.parse(await res.text())
-    const content = data?.entry?.[0]?.content
-    if (content?.disabled === true || content?.disabled === '1') {
+    const content = parseEntityContent(await res.text())
+    if (content?.disabled === true || content?.disabled === '1' || content?.disabled === 1) {
       throw new Error('HTTP Event Collector is globally disabled on this instance')
     }
     return 'HTTP Event Collector is enabled'
@@ -40,13 +41,13 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   // Check 3: Canvas tokens exist and are enabled
   checks.push(await timedCheck('canvas_tokens_present', async () => {
     const expected = canvas.sections
-      .map((s) => s.fields?.name as string | undefined)
-      .filter((n): n is string => Boolean(n))
+      .map((s) => ({ name: s.fields?.name as string | undefined, enabled: s.fields?.enabled !== false }))
+      .filter((token): token is { name: string; enabled: boolean } => Boolean(token.name))
     if (expected.length === 0) return 'No HEC tokens declared on canvas'
 
     const missing: string[] = []
-    const disabled: string[] = []
-    for (const name of expected) {
+    const wrongState: string[] = []
+    for (const { name, enabled } of expected) {
       const res = await splunkFetch(`${baseUrl}${HEC_BASE_PATH}/${encodeURIComponent(name)}?output_mode=json`, {
         method: 'GET', headers: auth, timeoutMs: 10_000,
       })
@@ -54,13 +55,13 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
         missing.push(name)
         continue
       }
-      const data = JSON.parse(await res.text())
-      const content = data?.entry?.[0]?.content
-      if (content?.disabled === true || content?.disabled === '1') disabled.push(name)
+      const content = parseEntityContent(await res.text())
+      const disabled = content?.disabled === true || content?.disabled === '1' || content?.disabled === 1
+      if (disabled === enabled) wrongState.push(name)
     }
     if (missing.length > 0) throw new Error(`Missing token(s): ${missing.join(', ')}`)
-    if (disabled.length > 0) throw new Error(`Disabled token(s): ${disabled.join(', ')}`)
-    return `All ${expected.length} canvas token(s) exist and are enabled`
+    if (wrongState.length > 0) throw new Error(`Token(s) in the wrong state: ${wrongState.join(', ')}`)
+    return `All ${expected.length} canvas token(s) exist in the expected enabled/disabled state`
   }))
 
   const passedCount = checks.filter((c) => c.passed).length

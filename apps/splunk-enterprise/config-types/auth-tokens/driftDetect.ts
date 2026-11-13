@@ -1,5 +1,5 @@
 import type { DriftContext, DriftResult, DriftDiff } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader, splunkFetch } from '../../lib/splunkApi'
+import { hasSplunkAddress, buildSplunkUrl, buildAuthHeader, splunkFetch } from '../../lib/splunkApi'
 import { auditClientFromBase, attachDriftActor, veltrixActorLogins } from '../lib/splunkAudit'
 import { AUTH_TOKENS_PATH } from './deploy'
 
@@ -18,9 +18,9 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { component, credential, connectivity, connectivityProvider, deployedConfig } = ctx
   const diffs: DriftDiff[] = []
 
-  if (!credential || (!connectivity && !connectivityProvider)) return { hasDrift: false, diffs: [], checked: false }
+  if (!credential || !hasSplunkAddress(component, connectivity, connectivityProvider)) return { hasDrift: false, diffs: [], checked: false }
 
-  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider, ctx.settings)
   const auth = buildAuthHeader(credential)
 
   const auditClient = auditClientFromBase(baseUrl, auth)

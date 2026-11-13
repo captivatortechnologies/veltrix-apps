@@ -1,7 +1,8 @@
 import type { DriftContext, DriftResult, DriftDiff } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader, splunkFetch } from '../../lib/splunkApi'
+import { buildSplunkUrl, buildAuthHeader, parseEntityContent, splunkFetch } from '../../lib/splunkApi'
 import { auditClientFromBase, attachDriftActor, veltrixActorLogins } from '../lib/splunkAudit'
 import { APP_BASE_PATH } from './deploy'
+import { resolveAppId } from '../../lib/splunkPackage'
 import { expectedAppFiles, detectManagedContentDrift, detectRestConfigDrift } from './contentDrift'
 
 /**
@@ -30,12 +31,8 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   // is selected, so a server outside that set isn't a drift target (matches
   // deploy + health-check). No targets set → check every component (legacy).
   const componentRoles = component.type ?? []
-  const targetTypes = new Set(deployedConfig.sections.flatMap((s) => toStringArray(fieldOf(s, 'targetTypes'))))
-  if (targetTypes.size > 0 && !componentRoles.some((r) => targetTypes.has(r))) {
-    return { hasDrift: false, diffs: [], checked: false }
-  }
 
-  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider, ctx.settings)
   const auth = buildAuthHeader(credential)
 
   // Who/when attribution: resolved per drifted object from the _audit index,
@@ -45,7 +42,9 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   for (const section of deployedConfig.sections) {
     const fields = section.fields as Record<string, unknown>
-    const appId = fields.name as string
+    const sectionTargets = toStringArray(fields.targetTypes)
+    if (sectionTargets.length > 0 && !sectionTargets.some(role => componentRoles.includes(role))) continue
+    const appId = resolveAppId(fields, deployedConfig.name)
     if (!appId) continue
 
     const objectDiffs: DriftDiff[] = []
@@ -59,10 +58,11 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       if (!res.ok) {
         if (res.status === 404) {
           objectDiffs.push({ field: appId, expected: 'installed', actual: 'missing', severity: 'critical' })
+        } else {
+          objectDiffs.push({ field: appId, expected: 'readable', actual: `HTTP ${res.status}`, severity: 'critical' })
         }
       } else {
-        const data = JSON.parse(await res.text())
-        const actual = data?.entry?.[0]?.content || {}
+        const actual = parseEntityContent(await res.text())
 
         const expectEnabled = ((fields.state as string | undefined) ?? 'enabled') !== 'disabled'
         const actuallyDisabled = actual.disabled === true || actual.disabled === '1' || actual.disabled === 1

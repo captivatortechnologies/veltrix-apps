@@ -51,7 +51,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     return { success: false, message: NO_ADDRESS_MESSAGE }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider, ctx.settings)
   const auth = buildAuthHeader(credential)
 
   // Pre-flight: every index a token routes to must exist on the target, or
@@ -84,11 +84,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   // best-effort: it never fails the deploy, but the outcome is surfaced so the
   // operator knows if it couldn't be turned on.
   let hecGloballyEnabled = true
-  try {
-    await splunkRequest(`${baseUrl}${HEC_BASE_PATH}/http/enable`, { method: 'POST', headers: auth })
-  } catch {
-    hecGloballyEnabled = false
-  }
+  let enableAttempted = false
 
   const rollbackSnapshot: Record<string, unknown>[] = []
   const createdTokens: string[] = []
@@ -113,6 +109,11 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         rollbackSnapshot.push(snapshot)
       }
 
+      if (!enableAttempted) {
+        enableAttempted = true
+        try { await splunkRequest(`${baseUrl}${HEC_BASE_PATH}/http/enable`, { method: 'POST', headers: auth }) } catch { hecGloballyEnabled = false }
+      }
+
       const payload = buildTokenPayload(fields)
 
       if (existing) {
@@ -131,7 +132,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       // Fetch the token's final state to capture the Splunk-generated token VALUE
       // + routing for the View modal (this is the value operators copy into their
       // event sources). Best-effort — a read failure just omits the details.
-      const final = await getEntityContent(baseUrl, auth, tokenPath)
+      const final = await getEntityContent(baseUrl, auth, tokenPath).catch(() => null)
       if (final) resources.push(buildTokenResource(tokenName, component.hostname, final))
 
       deployedTokens.push(tokenName)

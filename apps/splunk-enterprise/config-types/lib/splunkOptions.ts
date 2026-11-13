@@ -121,7 +121,7 @@ const splunkOptions: OptionsProvider = async (ctx): Promise<OptionItem[]> => {
 
   // Prefer the managed-ZTNA tailnet address (buildSplunkUrl) — a raw `.local`
   // hostname never resolves from the platform (getaddrinfo EAI_AGAIN).
-  const baseUrl = buildSplunkUrl(ctx.component, null, ctx.connectivityProvider)
+  const baseUrl = buildSplunkUrl(ctx.component, null, ctx.connectivityProvider, ctx.settings)
   const auth = buildAuthHeader(ctx.credential)
   const query = (ctx.query ?? '').trim()
 

@@ -1,5 +1,5 @@
 import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader, splunkFetch } from '../../lib/splunkApi'
+import { hasSplunkAddress, buildSplunkUrl, buildAuthHeader, parseEntityContent, splunkFetch } from '../../lib/splunkApi'
 import { AUTH_TOKENS_PATH, TOKEN_AUTH_ENABLE_PATH } from './deploy'
 
 /**
@@ -12,24 +12,25 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   const { component, credential, connectivity, connectivityProvider, canvas } = ctx
   const checks: HealthCheckResult['checks'] = []
 
-  if (!credential || (!connectivity && !connectivityProvider)) {
-    return { healthy: false, score: 0, checks: [{ name: 'connectivity', passed: false, message: 'Missing credential or connectivity' }] }
+  if (!credential || !hasSplunkAddress(component, connectivity, connectivityProvider)) {
+    return { healthy: false, score: 0, checks: [{ name: 'connectivity', passed: false, message: 'Missing credential or Splunk management address' }] }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider, ctx.settings)
   const auth = buildAuthHeader(credential)
 
   checks.push(await timedCheck('server_reachable', async () => {
     const res = await splunkFetch(`${baseUrl}/services/server/info?output_mode=json`, { method: 'GET', headers: auth, timeoutMs: 10_000 })
     if (!res.ok) throw new Error(`Server returned ${res.status}`)
+    const server = parseEntityContent(await res.text())
+    if (typeof server.version !== 'string' || !server.version) throw new Error('Endpoint did not return Splunk server information')
     return 'Splunk instance is reachable'
   }))
 
   checks.push(await timedCheck('token_auth_enabled', async () => {
     const res = await splunkFetch(`${baseUrl}${TOKEN_AUTH_ENABLE_PATH}?output_mode=json`, { method: 'GET', headers: auth, timeoutMs: 10_000 })
     if (!res.ok) throw new Error(`Token auth settings endpoint returned ${res.status}`)
-    const data = JSON.parse(await res.text())
-    const content = data?.entry?.[0]?.content
+    const content = parseEntityContent(await res.text())
     if (content?.disabled === true || content?.disabled === '1' || content?.disabled === 1) {
       throw new Error('Token Authentication is disabled on this instance')
     }

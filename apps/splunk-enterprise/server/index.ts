@@ -617,7 +617,7 @@ export default async function registerRoutes(
   // --- App Settings Routes ---
 
   fastify.get('/settings', {
-    preHandler: [hasPermission('indexes', 'read')],
+    preHandler: [hasPermission('apps', 'read')],
     handler: async (request, reply) => {
       const customerId = customerOf(request)
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })

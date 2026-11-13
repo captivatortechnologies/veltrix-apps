@@ -3,6 +3,40 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.23.0 - 2026-11-13
+
+### Fixed
+
+- Connection Test now shares management URL resolution and HTTP transport with
+  deployments, honors custom/managed addresses, rejects redirects and non-Splunk
+  responses, and distinguishes authentication tokens from HEC ingestion tokens.
+- Health, drift and rollback accept directly reachable targets without requiring
+  a connectivity record. HEC health honors deliberately disabled tokens and
+  numeric Splunk flags.
+- State reads fail closed on denied, failed or malformed responses instead of
+  treating unreadable objects as absent. Optional post-deploy resource reads
+  remain best effort. Drift checks report denied API reads instead of clearing drift.
+- License-pool stack changes capture the original pool before deletion and retain
+  recovery data even when replacement creation fails. Rollback restores the old
+  stack and reports undeletable objects as incomplete.
+- App health/drift resolve implicit app IDs and respect each item's target roles.
+  Added the missing deployer target; selected staging distribution now fails
+  before installation when remote execution is unavailable.
+- App rollback checks remote command results, reports missing package backups and
+  preserves pre-existing staging content. It no longer reports a successful undo
+  when the previous package bytes or cleanup are unavailable.
+- Shared transport rejects interrupted responses and enforces a total request
+  deadline. Live license reads handle invalid connections and resolver failures.
+- Settings uses the declared apps permission rather than the removed indexes permission.
+
+### Improved
+
+- Replaced the obsolete setup guide with six steps covering roles, credentials,
+  least privilege, ports, routing, pilot deployment, clusters, recovery and troubleshooting.
+- Overview lists all four configuration types plus infrastructure and license records.
+- Documented remaining TLS validation, package backup, live acceptance and version
+  maintenance work; expanded executable regression checks and client verification.
+
 ## 1.22.3 — 2026-11-10
 
 ### Fixed — activation links work again on hosts with the default-deny route gate

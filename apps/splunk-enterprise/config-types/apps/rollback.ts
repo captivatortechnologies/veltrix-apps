@@ -5,7 +5,7 @@ import { APP_BASE_PATH, resolveShclusterTargetUri } from './deploy'
 interface AppRollbackData {
   previousState?: Array<Record<string, unknown>>
   installedApps?: string[]
-  stagingPlaced?: Array<{ appId: string; role: string; dir: string }>
+  stagingPlaced?: Array<{ appId: string; role: string; dir: string; existed?: boolean }>
 }
 
 /** Which bundle push to re-run after removing a staged app, per role. */
@@ -32,12 +32,13 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
 
   const data = (rollbackData as AppRollbackData) || {}
   const previousState = data.previousState ?? []
+  const packageNotRestored = (data.installedApps ?? []).filter(name => previousState.some(state => state.name === name && state.existed !== false))
 
   if (previousState.length === 0) {
     return { success: false, message: 'No previous state available for Splunk app rollback' }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider, ctx.settings)
   const auth = buildAuthHeader(credential)
 
   const restored: string[] = []
@@ -59,6 +60,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
       // Restore previous metadata.
       const payload: Record<string, string> = {}
       for (const key of RESTORE_KEYS) {
+        if (key === 'version' && packageNotRestored.includes(name)) continue // The previous package bytes were not captured.
         const value = appState[key]
         if (value === undefined || value === null) continue
         payload[key] = String(value)
@@ -78,18 +80,26 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
       restored.push(name)
     }
 
-    // Undo managed-ZTNA staging placements: remove each staged app dir, then
-    // re-apply the affected role's bundle. Best-effort — a cluster bundle rollback
-    // re-pushes the now-app-less bundle, which is the closest safe undo.
+    // Remove only staging directories confirmed new by this deployment. Legacy
+    // snapshots with unknown provenance must preserve potentially existing files.
     const stagingPlaced = data.stagingPlaced ?? []
     const stagingActions: string[] = []
+    let stagingIncomplete = packageNotRestored.length > 0
+    if (packageNotRestored.length) stagingActions.push(`Previous package bytes for ${packageNotRestored.join(', ')} were not captured; restore the original package from backup`)
     if (stagingPlaced.length > 0) {
       if (!ctx.remote) {
+        stagingIncomplete = true
         stagingActions.push(`${stagingPlaced.length} staging placement(s) NOT rolled back (target not reachable via managed ZTNA — manual cleanup may be needed)`)
       } else {
         const rolesToRepush = new Set<string>()
         for (const s of stagingPlaced) {
-          await ctx.remote.run({ action: 'removePath', path: `${ctx.remote.homeDir}/${s.dir}/${s.appId}` })
+          if (s.existed !== false) {
+            stagingIncomplete = true
+            stagingActions.push(`Kept staged app ${s.appId}: its prior files were not captured; restore the staging backup and re-apply its bundle`)
+            continue
+          }
+          const removed = await ctx.remote.run({ action: 'removePath', path: `${ctx.remote.homeDir}/${s.dir}/${s.appId}` })
+          if (!removed.ok) throw new Error(`Could not remove staged app ${s.appId} (${removed.code})`)
           rolesToRepush.add(s.role)
         }
         for (const role of rolesToRepush) {
@@ -100,9 +110,10 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
             bundle === 'applyShclusterBundle'
               ? { action: 'applyShclusterBundle' as const, targetUri: await resolveShclusterTargetUri(ctx.platform, component.id) }
               : { action: bundle }
-          await ctx.remote.run(intent)
+          const pushed = await ctx.remote.run(intent)
+          if (!pushed.ok) throw new Error(`Rollback bundle push ${bundle} failed (${pushed.code})`)
         }
-        stagingActions.push(`removed ${stagingPlaced.length} staged app(s) and re-applied ${rolesToRepush.size} bundle(s)`)
+        if (rolesToRepush.size) stagingActions.push(`Removed newly staged apps and re-applied ${rolesToRepush.size} bundle(s)`)
       }
     }
 
@@ -110,7 +121,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
     if (restored.length > 0) actions.push(`restored ${restored.length} app(s)`)
     if (removed.length > 0) actions.push(`removed ${removed.length} newly installed app(s)`)
     actions.push(...stagingActions)
-    return { success: true, message: `Rollback complete: ${actions.join(', ') || 'no changes'}` }
+    return { success: !stagingIncomplete, message: `Rollback ${stagingIncomplete ? 'incomplete' : 'complete'}: ${actions.join(', ') || 'no changes'}` }
   } catch (error) {
     return { success: false, message: `Rollback failed: ${error instanceof Error ? error.message : 'Unknown error'}` }
   }

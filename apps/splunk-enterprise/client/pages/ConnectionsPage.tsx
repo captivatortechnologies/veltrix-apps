@@ -10,9 +10,9 @@ export default function ConnectionsPage() {
     <ConnectionsManager
       appName="Splunk Enterprise"
       appId="splunk-enterprise"
-      tokenLabel="API / HEC token"
+      tokenLabel="Splunk authentication token (not HEC)"
       endpointPlaceholder="e.g. https://splunk.internal:8089"
-      endpointHelper="Splunk management API base URL (typically port 8089)."
+      endpointHelper="Use the splunkd management URL (HTTPS port 8089), not Splunk Web (8000) or HEC (8088). HEC tokens only ingest events."
     />
   )
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { CONFIGURATION_AREAS } from '../lib/capabilities'
 import { authFetch } from '@veltrixsecops/app-sdk/client'
 import {
   Badge,
@@ -25,22 +26,9 @@ interface ManagedArea {
 // What this app manages in a Splunk Enterprise deployment. Mirrors the
 // configuration types + client pages, grouped for the overview at a glance.
 const MANAGED_AREAS: ManagedArea[] = [
-  {
-    name: 'Splunk Apps',
-    description:
-      'Apps and add-ons — install source, version, visibility, state, upgrade policy, and the .conf files the app ships. Splunk ships configuration as an app, so indexes.conf, authorize.conf, props/transforms and the rest are authored here and packaged into the app default/.',
-    componentTypes: ['search-head', 'indexer', 'deployment-server', 'heavy-forwarder', 'cluster-manager'],
-  },
-  {
-    name: 'HEC Tokens',
-    description: 'HTTP Event Collector tokens — routing, allowed indexes, and acknowledgment.',
-    componentTypes: ['indexer', 'heavy-forwarder'],
-  },
-  {
-    name: 'BYOL Infrastructure',
-    description: 'Bring-your-own-license infrastructure tracked for upgrade planning.',
-    componentTypes: ['indexer', 'search-head', 'cluster-manager'],
-  },
+  ...CONFIGURATION_AREAS.map(area => ({ ...area, componentTypes: [...area.componentTypes] })),
+  { name: 'BYOL Infrastructure', description: 'Provision and track infrastructure through configured platform workers; plan upgrades and manage version records.', componentTypes: ['indexer', 'search-head', 'cluster-manager'] },
+  { name: 'License Records', description: 'Record license XML and inspect live licensing status. Recording a file does not install it on Splunk.', componentTypes: ['license-server'] },
 ]
 
 /**
@@ -78,7 +66,7 @@ export default function OverviewPage() {
           </p>
           <p>
             New here? Open the <strong>Setup Guide</strong> to connect a Splunk component,
-            credential, and connectivity provider.
+            credential, and a reachable management endpoint.
           </p>
         </CardBody>
       </Card>
@@ -90,7 +78,7 @@ export default function OverviewPage() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
         }}
       >
-        <StatsCard label="Configuration areas" value={MANAGED_AREAS.length} variant="primary" />
+        <StatsCard label="Configuration types" value={CONFIGURATION_AREAS.length} variant="primary" />
         <StatsCard
           label="Tracked release lines"
           value={loading ? '—' : (versions?.length ?? 0)}
@@ -102,7 +90,7 @@ export default function OverviewPage() {
       {error ? (
         <Card variant="bordered" padding="md">
           <CardBody>
-            <p role="alert">Could not load version health: {error}</p>
+            <p role="alert">Could not load the version catalog: {error}</p>
           </CardBody>
         </Card>
       ) : null}

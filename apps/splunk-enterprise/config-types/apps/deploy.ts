@@ -115,7 +115,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
   // Reach the server over managed ZTNA (the tailnet device address) when there is
   // no explicit connectivity URL — the raw .local hostname is not resolvable.
-  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider, ctx.settings)
   const componentRoles = component.type ?? []
   const auth = buildAuthHeader(credential)
   const rollbackSnapshot: Record<string, unknown>[] = []
@@ -123,7 +123,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const deployedApps: string[] = []
   const installedPackages: Record<string, unknown>[] = []
   // Managed-ZTNA staging-dir placements (for the message + rollback).
-  const stagingPlaced: Array<{ appId: string; role: string; dir: string }> = []
+  const stagingPlaced: Array<{ appId: string; role: string; dir: string; existed: boolean }> = []
   const stagingNotes: string[] = []
 
   try {
@@ -141,6 +141,11 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       const sectionTargets = toStringArray(fields.targetTypes)
       if (sectionTargets.length > 0 && !sectionTargets.some((t) => componentRoles.includes(t))) {
         continue
+      }
+
+      const placements = plannedStagingPlacements(componentRoles, sectionTargets, fields)
+      if (placements.length > 0 && !ctx.remote) {
+        throw new Error(`Managed ZTNA remote access is required for staging and distributing ${appId}; select only etc/apps for a local REST install`)
       }
 
       const appPath = `${APP_BASE_PATH}/${encodeURIComponent(appId)}`
@@ -207,19 +212,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         // Server / Deployer target, drop the built .spl into the selected staging
         // dir over the tailnet and run the role's bundle push. REST already put it
         // in etc/apps; this is the distribute-to-peers/clients/members half.
-        const placements = plannedStagingPlacements(
-          component.type ?? [],
-          toStringArray(fields.targetTypes),
-          fields,
-        )
         for (const p of placements) {
           if (!ctx.remote) {
-            stagingNotes.push(`${p.label}: staging dir(s) ${p.dirs.join(', ')} selected but this server isn't reachable via managed ZTNA — installed to etc/apps only`)
-            continue
+            throw new Error(`${p.label}: managed ZTNA remote access is required for staging`)
           }
           for (const dir of p.dirs) {
+            const priorFiles = await ctx.remote.hashTree(`${ctx.remote.homeDir}/${dir}/${appId}`)
+            // Save provenance before extraction, which can fail after writing some files.
+            stagingPlaced.push({ appId, role: p.role, dir, existed: priorFiles.length > 0 })
             await ctx.remote.extractArchive(pkg.bytes, `${ctx.remote.homeDir}/${dir}`)
-            stagingPlaced.push({ appId, role: p.role, dir })
           }
           if (p.bundle) {
             // The Deployer's shcluster-bundle push needs a member as -target; the

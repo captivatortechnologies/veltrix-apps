@@ -1,10 +1,11 @@
 import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader, splunkRequest, postForm } from '../../lib/splunkApi'
+import { hasSplunkAddress, buildSplunkUrl, buildAuthHeader, getEntityContent, splunkRequest, postForm } from '../../lib/splunkApi'
 import { LICENSE_POOLS_PATH } from './deploy'
 
 interface LicensePoolRollbackData {
   previousState?: Array<Record<string, unknown>>
   createdPools?: string[]
+  recreatedPools?: string[]
 }
 
 /** Settings restored from the deploy-time snapshot (stack_id is immutable — never sent back). */
@@ -24,19 +25,20 @@ const RESTORE_KEYS = ['quota', 'peers', 'description'] as const
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const { component, credential, connectivity, connectivityProvider, rollbackData } = ctx
 
-  if (!credential || (!connectivity && !connectivityProvider)) {
-    return { success: false, message: 'Missing credential or connectivity for rollback' }
+  if (!credential || !hasSplunkAddress(component, connectivity, connectivityProvider)) {
+    return { success: false, message: 'Missing credential or Splunk management address for rollback' }
   }
 
   const data = (rollbackData as LicensePoolRollbackData) || {}
   const previousState = data.previousState ?? []
   const createdPools = data.createdPools ?? []
+  const recreatedPools = new Set(data.recreatedPools ?? [])
 
   if (previousState.length === 0 && createdPools.length === 0) {
     return { success: false, message: 'No previous state available for license pool rollback' }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider, ctx.settings)
   const auth = buildAuthHeader(credential)
   const undeletable: string[] = []
 
@@ -50,6 +52,16 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
         const value = poolState[key]
         if (value === undefined || value === null) continue
         payload[key] = String(value)
+      }
+      if (recreatedPools.has(name)) {
+        const current = await getEntityContent(baseUrl, auth, poolPath)
+        if (current && String(current.stack_id) !== String(poolState.stack_id)) {
+          await splunkRequest(`${baseUrl}${poolPath}`, { method: 'DELETE', headers: auth })
+        }
+        if (!current || String(current.stack_id) !== String(poolState.stack_id)) {
+          await postForm(baseUrl, auth, LICENSE_POOLS_PATH, { name, stack_id: String(poolState.stack_id), ...payload })
+          continue
+        }
       }
       if (Object.keys(payload).length > 0) {
         await postForm(baseUrl, auth, poolPath, payload)
@@ -77,7 +89,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
           'removing every pool (e.g. a stack\'s fixed default pool); remove manually if unwanted',
       )
     }
-    return { success: true, message: `Rollback complete: ${actions.join('; ')}` }
+    return { success: undeletable.length === 0, message: `Rollback ${undeletable.length ? 'incomplete' : 'complete'}: ${actions.join('; ')}` }
   } catch (error) {
     return { success: false, message: `Rollback failed: ${error instanceof Error ? error.message : 'Unknown error'}` }
   }

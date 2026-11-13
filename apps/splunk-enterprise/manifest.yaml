@@ -1,6 +1,6 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: "1.22.3"
+version: "1.23.0"
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
@@ -112,7 +112,7 @@ pipeline:
         # An app is the delivery vehicle for configuration, so it must reach every
         # Splunk role that carries configuration — heavy forwarders (inputs/props)
         # and the cluster manager (indexes.conf) included.
-        componentTypes: [search-head, indexer, deployment-server, heavy-forwarder, cluster-manager]
+        componentTypes: [search-head, indexer, deployment-server, heavy-forwarder, cluster-manager, deployer]
         requiresCredential: true
         requiresConnectivity: true
 

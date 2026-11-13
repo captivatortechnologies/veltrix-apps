@@ -1,10 +1,11 @@
 {
   "name": "veltrix-app-splunk-enterprise",
   "private": true,
-  "version": "1.22.3",
+  "version": "1.23.0",
   "description": "Veltrix app: manage Splunk Enterprise configurations as code (Splunk apps and the .conf files they ship, HEC tokens, license pools, API access tokens, BYOL infrastructure, version tracking)",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:client": "node ../../scripts/check-splunk-enterprise-client.mjs"
   },
   "peerDependencies": {
     "@aws-sdk/client-s3": "^3.1090.0",

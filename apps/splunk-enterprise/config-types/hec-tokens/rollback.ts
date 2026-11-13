@@ -1,5 +1,5 @@
 import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader, splunkRequest, postForm } from '../../lib/splunkApi'
+import { hasSplunkAddress, buildSplunkUrl, buildAuthHeader, splunkRequest, postForm } from '../../lib/splunkApi'
 import { HEC_BASE_PATH } from './deploy'
 
 interface HecRollbackData {
@@ -18,8 +18,8 @@ const RESTORE_KEYS = ['index', 'indexes', 'sourcetype', 'source', 'description',
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const { component, credential, connectivity, connectivityProvider, rollbackData } = ctx
 
-  if (!credential || (!connectivity && !connectivityProvider)) {
-    return { success: false, message: 'Missing credential or connectivity for rollback' }
+  if (!credential || !hasSplunkAddress(component, connectivity, connectivityProvider)) {
+    return { success: false, message: 'Missing credential or Splunk management address for rollback' }
   }
 
   const data = (rollbackData as HecRollbackData) || {}
@@ -30,7 +30,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
     return { success: false, message: 'No previous state available for HEC token rollback' }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider, ctx.settings)
   const auth = buildAuthHeader(credential)
 
   try {

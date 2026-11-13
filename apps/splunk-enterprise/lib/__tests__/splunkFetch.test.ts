@@ -34,6 +34,18 @@ describe('splunkFetch transport framing', () => {
     // test file (which shares this module registry) isn't still installed.
     __setSplunkTransport(null)
     server = createServer((req: IncomingMessage, res) => {
+      if (req.url === '/interrupted') {
+        res.writeHead(200, { 'Content-Length': '1000' })
+        res.write('partial')
+        setTimeout(() => res.destroy(), 10)
+        return
+      }
+      if (req.url === '/trickle') {
+        res.writeHead(200)
+        const ticker = setInterval(() => res.write('x'), 10)
+        res.on('close', () => clearInterval(ticker))
+        return
+      }
       const chunks: Buffer[] = []
       req.on('data', (c: Buffer) => chunks.push(c))
       req.on('end', () => {
@@ -97,5 +109,15 @@ describe('splunkFetch transport framing', () => {
     assert.equal(await res.text(), '{"ok":true}')
     assert.equal(captured!.method, 'GET')
     assert.equal(captured!.bodyLength, 0)
+  })
+
+  it('rejects interrupted responses instead of leaving a pending request', async () => {
+    await assert.rejects(splunkFetch(`http://127.0.0.1:${port}/interrupted`, { timeoutMs: 1000 }), /interrupted|aborted|reset/i)
+  })
+
+  it('enforces a total deadline even when a server keeps streaming bytes', async () => {
+    const started = Date.now()
+    await assert.rejects(splunkFetch(`http://127.0.0.1:${port}/trickle`, { timeoutMs: 100 }), /timed out/)
+    assert.ok(Date.now() - started < 1500)
   })
 })
