@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-11-13T00:15:17.736Z",
+  "generatedAt": "2026-11-13T14:03:27.280Z",
   "apps": [
     {
       "appId": "akamai",
@@ -1563,7 +1563,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.22.3",
+      "version": "1.23.0",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, license pools, API access tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -1573,12 +1573,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.22.3/splunk-enterprise.zip",
-      "sha256": "4adaece5de51e2fa41e894c35bef0ac05ccbde0a24f5c2f5aa6125fe2ec71508",
-      "sizeBytes": 515347,
-      "publishedAt": "2026-11-10T04:58:58.025Z",
-      "releaseNotes": "## 1.22.3 — 2026-11-10\n\n### Fixed — activation links work again on hosts with the default-deny route gate\n\nThe platform now refuses any app route that declares neither a permission\nrequirement nor an explicit opt-out, and the one-time activation routes\n(`GET`/`POST /activation/:token`) declared neither, so every activation link\nanswered 403 on production. They now declare `config.public`: the single-use\ntoken plus the signed-in user's customer check remain the authorization, as\ndesigned; no permission is granted that was not granted before.",
-      "releasedAt": "2026-11-10T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.23.0/splunk-enterprise.zip",
+      "sha256": "6df32235d5baf38696ae11c33f7363ed2bc631922c37ab697bca738ca682bd96",
+      "sizeBytes": 531193,
+      "publishedAt": "2026-11-13T14:03:27.263Z",
+      "releaseNotes": "## 1.23.0 - 2026-11-13\n\n### Fixed\n\n- Connection Test now shares management URL resolution and HTTP transport with\n  deployments, honors custom/managed addresses, rejects redirects and non-Splunk\n  responses, and distinguishes authentication tokens from HEC ingestion tokens.\n- Health, drift and rollback accept directly reachable targets without requiring\n  a connectivity record. HEC health honors deliberately disabled tokens and\n  numeric Splunk flags.\n- State reads fail closed on denied, failed or malformed responses instead of\n  treating unreadable objects as absent. Optional post-deploy resource reads\n  remain best effort. Drift checks report denied API reads instead of clearing drift.\n- License-pool stack changes capture the original pool before deletion and retain\n  recovery data even when replacement creation fails. Rollback restores the old\n  stack and reports undeletable objects as incomplete.\n- App health/drift resolve implicit app IDs and respect each item's target roles.\n  Added the missing deployer target; selected staging distribution now fails\n  before installation when remote execution is unavailable.\n- App rollback checks remote command results, reports missing package backups and\n  preserves pre-existing staging content. It no longer reports a successful undo\n  when the previous package bytes or cleanup are unavailable.\n- Shared transport rejects interrupted responses and enforces a total request\n  deadline. Live license reads handle invalid connections and resolver failures.\n- Settings uses the declared apps permission rather than the removed indexes permission.\n\n### Improved\n\n- Replaced the obsolete setup guide with six steps covering roles, credentials,\n  least privilege, ports, routing, pilot deployment, clusters, recovery and troubleshooting.\n- Overview lists all four configuration types plus infrastructure and license records.\n- Documented remaining TLS validation, package backup, live acceptance and version\n  maintenance work; expanded executable regression checks and client verification.",
+      "releasedAt": "2026-11-13T00:00:00.000Z"
     },
     {
       "appId": "splunk-soar",
