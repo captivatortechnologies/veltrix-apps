@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-11-12T16:44:20.269Z",
+  "generatedAt": "2026-11-13T00:15:17.736Z",
   "apps": [
     {
       "appId": "akamai",
@@ -945,7 +945,7 @@
     {
       "appId": "microsoft-entra-id",
       "name": "Microsoft Entra ID",
-      "version": "0.10.1",
+      "version": "0.11.0",
       "vendor": "Veltrix",
       "description": "Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the Microsoft Graph API. Covers Conditional Access, named locations, security groups, administrative units, custom roles and authentication strengths/contexts; the tenant authorization, security-defaults, authentication-methods, authentication-flows, admin-consent-request, permission-grant, cross-tenant access, app-management, token-issuance / lifetime / claims-mapping, home-realm-discovery, activity-timeout and feature-rollout policies; group directory settings, custom security attributes, external identity providers, delegated permission grants, user-flow attributes and self-service sign-up flows; and identity governance (entitlement catalogs, access packages, assignment policies, connected organizations, access reviews, lifecycle workflows and PIM role activation policies); plus company branding — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Adds user/device profiles, direct licensing, advanced groups, federation, provisioning, application API/SSO, custom attribute assignments and synchronization configuration; plus confirmed lifecycle operations and bounded read-only audit, risk and governance reports.",
       "category": "IAM",
@@ -954,11 +954,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.10.1/microsoft-entra-id.zip",
-      "sha256": "4e9dc81c36280b0f2ae6da69ed3d4270a3e4e880dd3bb61f4ce28541882eba72",
-      "sizeBytes": 1324244,
-      "publishedAt": "2026-11-12T16:44:20.232Z",
-      "releaseNotes": "## 0.10.1 - 2026-11-12\n\n### Fixed\n\n- Declared bounded resource authorization for metadata/settings routes so the platform recognizes their dynamic resource permission checks and does not deny them as ungated.\n- Requires the platform update that supports `requiresAppPermission.resourceFromQuery`; existing inline permission checks remain active.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.11.0/microsoft-entra-id.zip",
+      "sha256": "b0e4d0a2eca041c801086594bb25e87553b97acbb0c5479e42542bce731b4119",
+      "sizeBytes": 1328454,
+      "publishedAt": "2026-11-13T00:15:17.687Z",
+      "releaseNotes": "## 0.11.0 - 2026-11-12\n\n### Added\n\n- Added Integrate with Microsoft (OAuth) with signed OpenID Connect administrator verification, S256 PKCE, tenant-bound admin consent and brokered app-only tokens.\n- Captures verified tenant/cloud bindings per saved connection, preserving existing directories and manual credentials.\n- Added onboarding instructions, platform connector prerequisites, consent/reconnection guidance and cloud-name compatibility.\n\n### Platform dependency\n\n- Requires platform support for connection-map tenant capture, connection-bound token brokers and settings/broker injection into pipeline contexts.",
       "releasedAt": "2026-11-12T00:00:00.000Z"
     },
     {
