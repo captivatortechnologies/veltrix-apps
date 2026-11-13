@@ -219,6 +219,8 @@ export interface OnboardingCapture {
   /**
    * Where to write the consented tenant id. `setting:<key>` writes it into the
    * named app setting (the app libs read it as their `tenant_id`).
+   * `connection-map:<key>` atomically adds {tenantId, cloud} under the new credential ID
+   * in the named installation setting, preserving other connection bindings.
    */
   tenantId?: string
   /**

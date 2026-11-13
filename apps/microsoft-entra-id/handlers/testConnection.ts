@@ -41,6 +41,7 @@ export default async function testConnection(
   const cred = resolveGraphCredential(ctx.credential, settings, ctx.identity)
   if (!cred) return { ok: false, message: MISSING_CREDENTIAL_MESSAGE }
 
+  const brokered=!!cred.identity&&!cred.clientSecret&&!cred.certificate
   const client = buildGraphClient(cred, settings)
   const details = [`Tenant: ${cred.tenantId}`, `Client ID: ${cred.clientId}`, `Cloud: ${cred.cloud ?? 'global'}`, `Auth: ${cred.certificate ? 'certificate' : cred.identity && !cred.clientSecret ? 'platform broker' : 'client secret'}`]
   const started = Date.now()
@@ -56,8 +57,9 @@ export default async function testConnection(
     return {
       ok: false,
       message:
-        `Microsoft Graph rejected the app registration (HTTP ${res.status}). Check the client secret and that ` +
-        `admin consent was granted for the required application permissions.`,
+        brokered
+          ? `Microsoft Graph rejected the OAuth connector (HTTP ${res.status}). Check its application permissions and admin consent, then reconnect through Microsoft OAuth if access was revoked.`
+          : `Microsoft Graph rejected the app registration (HTTP ${res.status}). Check the client secret and that admin consent was granted for the required application permissions.`,
       details,
       latencyMs,
     }

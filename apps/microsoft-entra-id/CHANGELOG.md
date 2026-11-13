@@ -8,6 +8,18 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.11.0 - 2026-11-12
+
+### Added
+
+- Added Integrate with Microsoft (OAuth) with signed OpenID Connect administrator verification, S256 PKCE, tenant-bound admin consent and brokered app-only tokens.
+- Captures verified tenant/cloud bindings per saved connection, preserving existing directories and manual credentials.
+- Added onboarding instructions, platform connector prerequisites, consent/reconnection guidance and cloud-name compatibility.
+
+### Platform dependency
+
+- Requires platform support for connection-map tenant capture, connection-bound token brokers and settings/broker injection into pipeline contexts.
+
 ## 0.10.1 - 2026-11-12
 
 ### Fixed

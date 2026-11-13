@@ -10,14 +10,25 @@ The in-app **Setup Guide** walks through registration, consent, credentials, ver
 
 ## Prerequisites
 
-- A test Entra tenant, access to app registrations, and an administrator authorized to consent to the selected Microsoft Graph application permissions.
+- A test Entra tenant and an administrator authorized to consent to the selected Microsoft Graph application permissions. Manual connections also require access to app registrations.
 - Veltrix access to app settings, credentials, Connections, and the Configuration Canvas.
 - Outbound HTTPS from the handler runtime to `login.microsoftonline.com` and `graph.microsoft.com`. No SSH or ZTNA connection is required.
 - Appropriate feature licenses. Conditional Access requires Entra ID P1; risk-based policies require P2. Governance features have separate licensing requirements. See [Microsoft licensing requirements](https://learn.microsoft.com/en-us/entra/identity/conditional-access/overview#license-requirements).
 
-The client uses Graph `v1.0` with client secrets, certificate assertions, or an optional platform identity broker. Microsoft cloud settings select allowlisted global, US Government, DoD, or China hosts. Individual feature availability still depends on the cloud. The connection endpoint cannot override these hosts. See [authentication and tenant targeting](AUTHENTICATION.md) for credential formats, broker requirements, and migration instructions.
+The client uses Graph `v1.0`. Microsoft OAuth onboarding uses the platform identity broker; manual connections can use client secrets or certificate assertions. Microsoft cloud settings select allowlisted global, US Government, DoD, or China hosts. Individual feature availability still depends on the cloud. The connection endpoint cannot override these hosts. See [authentication and tenant targeting](AUTHENTICATION.md) for credential formats, broker requirements, and migration instructions.
 
-## Register and authorize an application
+## Connect using Microsoft OAuth
+
+1. Open **Connections > Integrate with Microsoft (OAuth)**, name the connection, and select its environment.
+2. Sign in on Microsoft's page with an active **Global Administrator** or **Privileged Role Administrator** account. Veltrix verifies the Microsoft OpenID Connect token and directory role, then sends you to consent in that same directory.
+3. Review and approve the connector's permissions on Microsoft. Return to Veltrix and run **Test**. The connection's tenant and cloud are captured automatically; no customer client secret or installation-wide Tenant ID is required.
+4. Select that connection's `entra-tenant` target in the canvas, or use it in Operations/Reports. Each connection retains its own directory binding. Existing manual tenant settings and saved connections remain available.
+
+A platform administrator must complete the [connector setup](AUTHENTICATION.md#platform-connector-setup) once. If it is missing, the dialog reports that integration is unavailable and asks you to contact the platform administrator. The connector registration determines the actual permission grant shown by Microsoft; adding a capability can require additional permissions and renewed consent. Test verifies organization/read access, not every write or license.
+
+OAuth authorizes Graph access for background administration; OpenID Connect verifies the connecting administrator. This connection flow does not change Veltrix account sign-in or enable delegated-only Graph features. The platform retains its central connector credential encrypted; customer connections carry no secret.
+
+## Register and authorize a manual application
 
 1. In the [Entra admin center](https://entra.microsoft.com), find **App registrations**, select **New registration**, and choose accounts in this organizational directory only. This server-to-server flow needs no redirect URI.
 2. Copy **Application (client) ID** and **Directory (tenant) ID** from Overview.

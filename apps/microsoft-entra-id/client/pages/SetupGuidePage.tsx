@@ -136,6 +136,14 @@ export default function SetupGuidePage() {
   return <>
     <Card variant="bordered" padding="md"><CardBody>
       <h2>Connect Microsoft Entra ID</h2>
+      <h3>Connect using Microsoft OAuth</h3>
+      <ol>
+        <li>Open Connections and choose <strong>Integrate with Microsoft (OAuth)</strong>.</li>
+        <li>Name the connection, select its environment, then continue to Microsoft and sign in with an active Global Administrator or Privileged Role Administrator, then review and approve access.</li>
+        <li>Return to Veltrix and choose Test. Each saved connection keeps its own directory binding; no client secret or Tenant ID needs to be entered by the connecting administrator.</li>
+      </ol>
+      <p>A platform administrator first configures the Entra connector in Platform Admin &gt; Cloud Integrations &gt; Settings. If the connector is unavailable, the dialog explains that prerequisite. Choose Microsoft Entra OAuth / OpenID Connect in Connector apps and configure DirectoryRole claims on the registration. Microsoft shows the permissions configured on that connector registration; adding features can require new consent.</p>
+      <p>OpenID Connect verifies the connecting Microsoft administrator; OAuth admin consent authorizes background Graph operations. User sign-in alone does not grant Graph administration permissions. The manual setup steps below remain available for existing registrations.</p>
       <p>Register an application, grant feature-specific permissions, then verify your tenant and first deployment.
         Complete these steps in order.</p>
     </CardBody></Card>

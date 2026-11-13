@@ -3,6 +3,7 @@
 // These represent the data apps receive from the platform
 // ========================================================================
 
+import type {IdentityBroker} from './pipeline'
 import type { AppManifest } from './manifest'
 
 export interface Component {
@@ -384,6 +385,8 @@ export interface AppRouteContext {
    * another tenant's credential.
    */
   resolveConnection: (customerId: string, credentialId: string) => Promise<ResolvedConnection | null>
+  /** Optional host broker bound to this app, the verified request tenant and saved connection. */
+  identityForConnection?: (credentialId: string) => IdentityBroker
 }
 
 export interface AppProvisioningContext {

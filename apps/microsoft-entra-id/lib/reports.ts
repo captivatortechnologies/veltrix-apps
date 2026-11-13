@@ -1,7 +1,7 @@
 import type { AppRouteContext } from '@veltrixsecops/app-sdk'
 import type { FastifyInstance } from 'fastify'
 import { ENTRA_REPORTS, type ReportDefinition } from './reportDefinitions'
-import { buildGraphClient, graphErrorMessage, parseJson, readGraphSettings, resolveGraphCredential } from './graph'
+import { buildGraphClient, graphErrorMessage, parseJson, readGraphSettings, resolveGraphCredential, type GraphIdentity } from './graph'
 
 export function reportPath(def:ReportDefinition,query:Record<string,unknown>,now=new Date()):string {
  const values:Record<string,string>={}
@@ -40,7 +40,8 @@ export function registerReports(fastify:FastifyInstance,ctx:AppRouteContext){
     if(!connection)return reply.status(404).send({error:'Connection is unavailable in the current tenant'})
     const installation=await ctx.db.appInstallation.findFirst({where:{app:{appId:ctx.appId},customerId,enabled:true}})
     const settings=readGraphSettings((installation?.settings??{}) as Record<string,unknown>)
-    const credential=resolveGraphCredential(connection,settings)
+    const identity=(ctx as AppRouteContext & {identityForConnection?:(id:string)=>GraphIdentity}).identityForConnection?.(connectionId)
+    const credential=resolveGraphCredential(connection,settings,identity)
     if(!credential)return reply.status(400).send({error:settings.configurationError??'Configure the connection tenant and a usable credential'})
     const client=buildGraphClient(credential,settings)
     if(def.single){

@@ -1,6 +1,6 @@
 id: microsoft-entra-id
 name: Microsoft Entra ID
-version: "0.10.1"
+version: "0.11.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
@@ -1468,6 +1468,24 @@ hooks:
 
 # Connection-level connectivity test: verifies the app-registration credential by
 # running the OAuth2 client-credentials exchange and calling GET /organization.
+connection:
+  onboarding:
+    provider: entra-oidc-consent
+    label: Integrate with Microsoft (OAuth)
+    componentType: entra-tenant
+    description: >-
+      Sign in with your Microsoft administrator account and approve the Veltrix
+      connector. Your directory is saved to this connection automatically;
+      you do not need to create or paste a client secret.
+    params:
+      brokered: true
+      cloudSetting: azure_cloud
+      requiredResourceAccess:
+        - resource: Graph
+          appPermissions: [Organization.Read.All]
+      capture:
+        tenantId: "connection-map:connection_tenants"
+
 connectivity:
   testHandler: handlers/testConnection
 

@@ -68,11 +68,17 @@ export function resolveGraphCredential(
   const tenantId = (override?.tenantId ?? settings.tenantId ?? '').trim()
   if ((!clientId && !identity) || (!clientSecret && !credential.certificate && !identity) || !tenantId) return null
   return { tenantId, clientId, clientSecret, certificate: credential.certificate ?? undefined,
-    cloud: override?.cloud ?? settings.cloud ?? 'global', identity }
+    cloud: normalizeGraphCloud(override?.cloud ?? settings.cloud ?? 'global'), identity }
+}
+
+/** Platform onboarding uses canonical Azure cloud names; manual settings retain their names. */
+export function normalizeGraphCloud(cloud:string):string {
+  const value=cloud.trim().toLowerCase()
+  return ({commercial:'global',gcc:'global','gcc-high':'us-gov',dod:'us-gov-dod'} as Record<string,string>)[value]??value
 }
 
 export const MISSING_CREDENTIAL_MESSAGE =
-  'No usable Microsoft Entra credential — this app authenticates as an Entra app ' +
+  'Open Connections and choose Integrate with Microsoft (OAuth), or configure a manual connection. No usable Microsoft Entra credential — this app authenticates as an Entra app ' +
   'registration via OAuth2 client credentials. Store the application (client) ID in the ' +
   'credential "username" field and a client secret in "password" or "apiToken" (or a PEM certificate/private key in "certificate"), and set the directory ' +
   '(tenant) ID in the app\'s "Tenant ID" setting. The app registration needs the Graph ' +

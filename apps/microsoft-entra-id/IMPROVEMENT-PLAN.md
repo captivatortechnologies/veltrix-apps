@@ -1,5 +1,11 @@
 # Microsoft Entra ID improvement status
 
+## Version 0.11.0 OAuth integration
+
+Added Microsoft OAuth/OpenID Connect onboarding on Connections. The platform verifies the administrator through signed OIDC, nonce and PKCE, then requests consent in that directory and saves an atomic per-connection tenant/cloud binding. Token brokers enforce credential ownership, app identity and consent provenance. Pipeline contexts now include saved app settings and the connection-bound broker for deploy, rollback, health, validation and drift.
+
+Manual connections remain supported. A platform administrator must register the cloud-specific connector once, including DirectoryRole claims and the exact callback. See [connector setup](AUTHENTICATION.md#platform-connector-setup). Live consent still requires that external registration and a licensed Microsoft sandbox.
+
 ## Version 0.10.0 implementation
 
 Implemented 22 additional configuration types (64 total), 40 administrative actions and 31 read-only reports. Added saved-connection Operations/Reports pages, expanded Conditional Access/authentication settings, direct licensing with inheritance protection, resource preflight/rollback/drift, provisioning/governance workflows and scoped readiness. Setup includes permissions, target IDs, managed JSON fields, asynchronous checks and irreversible effects.
