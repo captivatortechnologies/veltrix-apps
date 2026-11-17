@@ -1,4 +1,4 @@
-import { checkAuth } from '../lib/api.mjs'
+import { checkAuth, describeExpiry, getOrganization } from '../lib/api.mjs'
 import { getProfile } from '../lib/config.mjs'
 
 export async function whoamiCommand(options) {
@@ -9,16 +9,15 @@ export async function whoamiCommand(options) {
   }
 
   try {
-    const identity = await checkAuth(profile)
-    // The API key's access is governed by its RBAC role; `permissions` lists the
-    // grants that role confers (what the key can actually do). Fall back to the
-    // raw `scopes` for older servers that don't return permissions.
-    const grants = identity.permissions?.length ? identity.permissions : identity.scopes
+    // The platform reports only whether the key is valid and when it expires.
+    // What the key may do is decided by its bound RBAC role, which is managed
+    // in the portal (Settings → Keys & Tokens) and not listed over the API.
+    const keyStatus = await checkAuth(profile)
+    const organization = await getOrganization(profile)
     console.log(`url:      ${profile.url}`)
-    console.log(`customer: ${identity.customerId}`)
-    console.log(`type:     ${identity.type ?? 'api-key'}`)
-    console.log(`role:     ${identity.role ?? '(none)'}`)
-    console.log(`scopes:   ${grants?.join(', ') || '(none)'}`)
+    console.log(`tenant:   ${organization ? `${organization.name} (${organization.id})` : '(not readable with this key)'}`)
+    console.log(`key:      ${keyStatus.valid ? 'valid' : 'invalid'}`)
+    console.log(`expires:  ${describeExpiry(keyStatus.expiresAt)}`)
   } catch (e) {
     console.error(`✖ ${e.message}`)
     process.exit(1)

@@ -1,5 +1,5 @@
 import readline from 'node:readline'
-import { checkAuth } from '../lib/api.mjs'
+import { KEY_STATUS_PATH, checkAuth, describeExpiry, getOrganization } from '../lib/api.mjs'
 import { setProfile, configPath } from '../lib/config.mjs'
 
 /** Prompt for a secret without echoing it. */
@@ -41,7 +41,7 @@ function authFailureHint(error, url) {
     return '  The API key is invalid, revoked, or missing the required scopes — create a new one in Settings → Keys & Tokens.'
   }
   if (error.status === 404) {
-    return `  ${url} does not expose the Veltrix API (no /api/auth/api-key/check). Check the --url value.`
+    return `  ${url} does not expose the Veltrix API (no /${KEY_STATUS_PATH}). Check the --url value, and that the platform is up to date.`
   }
   return null
 }
@@ -63,9 +63,9 @@ export async function loginCommand(options) {
   }
 
   const profile = { url, apiKey }
-  let identity
+  let keyStatus
   try {
-    identity = await checkAuth(profile)
+    keyStatus = await checkAuth(profile)
   } catch (e) {
     console.error(`✖ Authentication failed: ${e.message}`)
     const hint = authFailureHint(e, url)
@@ -76,7 +76,8 @@ export async function loginCommand(options) {
 
   setProfile(options.profile, profile)
   console.log(`✔ Logged in to ${url}`)
-  console.log(`  customer: ${identity.customerId}`)
-  console.log(`  scopes:   ${identity.scopes?.join(', ') || '(none)'}`)
+  const organization = await getOrganization(profile)
+  if (organization) console.log(`  tenant:   ${organization.name} (${organization.id})`)
+  console.log(`  expires:  ${describeExpiry(keyStatus.expiresAt)}`)
   console.log(`  saved to: ${configPath()} (profile "${options.profile}")`)
 }

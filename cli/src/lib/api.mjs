@@ -80,7 +80,27 @@ export async function apiUpload(
   })
 }
 
-/** Verify the API key and return { customerId, type, scopes, ownership }. */
+export const KEY_STATUS_PATH = 'api/api-keys/self'
+
+/** Verify the API key against the platform and return { valid, expiresAt }. */
 export async function checkAuth(profile) {
-  return apiRequest(profile, 'GET', 'api/auth/api-key/check')
+  return apiRequest(profile, 'GET', KEY_STATUS_PATH)
+}
+
+/**
+ * The tenant the key belongs to ({ id, name }), or null when the key's role
+ * cannot read the organization — identity display must never fail on it.
+ */
+export async function getOrganization(profile) {
+  try {
+    const organization = await apiRequest(profile, 'GET', 'api/organization')
+    return organization?.id ? { id: organization.id, name: organization.name } : null
+  } catch {
+    return null
+  }
+}
+
+/** One display line for a key's expiry. */
+export function describeExpiry(expiresAt) {
+  return expiresAt ? new Date(expiresAt).toISOString() : 'never'
 }

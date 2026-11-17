@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.3 — 2026-11-17
+
+### `login` and `whoami` work against current platforms again
+
+Both commands called `/api/auth/api-key/check`, which the platform removed, so
+`veltrix login` failed with a 404 and told you to check `--url`. They now verify
+the key with `/api/api-keys/self` and show the tenant and the key's expiry. The
+platform no longer reports a key's scopes or role over the API, so those lines
+are gone; the key's role is managed in Settings → Keys & Tokens.
+
 ## 0.9.2 — 2026-09-17
 
 ### `validate` catches the braced form of the drift guard too
