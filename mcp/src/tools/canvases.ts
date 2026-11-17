@@ -22,7 +22,7 @@ const CANVAS_STATUSES = [
 const sectionsSchema = z
   .array(z.record(z.string(), z.unknown()))
   .describe(
-    'Canvas sections: each section has name, order, and a fields array (key, label, fieldType, value, required, order). Get the exact sections and fields for a configuration type from veltrix_get_config_type_schema, or copy the shape of an existing canvas from veltrix_get_canvas.',
+    'Canvas sections: each section has name, order, and a fields array (key, label, fieldType, value, required, order). Take field keys, types and allowed values from veltrix_get_config_type_schema, and copy the section layout from an existing canvas of the same type (veltrix_get_canvas) when one exists.',
   );
 
 // Schemas are annotated as ZodRawShape to keep tsc from materializing the

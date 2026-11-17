@@ -8,7 +8,11 @@
  * Run from mcp/ after `npm run build`:  npm run smoke
  *
  * Env overrides: VELTRIX_API_URL, VELTRIX_SMOKE_EMAIL, VELTRIX_SMOKE_PASSWORD,
- * VELTRIX_SMOKE_TOOL_TYPE, VELTRIX_SMOKE_ENTITY_TYPE.
+ * VELTRIX_SMOKE_TOOL_TYPE, VELTRIX_SMOKE_ENTITY_TYPE (default: the app's first
+ * configuration type).
+ *
+ * The tenant must be on a plan that includes MCP access; on the free tier the
+ * server refuses every tool and the smoke stops with that message.
  */
 const path = require('path');
 const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
@@ -18,7 +22,6 @@ const API = (process.env.VELTRIX_API_URL || 'http://127.0.0.1:5000').replace(/\/
 const EMAIL = process.env.VELTRIX_SMOKE_EMAIL || 'dev@local.test';
 const PASSWORD = process.env.VELTRIX_SMOKE_PASSWORD || 'DevLocal@123';
 const TOOL_TYPE = process.env.VELTRIX_SMOKE_TOOL_TYPE || 'splunk-enterprise';
-const ENTITY_TYPE = process.env.VELTRIX_SMOKE_ENTITY_TYPE || 'config-files';
 const SERVER_ENTRY = path.join(__dirname, '..', 'dist', 'index.js');
 
 const failures = [];
@@ -73,7 +76,15 @@ async function main() {
 
   let canvasId;
   try {
-    await call('veltrix_whoami');
+    const whoami = await call('veltrix_whoami', {}, { allowError: true });
+    if (whoami.result.isError) {
+      const planGate = /not included in this tenant's current plan/.test(whoami.text);
+      throw new Error(
+        planGate
+          ? 'The smoke tenant is on a plan without MCP access, so no tool can run. Use a tenant on a paid tier.'
+          : `veltrix_whoami failed: ${whoami.text.slice(0, 300)}`,
+      );
+    }
     await call('veltrix_pipeline_summary');
     await call('veltrix_list_canvases', { limit: 3 });
     await call('veltrix_list_apps', { enabledOnly: true });
@@ -83,8 +94,10 @@ async function main() {
     await call('veltrix_audit_logs');
 
     console.log('[4] schema discovery');
-    await call('veltrix_get_app', { appId: TOOL_TYPE });
-    await call('veltrix_get_config_type_schema', { appId: TOOL_TYPE, configTypeId: ENTITY_TYPE });
+    const app = (await call('veltrix_get_app', { appId: TOOL_TYPE })).json();
+    const ENTITY_TYPE = process.env.VELTRIX_SMOKE_ENTITY_TYPE || app.configurationTypes[0].id;
+    const schema = (await call('veltrix_get_config_type_schema', { appId: TOOL_TYPE, configTypeId: ENTITY_TYPE })).json();
+    check('schema carries the canvas template', schema.canvas && typeof schema.canvas === 'object');
 
     console.log('[5] draft -> validate -> review -> versions');
     const created = (

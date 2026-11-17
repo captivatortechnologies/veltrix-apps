@@ -56,7 +56,7 @@ export function registerCatalogTools(server: McpServer, client: VeltrixClient): 
     {
       title: 'Get configuration type schema',
       description:
-        'Returns the authoring schema for one configuration type of an app: the canvas template (sections and fields with their types, labels, options and required flags) and the default values. Call this before veltrix_create_canvas so the sections you send match what the app’s validator and deploy handler expect.',
+        'Returns the authoring schema for one configuration type of an app: the canvas template exactly as the app declares it (its fields with key, label, fieldType, required flag, validation rules and options, grouped the way the app groups them) and the default values. Call this before veltrix_create_canvas so you use real field keys and valid values. To see how those fields are laid out inside a canvas’s sections, look at an existing canvas of the same type with veltrix_get_canvas; veltrix_validate_canvas is the authority on whether a draft is correct.',
       inputSchema: configTypeSchema,
       annotations: READ,
     },
