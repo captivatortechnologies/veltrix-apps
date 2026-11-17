@@ -1,0 +1,95 @@
+name: Publish MCP server
+
+# Publishes @veltrixsecops/mcp-server to npm from an mcp-v<version> tag. The job
+# is idempotent: a re-run or manual dispatch on a version already on npm is a
+# green no-op.
+on:
+  push:
+    tags: ['mcp-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # npm provenance attestation
+
+jobs:
+  publish:
+    name: Publish @veltrixsecops/mcp-server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+
+      - name: Verify tag matches package version
+        if: github.ref_type == 'tag'
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#mcp-v}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match mcp/package.json version $PKG_VERSION"
+            exit 1
+          fi
+
+      - name: Resolve publish decision
+        id: resolve
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "@veltrixsecops/mcp-server@$VERSION" version >/dev/null 2>&1; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "@veltrixsecops/mcp-server@$VERSION is already on npm — nothing to publish."
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+            echo "@veltrixsecops/mcp-server@$VERSION is not on npm — will publish."
+          fi
+
+      - name: Install
+        if: steps.resolve.outputs.already_published == 'false'
+        run: npm ci --no-audit --no-fund
+
+      - name: Build
+        if: steps.resolve.outputs.already_published == 'false'
+        run: npm run build
+
+      - name: Test
+        if: steps.resolve.outputs.already_published == 'false'
+        run: npm test
+
+      - name: Smoke test the packaged binary
+        if: steps.resolve.outputs.already_published == 'false'
+        run: |
+          TARBALL=$(npm pack --silent)
+          mkdir -p "$RUNNER_TEMP/mcp-pack" && cd "$RUNNER_TEMP/mcp-pack"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund "$GITHUB_WORKSPACE/mcp/$TARBALL"
+          test "$(npx veltrix-mcp --version)" = "${{ steps.resolve.outputs.version }}"
+          npx veltrix-mcp --help >/dev/null
+
+      # Preflight the credential so a bad/expired token fails with a clear reason
+      # instead of npm's cryptic "E404 Not Found - PUT".
+      - name: Verify npm auth
+        if: steps.resolve.outputs.already_published == 'false'
+        run: |
+          npm whoami >/dev/null 2>&1 || {
+            echo "::error title=NPM_TOKEN invalid::npm authentication failed — the NPM_TOKEN repo secret is missing, expired, revoked, or lacks publish access to @veltrixsecops. Regenerate an npm Automation token (2FA-bypass) with read+write to the @veltrixsecops scope and update the NPM_TOKEN secret."
+            exit 1
+          }
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish
+        if: steps.resolve.outputs.already_published == 'false'
+        run: npm publish --provenance --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
