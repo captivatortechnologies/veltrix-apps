@@ -84,7 +84,7 @@ The key's bound role decides what the assistant can do. Start narrow.
 | Change author | the above, plus `configuration-canvas:write`, `user:read` (to look up approvers), and read on the configuration types it should author |
 | Operator | the above; deploy, pause, promote and rollback use `configuration-canvas:write` and are still gated by approval and environment policy |
 
-`veltrix_whoami` shows exactly what a key grants.
+`veltrix_whoami` confirms the key is valid, when it expires, and which tenant and plan it belongs to. It does not list permissions; a tool that needs one the role lacks returns a 403 that says so.
 
 Changes made with a key are attributed in the audit trail to that key's own identity, shown as **API: \<key name\>**, so reviewers can see which assistant or integration proposed a change. That identity cannot sign in and cannot be named as an approver.
 

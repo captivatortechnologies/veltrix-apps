@@ -29,7 +29,7 @@ const INSTRUCTIONS = [
   'This MCP server is propose-only: you can draft, validate, and submit configuration changes and',
   'trigger deployments of already-approved canvases, but approval decisions are made by humans in the',
   'Veltrix portal. They are not available here, and the Veltrix API refuses them for API keys.',
-  'Start with veltrix_whoami to see the tenant and the permissions your API key grants; use',
+  'Start with veltrix_whoami to confirm the key, tenant and plan (what you may do is set by the key’s role); use',
   'veltrix_pipeline_summary for a state-of-the-world overview.',
   'To draft a change: veltrix_list_apps -> veltrix_get_app -> veltrix_get_config_type_schema ->',
   'veltrix_create_canvas -> veltrix_validate_canvas -> veltrix_list_approvers ->',

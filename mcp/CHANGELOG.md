@@ -19,6 +19,10 @@ First npm release.
 - HTTP mode: `Host` header allowlist (`VELTRIX_MCP_ALLOWED_HOSTS`; localhost-only by default when a fallback key is configured), rejection of credentials that are not `vltx_` keys before any upstream call, graceful shutdown on `SIGTERM` / `SIGINT`.
 - `--help` and `--version`.
 
+### Fixed
+
+- `veltrix_whoami` called `/api/auth/api-key/check`, which the platform removed; it returned 404. It now reads the key's status from `/api/api-keys/self` plus the tenant's organization and plan. It no longer lists the key's permissions, because the platform does not expose them.
+
 ### Changed
 
 - Requires a Veltrix platform that enforces propose-only for API keys and lets role-bound keys list users and read configuration-type templates. On older platforms `veltrix_list_approvers` and `veltrix_get_config_type_schema` return 401.

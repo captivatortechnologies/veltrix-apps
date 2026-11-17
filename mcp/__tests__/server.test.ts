@@ -228,15 +228,53 @@ describe('buildMcpServer', () => {
       ]);
     });
 
-    it('veltrix_whoami forwards the API key after the entitlement probe', async () => {
-      const identity = { authenticated: true, customerId: 'cust-1', permissions: ['configuration-canvas:read'] };
-      fetchMock.mockResolvedValue(respond(200, identity));
+    describe('veltrix_whoami', () => {
+      const whoamiApi = (organization: ReturnType<typeof respond>) => async (url: URL) => {
+        if (url.pathname === '/api/api-keys/self') return respond(200, { valid: true, expiresAt: null });
+        if (url.pathname === '/api/organization') return organization;
+        if (url.pathname === '/api/subscription/mcp-access') return respond(200, { enabled: true, tier: 'enterprise' });
+        return respond(404, { error: 'Route not found' });
+      };
 
-      const result = await client.callTool({ name: 'veltrix_whoami', arguments: {} });
+      it('reports key status, organization and plan from routes the platform serves', async () => {
+        fetchMock.mockImplementation(whoamiApi(respond(200, { id: 'cust-1', name: 'Acme', billingEmail: 'x@acme.test' })));
 
-      expect(JSON.parse(textOf(result))).toEqual(identity);
-      expect(String(fetchMock.mock.calls[0][0])).toContain('/api/subscription/mcp-access');
-      expect(apiCalls()[0].url.pathname).toBe('/api/auth/api-key/check');
+        const result = await client.callTool({ name: 'veltrix_whoami', arguments: {} });
+
+        expect(result.isError).toBeFalsy();
+        expect(JSON.parse(textOf(result))).toEqual({
+          key: { valid: true, expiresAt: null },
+          organization: { id: 'cust-1', name: 'Acme' },
+          plan: { enabled: true, tier: 'enterprise' },
+        });
+        expect(String(fetchMock.mock.calls[0][0])).toContain('/api/subscription/mcp-access');
+        expect(apiCalls().some(({ url }) => url.pathname === '/api/auth/api-key/check')).toBe(false);
+        expect(apiCalls()[0].init.headers['x-api-key']).toBe('vltx_test');
+      });
+
+      it('still succeeds when the key’s role cannot read the organization', async () => {
+        fetchMock.mockImplementation(whoamiApi(respond(403, { error: 'missing organization:read' })));
+
+        const result = await client.callTool({ name: 'veltrix_whoami', arguments: {} });
+
+        expect(result.isError).toBeFalsy();
+        const identity = JSON.parse(textOf(result));
+        expect(identity.key).toEqual({ valid: true, expiresAt: null });
+        expect(identity.organization.unavailable).toContain('403');
+      });
+
+      it('fails when the key itself is rejected', async () => {
+        fetchMock.mockImplementation(async (url: URL) =>
+          url.pathname === '/api/subscription/mcp-access'
+            ? respond(200, { enabled: true, tier: 'enterprise' })
+            : respond(401, { error: 'Invalid API key' }),
+        );
+
+        const result = await client.callTool({ name: 'veltrix_whoami', arguments: {} });
+
+        expect(result.isError).toBe(true);
+        expect(textOf(result)).toContain('401');
+      });
     });
   });
 

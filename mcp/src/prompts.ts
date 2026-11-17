@@ -49,7 +49,7 @@ export function registerPrompts(server: McpServer): void {
           app ? `Target app: ${app}.` : 'Work out the target app with veltrix_list_apps (enabledOnly) and confirm it with me if it is ambiguous.',
           '',
           'Follow the governed pipeline:',
-          '1. veltrix_whoami — confirm the tenant and that this key can write canvases.',
+          '1. veltrix_whoami — confirm the key is valid and which tenant this is.',
           '2. veltrix_list_canvases — check whether a canvas for this configuration already exists. If one is deployed or approved, duplicate it rather than editing it.',
           '3. veltrix_get_app and veltrix_get_config_type_schema — use the real field schema; do not invent fields.',
           '4. veltrix_create_canvas or veltrix_update_canvas, then veltrix_validate_canvas. Fix every error and tell me about warnings.',
