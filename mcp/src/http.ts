@@ -1,8 +1,14 @@
 import express, { type Express, type Request, type Response } from 'express';
-import type { IncomingHttpHeaders } from 'http';
-import type { Server } from 'http';
+import type { IncomingHttpHeaders, Server } from 'http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import {
+  hostHeaderValidation,
+  localhostHostValidation,
+} from '@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js';
+import { DEFAULT_HTTP_HOST, isVeltrixApiKey } from './config';
 import { buildMcpServer } from './server';
+
+export const SHUTDOWN_GRACE_MS = 10_000;
 
 /**
  * Extracts the caller's Veltrix API key from request headers. Accepts:
@@ -28,6 +34,12 @@ export interface HttpAppOptions {
   fallbackApiKey?: string;
   /** Per-request Veltrix API timeout in ms. */
   apiTimeoutMs?: number;
+  /** Host header allowlist (hostnames without ports). */
+  allowedHosts?: string[];
+}
+
+function jsonRpcError(res: Response, status: number, code: number, message: string): void {
+  res.status(status).json({ jsonrpc: '2.0', error: { code, message }, id: null });
 }
 
 /**
@@ -37,6 +49,18 @@ export interface HttpAppOptions {
  */
 export function createHttpApp(options: HttpAppOptions): Express {
   const app = express();
+  app.disable('x-powered-by');
+
+  // DNS-rebinding defence. A caller-supplied key is not ambient authority, so
+  // host validation is opt-in there (it sits behind a reverse proxy that sets
+  // the public Host). With a fallback key the process itself holds a
+  // credential any local web page could borrow, so localhost-only is the default.
+  if (options.allowedHosts?.length) {
+    app.use(hostHeaderValidation(options.allowedHosts));
+  } else if (options.fallbackApiKey) {
+    app.use(localhostHostValidation());
+  }
+
   app.use(express.json({ limit: '4mb' }));
 
   app.get('/healthz', (_req: Request, res: Response) => {
@@ -46,14 +70,16 @@ export function createHttpApp(options: HttpAppOptions): Express {
   app.post('/mcp', async (req: Request, res: Response) => {
     const apiKey = extractApiKey(req.headers) ?? options.fallbackApiKey;
     if (!apiKey) {
-      res.status(401).json({
-        jsonrpc: '2.0',
-        error: {
-          code: -32001,
-          message: 'Missing Veltrix API key. Send "Authorization: Bearer <vltx_...>" or an "x-api-key" header.',
-        },
-        id: null,
-      });
+      jsonRpcError(
+        res,
+        401,
+        -32001,
+        'Missing Veltrix API key. Send "Authorization: Bearer <vltx_...>" or an "x-api-key" header.',
+      );
+      return;
+    }
+    if (!isVeltrixApiKey(apiKey)) {
+      jsonRpcError(res, 401, -32001, 'Invalid Veltrix API key format. Keys start with "vltx_".');
       return;
     }
 
@@ -68,22 +94,13 @@ export function createHttpApp(options: HttpAppOptions): Express {
       await server.connect(transport);
       await transport.handleRequest(req, res, req.body);
     } catch {
-      if (!res.headersSent) {
-        res.status(500).json({
-          jsonrpc: '2.0',
-          error: { code: -32603, message: 'Internal server error' },
-          id: null,
-        });
-      }
+      if (!res.headersSent) jsonRpcError(res, 500, -32603, 'Internal server error');
     }
   });
 
   const methodNotAllowed = (_req: Request, res: Response) => {
-    res.status(405).json({
-      jsonrpc: '2.0',
-      error: { code: -32000, message: 'Method not allowed: this server runs in stateless mode; use POST /mcp.' },
-      id: null,
-    });
+    res.setHeader('Allow', 'POST');
+    jsonRpcError(res, 405, -32000, 'Method not allowed: this server runs in stateless mode; use POST /mcp.');
   };
   app.get('/mcp', methodNotAllowed);
   app.delete('/mcp', methodNotAllowed);
@@ -91,13 +108,32 @@ export function createHttpApp(options: HttpAppOptions): Express {
   return app;
 }
 
+/** Stops accepting connections, lets in-flight calls finish, then force-closes. */
+export function closeGracefully(server: Server, graceMs: number = SHUTDOWN_GRACE_MS): Promise<void> {
+  return new Promise((resolve) => {
+    const force = setTimeout(() => server.closeAllConnections(), graceMs);
+    force.unref();
+    server.close(() => {
+      clearTimeout(force);
+      resolve();
+    });
+    server.closeIdleConnections();
+  });
+}
+
 export function startHttpServer(options: HttpAppOptions & { port: number; host?: string }): Server {
   const app = createHttpApp(options);
-  // Loopback by default: this endpoint forwards tenant API keys, so exposing it
-  // beyond localhost must be a deliberate choice (--host 0.0.0.0 / VELTRIX_MCP_HOST).
-  const host = options.host ?? '127.0.0.1';
-  return app.listen(options.port, host, () => {
-    // eslint-disable-next-line no-console
+  const host = options.host ?? DEFAULT_HTTP_HOST;
+  const server = app.listen(options.port, host, () => {
     console.error(`Veltrix MCP server (Streamable HTTP) listening on ${host}:${options.port} -> ${options.apiUrl}`);
   });
+
+  const shutdown = (signal: NodeJS.Signals) => {
+    console.error(`Veltrix MCP server received ${signal}; draining connections...`);
+    void closeGracefully(server).then(() => process.exit(0));
+  };
+  process.once('SIGTERM', shutdown);
+  process.once('SIGINT', shutdown);
+
+  return server;
 }
